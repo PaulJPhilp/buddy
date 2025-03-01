@@ -1,0 +1,51 @@
+• Packages in scope: @local/api, buddy-server, bun-react-template
+• Running dev in 3 packages
+• Remote caching disabled
+buddy-server:dev: cache bypass, force executing be163d8fcf0fafbe
+bun-react-template:dev: cache bypass, force executing 466e2f583c68e645
+buddy-server:dev: $ bun run src/main.ts
+bun-react-template:dev: $ bun --hot run dev-server.ts
+bun-react-template:dev: 1 | import { serve } from "bun";
+bun-react-template:dev: 2 | 
+bun-react-template:dev: 3 | const server = serve({
+bun-react-template:dev:                    ^
+bun-react-template:dev: error: Failed to start server. Is port 3001 in use?
+bun-react-template:dev:  syscall: "listen",
+bun-react-template:dev:    errno: 0,
+bun-react-template:dev:     code: "EADDRINUSE"
+bun-react-template:dev: 
+bun-react-template:dev:       at /Users/paul/projects/buddy/apps/client/dev-server.ts:3:16
+buddy-server:dev: Environment variables:
+buddy-server:dev: POSTGRES_HOST: localhost
+buddy-server:dev: POSTGRES_PORT: 5435
+buddy-server:dev: POSTGRES_USER: postgres
+buddy-server:dev: POSTGRES_DB: postgres
+buddy-server:dev: Current working directory: /Users/paul/projects/buddy/apps/server
+buddy-server:dev: Loaded .env file from ./src/.env
+buddy-server:dev: Database Configuration:
+buddy-server:dev: Username: postgres
+buddy-server:dev: Database: postgres
+buddy-server:dev: Host: localhost
+buddy-server:dev: Port: 5435
+buddy-server:dev: Password: [REDACTED]
+buddy-server:dev: Loaded .env file from ./src/.env
+buddy-server:dev: [18:21:10.802] ERROR (#0):
+buddy-server:dev: SqlError: Failed to execute statement
+buddy-server:dev:     at new YieldableError (unknown)
+buddy-server:dev:     at new Base (/Users/paul/projects/buddy/node_modules/effect/dist/esm/Data.js:262:7)
+buddy-server:dev:     at new Base (unknown)
+buddy-server:dev:     at new SqlError (unknown)
+buddy-server:dev:     at <anonymous> (/Users/paul/projects/buddy/node_modules/@effect/sql-pg/dist/esm/PgClient.js:78:72)
+buddy-server:dev:     at processTicksAndRejections (native:7:39) {
+buddy-server:dev:   [cause]: Error: write CONNECTION_ENDED localhost:5435
+buddy-server:dev:       at handler (/Users/paul/projects/buddy/node_modules/postgres/src/index.js:330:34)
+buddy-server:dev:       at <anonymous> (/Users/paul/projects/buddy/node_modules/postgres/src/query.js:140:65)
+buddy-server:dev:       at processTicksAndRejections (native:7:39)
+buddy-server:dev: }
+buddy-server:dev: error: script "dev" exited with code 1
+
+ Tasks:    0 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    655ms 
+Failed:    buddy-server#dev
+

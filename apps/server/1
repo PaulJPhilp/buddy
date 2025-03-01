@@ -1,0 +1,38 @@
+Environment variables:
+POSTGRES_HOST: localhost
+POSTGRES_PORT: 5435
+POSTGRES_USER: postgres
+POSTGRES_DB: postgres
+Main
+Current working directory: /Users/paul/projects/buddy/apps/server
+
+
+Building MainApi
+
+Building HttpLive
+
+LOGGING CONFIG
+
+Loaded .env file from ./src/.env
+Database Configuration:
+Username: postgres
+Database: postgres
+Host: localhost
+Port: 5435
+Password: [REDACTED]
+LAUNCHING
+
+Loaded .env file from ./src/.env
+[18:40:47.459] ERROR (#0):
+SqlError: Failed to execute statement
+    at new YieldableError (unknown)
+    at new Base (/Users/paul/projects/buddy/node_modules/effect/dist/esm/Data.js:262:7)
+    at new Base (unknown)
+    at new SqlError (unknown)
+    at <anonymous> (/Users/paul/projects/buddy/node_modules/@effect/sql-pg/dist/esm/PgClient.js:78:72)
+    at processTicksAndRejections (native:7:39) {
+  [cause]: Error: write CONNECTION_ENDED localhost:5435
+      at handler (/Users/paul/projects/buddy/node_modules/postgres/src/index.js:330:34)
+      at <anonymous> (/Users/paul/projects/buddy/node_modules/postgres/src/query.js:140:65)
+      at processTicksAndRejections (native:7:39)
+}

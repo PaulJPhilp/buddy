@@ -1,0 +1,11 @@
+ 9 |     port: 3001,
+10 |     hostname: "localhost",
+11 | };
+12 | 
+13 | // Create HTTP server
+14 | const ServerLive = NodeHttpServer.server.pipe(
+                                       ^
+TypeError: undefined is not an object (evaluating 'NodeHttpServer.server.pipe')
+      at /Users/paul/projects/buddy/apps/server/src/main.ts:14:35
+
+Bun v1.2.3 (macOS arm64)

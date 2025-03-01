@@ -1,0 +1,21 @@
+{
+  "name": "@api/core",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run index.ts",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "check-types": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.1"
+  },
+  "dependencies": {
+    "@effect/platform": "^0.77.1",
+    "effect": "^3.13.1"
+  }
+}
