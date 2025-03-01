@@ -1,4 +1,8 @@
-# bun-react-tailwind-shadcn-template
+# buddy - The refactored buddybuilder
+
+A bun-react-tailwind-shadcn application
+
+## Getting Started
 
 To install dependencies:
 
