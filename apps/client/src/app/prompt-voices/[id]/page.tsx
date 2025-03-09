@@ -1,15 +1,33 @@
 import { getPromptVoiceById } from "@/hooks/use-prompt-voices";
+import { Metadata } from "next";
 import Link from "next/link";
 
-export async function generateMetadata({ params }) {
+interface PageParams {
+  id: string;
+}
+
+interface PageProps {
+  params: Promise<PageParams>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const resolvedParams = await params;
   return {
-    title: `Prompt Voice: ${params.id}`,
+    title: `Prompt Voice: ${resolvedParams.id}`,
   };
 }
 
-export default async function PromptVoiceDetailPage({ params }) {
+export default async function PromptVoiceDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   // Fetch the prompt voice data on the server
-  const { promptVoice, loading, error } = await getPromptVoiceById(params.id);
+  const { promptVoice, loading, error } = await getPromptVoiceById(resolvedParams.id);
 
   return (
     <div className="space-y-6">

@@ -1,75 +1,78 @@
-import { ApiClient, ApiClientLayer } from '@/lib/api-client';
-import { Effect } from 'effect';
-import NextAuth, { type User, type Session } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
+import { ApiClient, ApiClientLayer } from "@/lib/api-client";
+import { Effect, Redacted } from "effect";
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 
-import { authConfig } from './auth.config';
-
-interface ExtendedSession extends Session {
-  user: User;
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      token?: string;
+    };
+  }
 }
 
-// Helper function to run Effect
+type LoginCredentials = Record<"email" | "password", string>;
+
 const runEffect = async <T, E>(effect: Effect.Effect<T, E, ApiClient>) => {
-  return Effect.runPromise(
-    Effect.provide(
-      effect,
-      ApiClientLayer
-    )
-  );
+  return Effect.runPromise(Effect.provide(effect, ApiClientLayer));
 };
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
-  ...authConfig,
+export const authConfig = NextAuth({
   providers: [
-    Credentials({
-      credentials: {},
-      async authorize({ email, password }: any) {
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
         try {
-          // Try to authenticate with the server API
+          const creds = credentials as LoginCredentials;
+          if (!creds?.email || !creds?.password) {
+            return null;
+          }
+
           const result = await runEffect(
             Effect.gen(function* () {
               const api = yield* ApiClient;
-              
+
               try {
                 // Call the real login API
-                const loginResult = yield* Effect.either(api.user.loginUser({
-                  email,
-                  password
-                }));
-                
+                const loginResult = yield* Effect.either(
+                  api.user.loginUser({
+                    payload: {
+                      email: creds.email,
+                      password: Redacted.make(creds.password),
+                    },
+                  }),
+                );
+
                 // Check if login was successful
-                if (loginResult._tag === 'Right') {
+                if (loginResult._tag === "Right") {
                   const { user, token } = loginResult.right;
-                  return [{
+                  return {
                     id: user.id,
                     email: user.email,
                     name: user.firstName,
-                    // Store token for future API requests
-                    token: token
-                  }];
+                    token,
+                  };
                 }
-                
-                console.error('Login API error:', loginResult.left);
-                return [];
+
+                console.error("Login API error:", loginResult.left);
+                return null;
               } catch (error) {
-                console.error('Error calling login API:', error);
-                return [];
+                console.error("Error calling login API:", error);
+                return null;
               }
-            })
+            }),
           );
-          
-          if (!result || result.length === 0) return null;
-          
-          // Return the authenticated user
-          return result[0] as User;
+
+          return result;
         } catch (error) {
-          console.error('Authentication error:', error);
+          console.error("Authentication error:", error);
           return null;
         }
       },
@@ -79,29 +82,25 @@ export const {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
         // Store API token if available
-        if ('token' in user) {
+        if ("token" in user) {
           token.apiToken = user.token;
         }
       }
-
       return token;
     },
-    async session({
-      session,
-      token,
-    }: {
-      session: ExtendedSession;
-      token: any;
-    }) {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
         // Add API token to session if available
         if (token.apiToken) {
-          (session.user as any).apiToken = token.apiToken;
+          session.user.token = token.apiToken as string;
         }
       }
-
       return session;
     },
   },

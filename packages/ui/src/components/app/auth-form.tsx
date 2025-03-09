@@ -1,81 +1,314 @@
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+"use client"
 
-interface AuthFormProps {
-  action: NonNullable<
-    string | ((formData: FormData) => void | Promise<void>) | undefined
-  >;
-  children: React.ReactNode;
-  defaultEmail?: string;
-}
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Github } from "lucide-react"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
-/**
- * Authentication form component that handles user input for authentication flows.
- *
- * @explanation
- * The AuthForm provides a standardized form interface for authentication operations.
- * It implements:
- * 1. Form submission handling with support for both sync and async actions
- * 2. Flexible child component rendering for different auth scenarios (login, signup)
- * 3. Email field pre-population capability
- * 4. Consistent styling with responsive padding and gap spacing
- *
- * The component is designed to be reusable across different authentication
- * contexts while maintaining a consistent user experience. It uses the native
- * Form component for handling submissions and provides a structured layout
- * for authentication-related input fields and controls.
- *
- * @param {AuthFormProps} props - The component props
- * @param {string | ((formData: FormData) => void | Promise<void>)} props.action - Form submission handler
- * @param {React.ReactNode} props.children - Child components to render within the form
- * @param {string} [props.defaultEmail=''] - Optional default email to pre-populate the form
- * @returns {JSX.Element} The rendered authentication form
- */
-export function AuthForm({
-  action,
-  children,
-  defaultEmail = "",
-}: AuthFormProps): JSX.Element {
+import { Button } from "../ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
+import { Input } from "../ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
+
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
+import { Checkbox } from "../ui/checkbox"
+
+const loginSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  rememberMe: z.boolean().optional(),
+})
+
+const signupSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+    email: z.string().email({ message: "Please enter a valid email address" }),
+    password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+    confirmPassword: z.string(),
+    terms: z.boolean().refine((val) => val === true, {
+      message: "You must agree to the terms and conditions",
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+
+type LoginFormValues = z.infer<typeof loginSchema>
+type SignupFormValues = z.infer<typeof signupSchema>
+
+export function AuthForm() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = React.useState<boolean>(false)
+  const [activeTab, setActiveTab] = React.useState<string>("login")
+  const [showPassword, setShowPassword] = React.useState<boolean>(false)
+
+  // Login form
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+  })
+
+  // Signup form
+  const signupForm = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      terms: false,
+    },
+  })
+
+  async function onLoginSubmit(data: LoginFormValues) {
+    setIsLoading(true)
+
+    try {
+      // Here you would typically call your authentication API
+      console.log("Login data:", data)
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Redirect to dashboard on success
+      router.push("/dashboard")
+    } catch (error) {
+      console.error("Login failed:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function onSignupSubmit(data: SignupFormValues) {
+    setIsLoading(true)
+
+    try {
+      // Here you would typically call your registration API
+      console.log("Signup data:", data)
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Switch to login tab or redirect
+      setActiveTab("login")
+    } catch (error) {
+      console.error("Signup failed:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <form 
-      action={action} 
-      className="flex flex-col gap-4 px-4 sm:px-16"
-    >
-      <div className="flex flex-col gap-2">
-        <Label
-          htmlFor="email"
-          className="text-zinc-600 font-normal dark:text-zinc-400"
-        >{`Email Address`}</Label>
+    <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="login">Login</TabsTrigger>
+        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+      </TabsList>
+      <TabsContent value="login">
+        <Card>
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Enter your credentials to access your account</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="name@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Password</FormLabel>
+                        <Button
+                          variant="link"
+                          className="px-0 text-xs font-normal"
+                          type="button"
+                          onClick={() => router.push("/forgot-password")}
+                        >
+                          Forgot password?
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={loginForm.control}
+                  name="rememberMe"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Remember me</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Logging in..." : "Login"}
+                </Button>
+              </form>
+            </Form>
 
-        <Input
-          id="email"
-          name="email"
-          className="bg-muted text-md md:text-sm"
-          type="email"
-          placeholder="user@acme.com"
-          autoComplete="email"
-          required
-          autoFocus
-          defaultValue={defaultEmail}
-        />
-      </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
 
-      <div className="flex flex-col gap-2">
-        <Label
-          htmlFor="password"
-          className="text-zinc-600 font-normal dark:text-zinc-400"
-        >{`Password`}</Label>
+            <Button variant="outline" type="button" className="w-full" disabled={isLoading}>
+              <Github className="mr-2 h-4 w-4" />
+              GitHub
+            </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="signup">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create an account</CardTitle>
+            <CardDescription>Enter your information to create an account</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Form {...signupForm}>
+              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                <FormField
+                  control={signupForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={signupForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="name@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={signupForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormDescription>At least 8 characters</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={signupForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={signupForm.control}
+                  name="terms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          I agree to the{" "}
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 text-primary"
+                            type="button"
+                            onClick={() => router.push("/terms")}
+                          >
+                            terms of service
+                          </Button>{" "}
+                          and{" "}
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 text-primary"
+                            type="button"
+                            onClick={() => router.push("/privacy")}
+                          >
+                            privacy policy
+                          </Button>
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Creating account..." : "Create account"}
+                </Button>
+              </form>
+            </Form>
 
-        <Input
-          id="password"
-          name="password"
-          className="bg-muted text-md md:text-sm"
-          type="password"
-          required
-        />
-      </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
 
-      {children}
-    </form>
-  );
+            <Button variant="outline" type="button" className="w-full" disabled={isLoading}>
+              <Github className="mr-2 h-4 w-4" />
+              GitHub
+            </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+  )
 }

@@ -11,14 +11,16 @@ export function SubmitButton({
   children,
   isSuccessful,
   isPending,
+  className,
 }: {
   children: React.ReactNode;
   isSuccessful: boolean;
   isPending?: boolean;
+  className?: string;
 }) {
   // Try to use React's built-in hook, but provide a fallback if it fails
   let pending = false;
-  
+
   try {
     // This is wrapped in try/catch because the hook might not be available
     // in all React environments
@@ -28,7 +30,7 @@ export function SubmitButton({
     // Fallback to the prop if the hook is not available
     pending = isPending || false;
   }
-  
+
   // Allow manual override of pending state via props
   if (isPending !== undefined) {
     pending = isPending;
@@ -39,7 +41,7 @@ export function SubmitButton({
       type={pending ? "button" : "submit"}
       aria-disabled={pending || isSuccessful}
       disabled={pending || isSuccessful}
-      className="relative"
+      className={`relative w-full h-9 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 ${className || ''}`}
     >
       {children}
 

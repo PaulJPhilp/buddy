@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const config: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@api/core", "@buddy/ui"], // Add workspace packages here
   images: {
@@ -32,21 +34,21 @@ const nextConfig = {
   // For redirects and rewrites
   async redirects() {
     return [
-      // {
-      //   source: '/old-path',
-      //   destination: '/new-path',
-      //   permanent: true,
-      // },
+      {
+        source: '/',
+        destination: '/login',
+        permanent: false,
+      },
     ];
   },
   async rewrites() {
     return [
-      // {
-      //   source: '/api/:path*',
-      //   destination: 'https://api.example.com/:path*',
-      // },
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:3001/:path*",
+      },
     ];
   },
 };
 
-export default nextConfig;
+export default config;

@@ -7,14 +7,14 @@ import { DatabaseLive } from "./database";
 // import { Migrator } from "@effect/sql";
 
 export interface Migrator {
-  schemaDirectory: string;
-  loader: PgMigrator.Loader<FileSystem>;
+	schemaDirectory: string;
+	loader: PgMigrator.Loader<FileSystem>;
 }
 
 export const MigratorLive = PgMigrator.layer({
-  // Where to put the `_schema.sql` file
-  schemaDirectory: "src/migrations",
-  loader: PgMigrator.fromFileSystem(
-    fileURLToPath(new URL("migrations", import.meta.url)),
-  ),
+	// Where to put the `_schema.sql` file
+	schemaDirectory: "src/migrations",
+	loader: PgMigrator.fromFileSystem(
+		fileURLToPath(new URL("migrations", import.meta.url)),
+	),
 }).pipe(Layer.provide([DatabaseLive, NodeContext.layer]));

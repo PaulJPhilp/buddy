@@ -1,5 +1,5 @@
-import type { NextAuthConfig } from 'next-auth';
-import { v4 as uuidv4 } from 'uuid';
+import type { NextAuthConfig } from "next-auth";
+import { v4 as uuidv4 } from "uuid";
 
 // Generate a stable but random secret for development
 const getDevSecret = () => {
@@ -9,15 +9,15 @@ const getDevSecret = () => {
 };
 
 // Check for missing environment variables in production
-if (process.env.NODE_ENV === 'production' && !process.env.AUTH_SECRET) {
-  throw new Error('AUTH_SECRET environment variable is not set in production!');
+if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET) {
+  throw new Error("AUTH_SECRET environment variable is not set in production!");
 }
 
 export const authConfig = {
   secret: process.env.AUTH_SECRET || getDevSecret(),
   pages: {
-    signIn: '/login',
-    newUser: '/',
+    signIn: "/login",
+    newUser: "/",
   },
   providers: [
     // added later in auth.ts since it requires bcrypt which is only compatible with Node.js
@@ -26,12 +26,12 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnChat = nextUrl.pathname.startsWith('/');
-      const isOnRegister = nextUrl.pathname.startsWith('/register');
-      const isOnLogin = nextUrl.pathname.startsWith('/login');
+      const isOnChat = nextUrl.pathname.startsWith("/");
+      const isOnRegister = nextUrl.pathname.startsWith("/register");
+      const isOnLogin = nextUrl.pathname.startsWith("/login");
 
       if (isLoggedIn && (isOnLogin || isOnRegister)) {
-        return Response.redirect(new URL('/', nextUrl as unknown as URL));
+        return Response.redirect(new URL("/", nextUrl as unknown as URL));
       }
 
       if (isOnRegister || isOnLogin) {
@@ -44,7 +44,7 @@ export const authConfig = {
       }
 
       if (isLoggedIn) {
-        return Response.redirect(new URL('/', nextUrl as unknown as URL));
+        return Response.redirect(new URL("/", nextUrl as unknown as URL));
       }
 
       return true;

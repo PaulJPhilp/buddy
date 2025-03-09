@@ -42,12 +42,13 @@ export default async function PromptsPage() {
             <div className="flex justify-between items-start mb-2">
               <h2 className="text-lg font-semibold">{prompt.name}</h2>
               <span
-                className={`px-2 py-1 text-xs rounded ${prompt.type === "system"
+                className={`px-2 py-1 text-xs rounded ${
+                  prompt.type === "system"
                     ? "bg-purple-100 text-purple-800"
                     : prompt.type === "template"
                       ? "bg-blue-100 text-blue-800"
                       : "bg-gray-100 text-gray-800"
-                  }`}
+                }`}
               >
                 {prompt.type}
               </span>

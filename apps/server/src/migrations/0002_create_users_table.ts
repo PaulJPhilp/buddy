@@ -2,8 +2,8 @@ import { SqlClient } from "@effect/sql";
 import { Effect } from "effect";
 
 export default Effect.flatMap(
-  SqlClient.SqlClient,
-  (sql) => sql`
+	SqlClient.SqlClient,
+	(sql) => sql`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       firstName VARCHAR(255) NOT NULL,

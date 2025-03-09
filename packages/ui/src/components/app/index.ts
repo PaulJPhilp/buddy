@@ -1,2 +1,2 @@
-export * from './auth-form'
-export * from './submit-button'
+export * from "./auth-form";
+export * from "./submit-button";
