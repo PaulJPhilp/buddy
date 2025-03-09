@@ -1,4 +1,4 @@
-@import "@buddy/ui/globals.css";
+@import "@buddy/ui/src/styles/globals.css";
 
 @layer base {
   * {

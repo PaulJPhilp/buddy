@@ -1,19 +1,18 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Github } from "lucide-react"
-import { useRouter } from "next/navigation"
 import * as React from "react"
+import { useRouter } from "next/navigation"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { Github } from "lucide-react"
 
-import { Button } from "../ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
-import { Input } from "../ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
-
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
-import { Checkbox } from "../ui/checkbox"
+import { Button } from "@components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@components/ui/card"
+import { Input } from "@components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@components/ui/tabs"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@components/ui/form"
+import { Checkbox } from "@components/ui/checkbox"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),

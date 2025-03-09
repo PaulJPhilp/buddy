@@ -4,18 +4,20 @@ import Link from "next/link"
 
 export default function SignupPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md">
+    <div>
+      <h1 className="text-3xl font-bold">Welcome</h1>
+      <p className="text-slate-500 mt-2">Sign in to your account or create a new one</p>
+      <div className="mt-8">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle>Sign Up</CardTitle>
-            <CardDescription>Create a new account to get started</CardDescription>
+            <CardTitle>Create an Account</CardTitle>
+            <CardDescription>Enter your information to create a new account</CardDescription>
           </CardHeader>
           <CardContent>
             <SignupForm />
             <div className="text-center mt-4 text-sm text-slate-500">
               Already have an account?{" "}
-              <Link href="/" className="text-blue-600 hover:underline">
+              <Link href="/login" className="text-blue-600 hover:underline">
                 Sign in
               </Link>
             </div>

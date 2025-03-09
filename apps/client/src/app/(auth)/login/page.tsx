@@ -1,32 +1,50 @@
-'use client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@components/ui/card"
+import { LoginForm } from "@components/app/login-form"
+import { SignupForm } from "@components/app/signup-form"
 
-import { LoginForm } from "@components/app/login-form";
-import { Card, CardContent } from "@components/ui/card";
-import Link from "next/link";
-
-export default function LoginPage() {
+export default function AuthPage() {
   return (
-    <>
-      <div className="flex flex-col text-center">
-        <div className="mb-6 pb-2">
-          <h1 className="text-[2rem] font-semibold tracking-wide text-[hsl(var(--foreground))]" style={{ lineHeight: 1.5 }}>Sign In</h1>
-          <p className="text-sm text-muted-foreground mt-4">
-            Enter your credentials to access your account
-          </p>
+    <div className="flex min-h-screen bg-slate-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold">Welcome</h1>
+          <p className="text-slate-500 mt-2">Sign in to your account or create a new one</p>
         </div>
+
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle>Login</CardTitle>
+                <CardDescription>Enter your credentials to access your account</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LoginForm />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="signup">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create an account</CardTitle>
+                <CardDescription>Enter your information to create a new account</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SignupForm />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-      <Card>
-        <CardContent className="pt-6">
-          <LoginForm />
-        </CardContent>
-      </Card>
-      <p className="text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
-        <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-          Sign up
-        </Link>
-      </p>
-    </>
+    </div>
   )
 }
+
 
