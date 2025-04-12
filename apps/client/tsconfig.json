@@ -24,9 +24,12 @@
       "@api/*": ["../../packages/api/*"],
       "@server/*": ["../server/src/*"],
       "@client/*": ["./src/*"],
-      "@components/*": ["../../packages/ui/src/components/*"]
+      "@components/*": ["./src/components/*"],
+      "@ui/*": ["../../packages/ui/src/*"],
+      "@app/*": ["./src/app/*"],
+      "@auth/*": ["./src/components/auth/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../packages/ui/src/components/ui/checkbox.tsx", "../../packages/ui/src/components/ui/button.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
