@@ -15,5 +15,12 @@ export default defineConfig({
   onSuccess: "tsc --emitDeclarationOnly --declaration",
   loader: {
     ".css": "copy"
-  }
+  },
+  watch: true,
+  env: {
+    NODE_OPTIONS: '--max-old-space-size=4096',
+  },
+  silent: false,
+  minify: false,
+  sourcemap: true
 })

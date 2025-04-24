@@ -19,13 +19,27 @@ export const viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        baseTheme: undefined,
+        elements: {
+          card: "shadow-none bg-background",
+          headerTitle: "text-foreground",
+          headerSubtitle: "text-muted-foreground",
+          socialButtonsBlockButton: "text-foreground",
+          formButtonPrimary: "bg-primary hover:bg-primary/90",
+          footerActionLink: "text-primary hover:text-primary/90",
+        }
+      }}
+      afterSignInUrl="/"
+      afterSignUpUrl="/"
+    >
       <html
         lang="en"
         suppressHydrationWarning

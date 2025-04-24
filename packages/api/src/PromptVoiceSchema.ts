@@ -12,11 +12,11 @@ export class PromptVoice extends Schema.Class<PromptVoice>("PromptVoice")({
   label: Schema.String,
   key: Schema.String,
   prompt: Prompt,
-}) {}
+}) { }
 
 const promptVoiceCreateEndpoint = HttpApiEndpoint.post(
   "createPromptVoice",
-)`/prompt/create`
+)`/prompt-voice/create`
   .setPayload(PromptVoice)
   .addError(Schema.String)
   .addSuccess(PromptVoice);
@@ -30,4 +30,4 @@ const promptVoiceGetEndpoint = HttpApiEndpoint.post(
 
 export class PromptVoiceApiGroup extends HttpApiGroup.make("prompt-voice")
   .add(promptVoiceCreateEndpoint)
-  .add(promptVoiceGetEndpoint) {}
+  .add(promptVoiceGetEndpoint) { }

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@api/core", "@buddy/ui"],
+  transpilePackages: ["@api/core", "@buddy/ui", "@clerk/nextjs"],
   images: {
     domains: [],
     formats: ["image/avif", "image/webp"],

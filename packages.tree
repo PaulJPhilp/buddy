@@ -1,0 +1,79 @@
+./packages
+├── api
+│   ├── .gitignore
+│   ├── .turbo
+│   │   └── turbo-lint.log
+│   ├── index.ts
+│   ├── package.json
+│   ├── src
+│   │   ├── PromptSchema.ts
+│   │   ├── PromptVoiceSchema.ts
+│   │   └── UserSchema.ts
+│   ├── tsconfig.json
+│   └── tsconfig.tsbuildinfo
+└── ui
+    ├── .turbo
+    │   ├── turbo-build.log
+    │   └── turbo-lint.log
+    ├── dist
+    │   ├── index.cjs
+    │   └── index.js
+    ├── package.json
+    ├── postcss.config.ts
+    ├── src
+    │   ├── components
+    │   │   ├── app
+    │   │   │   ├── auth-form.tsx
+    │   │   │   ├── auth-layout.tsx
+    │   │   │   ├── index.ts
+    │   │   │   ├── login-form.tsx
+    │   │   │   ├── signup-form.tsx
+    │   │   │   ├── submit-button.tsx
+    │   │   │   └── theme-provider.tsx
+    │   │   ├── index.ts
+    │   │   └── ui
+    │   │       ├── alert-dialog.tsx
+    │   │       ├── badge.tsx
+    │   │       ├── button.tsx
+    │   │       ├── card.tsx
+    │   │       ├── checkbox.tsx
+    │   │       ├── command.tsx
+    │   │       ├── data-table.tsx
+    │   │       ├── dialog.tsx
+    │   │       ├── document-picker.tsx
+    │   │       ├── dropdown-menu.tsx
+    │   │       ├── error-boundary.tsx
+    │   │       ├── extendable-drawer.tsx
+    │   │       ├── file-picker.tsx
+    │   │       ├── form.tsx
+    │   │       ├── heading.tsx
+    │   │       ├── icons.tsx
+    │   │       ├── input.tsx
+    │   │       ├── label.tsx
+    │   │       ├── popover.tsx
+    │   │       ├── select.tsx
+    │   │       ├── separator.tsx
+    │   │       ├── sheet.tsx
+    │   │       ├── sidebar.tsx
+    │   │       ├── skeleton.tsx
+    │   │       ├── table.tsx
+    │   │       ├── tabs.tsx
+    │   │       ├── textarea.tsx
+    │   │       ├── toast.tsx
+    │   │       └── tooltip.tsx
+    │   ├── hooks
+    │   ├── index.ts
+    │   ├── lib
+    │   │   └── utils.ts
+    │   ├── styles
+    │   │   └── globals.css
+    │   ├── test
+    │   │   └── setup.ts
+    │   ├── types
+    │   └── utils
+    │       └── cn.ts
+    ├── tsconfig.json
+    ├── tsup.config.ts
+    └── vitest.config.ts
+
+17 directories, 60 files

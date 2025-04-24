@@ -24,8 +24,7 @@
       "@server/*": ["./apps/server/src/*"],
       "@client/*": ["./apps/client/src/*"],
       "@components/*": ["./packages/ui/src/components/*"],
-      "@buddy/ui/*": ["./packages/ui/src/*"],
-      "@buddy":["."]
+      "@ui/*": ["./packages/ui/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

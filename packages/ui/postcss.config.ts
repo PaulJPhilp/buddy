@@ -1,4 +1,3 @@
-import { join } from 'node:path'
 import type { AcceptedPlugin, ProcessOptions } from 'postcss'
 
 interface PostCSSConfig {
@@ -8,9 +7,7 @@ interface PostCSSConfig {
 
 const config: PostCSSConfig = {
   plugins: {
-    "@tailwindcss/postcss": {
-      base: join(__dirname, "../../"),
-    },
+    "tailwindcss": {},
   },
 }
 
