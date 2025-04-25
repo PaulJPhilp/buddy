@@ -12,7 +12,10 @@ import {
 export class ServerApi extends HttpApi.make("server-api")
   .add(PromptApiGroup)
   .add(PromptVoiceApiGroup)
-  .add(UserApiGroup) {}
+  .add(UserApiGroup) {
+  readonly [HttpApi.TypeId] = HttpApi.TypeId
+  readonly _tag = "ServerApi"
+}
 
 export {
   AuthToken,
@@ -23,5 +26,6 @@ export {
   User,
   UserApiGroup,
   UserCreate,
-  UserLogin,
+  UserLogin
 };
+

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { type VariantProps, cva } from "class-variance-authority";
+import { cn } from "../../lib/utils";
 
 const headingVariants = cva("font-bold leading-tight tracking-tighter", {
   variants: {
@@ -17,7 +17,7 @@ const headingVariants = cva("font-bold leading-tight tracking-tighter", {
 
 interface HeadingProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof headingVariants> {
+  VariantProps<typeof headingVariants> {
   title: string;
   description?: string;
   descriptionClassName?: string;

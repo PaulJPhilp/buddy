@@ -6,6 +6,7 @@ import { Effect, Layer } from "effect";
 export class ApiClient extends Effect.Service<ApiClient>()("ApiClient", {
   dependencies: [FetchHttpClient.layer],
   effect: Effect.gen(function* () {
+    // @ts-ignore
     const client = yield* HttpApiClient.make(ServerApi, {
       baseUrl: "/api",
     });
@@ -17,6 +18,7 @@ export class ApiClient extends Effect.Service<ApiClient>()("ApiClient", {
 export const ApiClientLayer = Layer.effect(
   ApiClient,
   Effect.gen(function* () {
+    // @ts-ignore
     const client = yield* HttpApiClient.make(ServerApi, {
       baseUrl: "/api",
     });
