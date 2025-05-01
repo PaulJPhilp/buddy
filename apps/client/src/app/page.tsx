@@ -1,16 +1,11 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
+import { MinimalChatApp } from "@/app-chat/MinimalChatApp"
 
-export default async function Home() {
-    const { userId } = await auth()
-
-    if (!userId) {
-        redirect("/sign-in")
-    }
-
+export default function Home() {
     return (
-        <div className="h-full flex items-center justify-center">
-            <h1 className="text-2xl font-bold">Welcome to Buddy</h1>
-        </div>
+        <main className="flex min-h-screen flex-col items-center justify-between p-4">
+            <div className="w-full max-w-4xl h-[80vh] border rounded-lg shadow-sm">
+                <MinimalChatApp />
+            </div>
+        </main>
     )
 } 
