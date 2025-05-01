@@ -1,6 +1,5 @@
 import { Effect } from "effect"
 import { ChatService } from "./ChatService"
-import { MockChatService } from "./MockChatService"
 
 // Helper to log chat state changes
 const logChatState = (message: string) =>
@@ -10,7 +9,7 @@ const logChatState = (message: string) =>
     )
 
 // Main chat app program
-export const chatAppEffect = Effect.gen(function* () {
+const program = Effect.gen(function* () {
     const service = yield* ChatService
 
     // Initialize chat state
@@ -27,8 +26,7 @@ export const chatAppEffect = Effect.gen(function* () {
         .pipe(logChatState("Message sent"))
 
     // Get updated state
-    const state = yield* service.getState
+    const state = yield* service.getState()
     yield* Effect.log(`Current chat state: ${JSON.stringify(state, null, 2)}`)
         .pipe(Effect.annotateLogs({ app: "ChatApp" }))
-    })
-    .pipe(Effect.provideServiceEffect(ChatService, MockChatService))
+})

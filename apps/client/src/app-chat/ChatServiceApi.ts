@@ -1,23 +1,27 @@
 import { Effect } from "effect"
 
-export interface Message {
+// Message represents a single chat message
+export interface MessageApi {
     id: string
     text: string
     sender: "user" | "assistant"
     timestamp: number
 }
 
-export interface ChatState {
+// ChatState represents the current state of the chat
+export interface ChatStateApi {
     id: string
-    messages: Message[]
+    messages: MessageApi[]
     isTyping: boolean
 }
 
 export interface ChatServiceApi {
-    readonly getState: () => Effect.Effect<ChatState, Error, never>
-    readonly setState: (state: ChatState) => Effect.Effect<ChatState, Error, never>
-    readonly sendMessage: (text: string) => Effect.Effect<Message, Error, never>
-    readonly setTyping: (isTyping: boolean) => Effect.Effect<ChatState, Error, never>
+    readonly getState: () => Effect.Effect<ChatStateApi, Error, never>;
+    readonly setState: (
+        state: ChatStateApi,
+    ) => Effect.Effect<ChatStateApi, Error, never>;
+    readonly sendMessage: (text: string) => Effect.Effect<MessageApi, Error, never>;
+    readonly setTyping: (
+        isTyping: boolean,
+    ) => Effect.Effect<ChatStateApi, Error, never>;
 }
-
-export const ChatServiceApi = Effect.Service<ChatServiceApi>() 

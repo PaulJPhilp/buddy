@@ -1,46 +1,77 @@
-import { Effect } from "effect";
-import { ChatState, Message } from "./ChatServiceApi";
+/**
+ * @file Implementation of the ChatService using Effect's Service pattern.
+ */
 
-export class ChatService extends Effect.Service<ChatService>()("ChatService", {
-    effect: Effect.gen(function* () {
-        let state: ChatState = {
-            id: "default",
-            messages: [],
-            isTyping: false,
-        };
+import { Effect, Ref } from "effect";
+import type { ChatServiceApi, ChatStateApi, MessageApi } from "./ChatServiceApi";
 
-        return {
-            getState: Effect.succeed(state),
+/**
+ * ChatService implementation using Effect.Service pattern.
+ * This service provides chat functionality with state management.
+ */
+export class ChatService extends Effect.Service<ChatServiceApi>()(
+    "ChatService",
+    {
+        // Define service implementation
+        effect: Effect.gen(function* () {
+            const initialState: ChatStateApi = {
+                id: "default",
+                messages: [],
+                isTyping: false
+            };
 
-            setState: (newState: ChatState) =>
-                Effect.sync(() => {
-                    state = newState;
-                    return state;
-                }),
+            const stateRef = yield* Ref.make(initialState);
 
-            sendMessage: (text: string) =>
-                Effect.sync(() => {
-                    const message: Message = {
-                        id: `msg-${Date.now()}`,
-                        text,
-                        sender: "user",
-                        timestamp: Date.now(),
-                    };
-                    state = {
-                        ...state,
-                        messages: [...state.messages, message],
-                    };
-                    return message;
-                }),
+            return Effect.succeed({
+                /**
+                 * Get the current chat state
+                 */
+                getState: () =>
+                    stateRef.get.pipe(
+                        Effect.map(state => state)
+                    ),
 
-            setTyping: (isTyping: boolean) =>
-                Effect.sync(() => {
-                    state = {
-                        ...state,
-                        isTyping,
-                    };
-                    return state;
-                }),
-        };
-    }),
-}) { }
+                /**
+                 * Set a new chat state
+                 */
+                setState: (state: ChatStateApi) =>
+                    stateRef.modify(() => [state, state]),
+
+                /**
+                 * Send a new message
+                 */
+                sendMessage: (text: string) =>
+                    Effect.gen(function* (_) {
+                        const message: MessageApi = {
+                            id: `msg-${Date.now()}`,
+                            text,
+                            sender: "user",
+                            timestamp: Date.now()
+                        };
+                        const currentState = yield* stateRef.get;
+                        const newState = {
+                            ...currentState,
+                            messages: [...currentState.messages, message]
+                        };
+                        yield* stateRef.modify(() => [newState, newState]);
+                        return message;
+                    }),
+
+                /**
+                 * Set typing status
+                 */
+                setTyping: (isTyping: boolean) =>
+                    Effect.gen(function* (_) {
+                        const currentState = yield* stateRef.get;
+                        const newState = {
+                            ...currentState,
+                            isTyping
+                        };
+                        yield* stateRef.modify(() => [newState, newState]);
+                        return newState;
+                    })
+            });
+        }),
+        dependencies: [] // No explicit dependencies
+    }
+) { }
