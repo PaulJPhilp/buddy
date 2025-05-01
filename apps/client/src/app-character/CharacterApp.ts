@@ -67,3 +67,19 @@ const characterSchedule = (
 const schedule = Schedule.forever
 
 characterSchedule(schedule)
+
+// Main character app program
+export const characterAppEffect = Effect.gen(function* () {
+    const service = yield* CharacterService
+
+    // Get initial character state
+    const character = yield* service.getCharacter()
+    yield* Effect.log(`Character ${character.name} initialized`)
+        .pipe(Effect.annotateLogs({ app: "CharacterApp" }))
+
+    // Keep the character app alive
+    return Effect.never
+}).pipe(
+    Effect.interruptible,
+    Effect.annotateLogs({ app: "CharacterApp" })
+)

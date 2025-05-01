@@ -3,9 +3,6 @@
 import { Effect, Fiber, Runtime } from "effect";
 import { useEffect, useState } from "react";
 
-import { characterAppEffect } from "@/app-character/CharacterApp"; // Import the character app logic
-import { CharacterService } from "@/app-character/CharacterServiceApi";
-import { MockCharacterService } from "@/app-character/MockCharacterService";
 import { Toaster } from "@/components/ui/toaster";
 // Import the components
 import { Sidebar } from "./app-shell/Sidebar";
@@ -30,26 +27,16 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     useEffect(() => {
-        // Get the default runtime
         const runtime = Runtime.defaultRuntime
+        const fiber = Runtime.runFork(runtime)(Effect.never)
 
-        // Run the character app in a forked fiber with mock service
-        const fiber = Runtime.runFork(runtime)(
-            Effect.gen(function* () {
-                yield* Effect.logDebug("AppShell: Starting character app")
-                yield* Effect.provideService(CharacterService, MockCharacterService)(characterAppEffect)
-                yield* Effect.logDebug("AppShell: Character app completed")
-            })
-        )
-
-        console.log("Launched AppShell Character Fiber ID:", fiber.id)
-
-        // Cleanup function to interrupt the fiber
         return () => {
-            console.log("Interrupting AppShell Character Fiber ID:", fiber.id)
-            Runtime.runPromise(runtime)(Fiber.interrupt(fiber))
-                .then(() => console.log("AppShell Character Fiber interrupted successfully"))
-                .catch((e) => console.error("Error interrupting AppShell Character Fiber:", e))
+            Runtime.runPromise(runtime)(
+                Effect.gen(function* () {
+                    yield* Effect.logDebug("Interrupting AppSupervisor")
+                    yield* Fiber.interrupt(fiber)
+                })
+            )
         }
     }, [])
 
@@ -69,8 +56,8 @@ export function AppShell({ children }: AppShellProps) {
                     {/* Pass toggle function down to TopToolbar */}
                     <TopToolbar onToggleSidebar={toggleSidebar} />
 
-                    {/* Actual Page/App Content */}
-                    <div className="flex-1 p-4 overflow-y-auto">
+                    {/* Chat Windows Grid */}
+                    <div className="flex-1 grid grid-cols-2 gap-4 p-4 overflow-y-auto">
                         {children}
                     </div>
                 </main>
