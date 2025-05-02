@@ -6,7 +6,7 @@ import { Settings } from "lucide-react"
 
 export function ChatView() {
     return (
-        <div className="w-full h-full bg-card rounded-lg shadow-sm flex flex-col">
+        <div className="w-full h-full flex flex-col">
             {/* Header */}
             <div className="h-16 border-b p-4 flex items-center justify-between bg-muted/50">
                 {/* Clerk User Button on the left */}

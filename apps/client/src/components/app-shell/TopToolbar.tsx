@@ -5,10 +5,10 @@ import { Button } from "../ui/button"
 import { useToast } from "../ui/use-toast"
 
 interface TopToolbarProps {
-    onToggleSidebar: () => void
+    onToggleSidebarAction: () => void
 }
 
-export function TopToolbar({ onToggleSidebar }: TopToolbarProps) {
+export function TopToolbar({ onToggleSidebarAction }: TopToolbarProps) {
     const { toast } = useToast()
 
     const handleCopy = async (text: string) => {
@@ -29,16 +29,16 @@ export function TopToolbar({ onToggleSidebar }: TopToolbarProps) {
     }
 
     return (
-        <div className="h-14 border-b bg-muted/40 flex items-center px-4">
+        <div className="h-8 border-b bg-muted/40 flex items-center px-2">
             <Button
                 variant="ghost"
-                size="icon"
-                onClick={onToggleSidebar}
-                className="mr-4"
+                size="sm"
+                onClick={onToggleSidebarAction}
+                className="mr-2"
             >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4" />
             </Button>
-            <h1 className="font-semibold">Buddy</h1>
+            <h1 className="text-sm font-semibold">Buddy</h1>
         </div>
     )
 } 

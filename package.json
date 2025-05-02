@@ -8,14 +8,16 @@
   "packageManager": "bun@1.2.3",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "test": "turbo run test",
     "check-types": "tsc --noEmit",
     "check-server": "curl -v http://localhost:3001",
     "version-packages": "turbo run version",
-    "bump": "bun scripts/bump-versions.ts"
+    "bump": "bun scripts/bump-versions.ts",
+    "mcp": "npx -y @modelcontextprotocol/server-everything"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.9",

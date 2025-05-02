@@ -17,7 +17,7 @@ describe("ChatService", () => {
         it("should return the initial state", () =>
             Effect.gen(function* () {
                 const service = yield* ChatService;
-                const state = yield* service.getState();
+                const state = yield* service.getState;
 
                 expect(state).toEqual({
                     id: "default",
@@ -43,7 +43,7 @@ describe("ChatService", () => {
                 expect(updatedState).toEqual(newState);
 
                 // Verify state was actually updated
-                const currentState = yield* service.getState();
+                const currentState = yield* service.getState;
                 expect(currentState).toEqual(newState);
             }).pipe(Effect.provide(ChatService.Default))
         );
@@ -83,7 +83,7 @@ describe("ChatService", () => {
                 });
 
                 // Verify message was added to state
-                const state = yield* service.getState();
+                const state = yield* service.getState;
                 expect(state.messages).toHaveLength(1);
                 expect(state.messages[0]).toEqual(message);
             }).pipe(Effect.provide(ChatService.Default))
@@ -133,7 +133,7 @@ describe("ChatService", () => {
                 yield* service.sendMessage("Second message");
                 yield* service.sendMessage("Third message");
 
-                const state = yield* service.getState();
+                const state = yield* service.getState;
                 expect(state.messages).toHaveLength(3);
                 expect(state.messages.map(m => m.text)).toEqual([
                     "First message",
@@ -153,7 +153,7 @@ describe("ChatService", () => {
                 expect(state.isTyping).toBe(true);
 
                 // Verify state was updated
-                const currentState = yield* service.getState();
+                const currentState = yield* service.getState;
                 expect(currentState.isTyping).toBe(true);
             }).pipe(Effect.provide(ChatService.Default))
         );
@@ -170,7 +170,7 @@ describe("ChatService", () => {
                 expect(state.isTyping).toBe(false);
 
                 // Verify state was updated
-                const currentState = yield* service.getState();
+                const currentState = yield* service.getState;
                 expect(currentState.isTyping).toBe(false);
             }).pipe(Effect.provide(ChatService.Default))
         );
@@ -217,7 +217,7 @@ describe("ChatService", () => {
                 yield* service.setTyping(false);
 
                 // Get final state and verify
-                const finalState = yield* service.getState();
+                const finalState = yield* service.getState;
 
                 expect(finalState).toEqual({
                     id: chatId,
@@ -300,6 +300,7 @@ describe("ChatService", () => {
                     service.validateMessage("Message 2"),
                     service.validateMessage("Message 3")
                 ], { concurrency: "unbounded" });
+
                 expect(validations).toHaveLength(3);
                 for (const validation of validations) {
                     expect(validation.isValid).toBe(true);
@@ -317,7 +318,7 @@ describe("ChatService", () => {
                 expect(message.metadata?.length).toBe(message.text.length);
                 expect(message.metadata?.validation?.isValid).toBe(true);
 
-                const state = yield* service.getState();
+                const state = yield* service.getState;
                 expect(state.metadata?.messageCount).toBe(1);
                 expect(state.metadata?.lastMessageAt).toBeDefined();
             }).pipe(Effect.provide(ChatService.Default))
@@ -417,7 +418,7 @@ describe("ChatService", () => {
                 yield* service.clearHistory();
 
                 // Verify state
-                const state = yield* service.getState();
+                const state = yield* service.getState;
                 expect(state.messages).toHaveLength(0);
                 expect(state.metadata?.messageCount).toBe(0);
                 expect(state.metadata?.lastMessageAt).toBeUndefined();
@@ -448,7 +449,7 @@ describe("ChatService", () => {
                 expect(results).toHaveLength(4);
 
                 // Verify final state
-                const state = yield* service.getState();
+                const state = yield* service.getState;
                 expect(state.messages).toHaveLength(2);
                 expect(state.metadata?.messageCount).toBe(2);
             }).pipe(Effect.provide(ChatService.Default))

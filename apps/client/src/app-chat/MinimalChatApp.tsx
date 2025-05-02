@@ -1,81 +1,49 @@
 "use client"
 
 import { MessageItem } from "@/components/MessageItem"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Effect } from "effect"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ChatService } from "./ChatService"
 import type { ChatStateApi } from "./ChatServiceApi"
 
 export function MinimalChatApp() {
     const [chatState, setChatState] = useState<ChatStateApi>({
-        id: `chat-${Date.now()}`,
+        id: "default",
         messages: [],
         isTyping: false
     })
     const [inputText, setInputText] = useState("")
 
-    // Initialize chat
     useEffect(() => {
-        const initChat = async () => {
-            try {
-                await Effect.runPromise(
-                    Effect.gen(function* () {
-                        const service = yield* Effect.Do
-                        return yield* Effect.succeed(service)
-                    }).pipe(Effect.provide(ChatService.Default))
-                )
-            } catch (error) {
-                console.error("Failed to initialize chat:", error)
-            }
-        }
-        initChat()
+        Effect.runPromise(
+            Effect.gen(function* ($) {
+                const service = yield* ChatService
+                const state = yield* service.getState
+                return state
+            }).pipe(Effect.provide(ChatService.Default))
+        ).then(setChatState)
     }, [])
 
-    // Send message
-    const handleSend = async (text: string) => {
+    const handleSendMessage = useCallback((text: string) => {
         if (!text.trim()) return
 
-        try {
-            await Effect.runPromise(
-                Effect.gen(function* () {
-                    const service = yield* Effect.Do
-
-                    // Set typing indicator
-                    yield* Effect.succeed(service.setTyping(true))
-
-                    // Send message
-                    yield* Effect.succeed(service.sendMessage(text))
-
-                    // Clear typing indicator
-                    yield* Effect.succeed(service.setTyping(false))
-
-                    // Get updated state
-                    const newState = yield* Effect.succeed(service.getState())
-                    setChatState(newState)
-                }).pipe(Effect.provide(ChatService.Default))
-            )
-        } catch (error) {
-            console.error("Failed to send message:", error)
-        }
-    }
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault()
-            if (inputText.trim()) {
-                handleSend(inputText)
-                setInputText("")
-            }
-        }
-    }
+        Effect.runPromise(
+            Effect.gen(function* ($) {
+                const service = yield* ChatService
+                yield* service.sendMessage(text)
+                const state = yield* service.getState
+                return state
+            }).pipe(Effect.provide(ChatService.Default))
+        )
+            .then(setChatState)
+            .catch(console.error)
+    }, [])
 
     return (
         <Card className="flex h-full flex-col">
-            <CardHeader className="border-b bg-muted/50">
-                <CardTitle>Chat</CardTitle>
+            <CardHeader className="border-b border-slate-200/50 bg-muted/50 py-0.25 px-1.5 h-4 min-h-[16px] flex items-center">
+                <CardTitle className="text-[10px] font-medium leading-none">Chat</CardTitle>
             </CardHeader>
 
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -91,36 +59,52 @@ export function MinimalChatApp() {
                     />
                 ))}
                 {chatState.isTyping && (
-                    <div className="flex justify-start">
-                        <div className="bg-muted rounded-lg p-3 text-sm text-muted-foreground">
-                            Typing...
-                        </div>
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <span className="animate-pulse">●</span>
+                        <span>Assistant is typing...</span>
                     </div>
                 )}
             </CardContent>
 
-            <CardFooter className="border-t bg-muted/50 p-4">
-                <div className="flex w-full gap-2">
-                    <Input
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyDown={handleKeyPress}
+            <CardFooter className="border-t border-slate-200/50 bg-muted/50 p-2">
+                <div className="flex w-full gap-2 items-center">
+                    <input
+                        className="flex h-10 w-full rounded-md bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1 border-[0.5px] border-slate-200/50 focus-visible:ring-1"
                         placeholder="Type a message..."
-                        className="flex-1"
-                    />
-                    <Button
-                        onClick={() => {
-                            if (inputText.trim()) {
-                                handleSend(inputText)
-                                setInputText("")
+                        value={inputText}
+                        onChange={e => setInputText(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault()
+                                handleSendMessage(inputText)
                             }
                         }}
+                    />
+                    <button
+                        type="button"
                         disabled={!inputText.trim()}
+                        onClick={() => handleSendMessage(inputText)}
+                        className={`p-1 rounded hover:bg-slate-100 transition-colors duration-200 ${!inputText.trim() && "opacity-50 cursor-not-allowed"}`}
+                        aria-label="Send message"
                     >
-                        Send
-                    </Button>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={`h-4 w-4 ${inputText.trim() ? "text-blue-500" : "text-slate-300"}`}
+                        >
+                            <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+                            <path d="m21.854 2.147-10.94 10.939" />
+                        </svg>
+                    </button>
                 </div>
             </CardFooter>
         </Card>
     )
-} 
+}

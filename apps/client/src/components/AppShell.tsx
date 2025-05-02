@@ -44,9 +44,9 @@ export function AppShell({ children }: AppShellProps) {
         <>
             <div className="h-screen w-full flex bg-background overflow-hidden">
                 {/* Container for the left column (Sidebar + UserCard) */}
-                <div className={`border-r bg-muted/40 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-12'}`}>
-                    {/* Pass state down to Sidebar */}
-                    <Sidebar isOpen={isSidebarOpen} />
+                <div className={`border-r bg-muted/40 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-32' : 'w-8'}`}>
+                    {/* Pass state and toggle function down to Sidebar */}
+                    <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
                     {/* Pass state down to UserCard */}
                     <UserCard isOpen={isSidebarOpen} />
                 </div>

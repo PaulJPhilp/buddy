@@ -1,12 +1,12 @@
 "use client"
 
+import { cn } from "@/lib/utils"
 
 interface Message {
     id: string
     content: string
-    sender: 'user' | 'assistant'
-    timestamp?: string
-    isAppletNotification?: boolean
+    sender: "user" | "assistant"
+    timestamp: string
 }
 
 interface MessageItemProps {
@@ -14,28 +14,28 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message }: MessageItemProps) {
-    if (message.isAppletNotification) {
-        return (
-            <div className="flex justify-center py-2">
-                <div className="rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
-                    {message.content}
-                </div>
-            </div>
-        )
-    }
+    const isUser = message.sender === "user"
 
     return (
-        <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} py-2`}>
-            <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${message.sender === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'
-                    }`}
-            >
-                <p className="text-sm">{message.content}</p>
-                {message.timestamp && (
-                    <p className="mt-1 text-xs opacity-70">{message.timestamp}</p>
-                )}
+        <div className={cn(
+            "flex w-full",
+            isUser ? "justify-end" : "justify-start"
+        )}>
+            <div className={cn(
+                "flex flex-col max-w-[80%] space-y-1",
+                isUser ? "items-end" : "items-start"
+            )}>
+                <div className={cn(
+                    "rounded-lg px-3 py-2 text-sm",
+                    isUser
+                        ? "bg-blue-500 text-white"
+                        : "bg-muted text-foreground border border-slate-200/50"
+                )}>
+                    {message.content}
+                </div>
+                <span className="text-[10px] text-muted-foreground px-2">
+                    {isUser ? "You" : "Assistant"} • {message.timestamp}
+                </span>
             </div>
         </div>
     )
