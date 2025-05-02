@@ -46,7 +46,7 @@ export function AppShell({ children }: AppShellProps) {
                 {/* Container for the left column (Sidebar + UserCard) */}
                 <div className={`border-r bg-muted/40 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-32' : 'w-8'}`}>
                     {/* Pass state and toggle function down to Sidebar */}
-                    <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
+                    <Sidebar isOpen={isSidebarOpen} onToggleAction={toggleSidebar} />
                     {/* Pass state down to UserCard */}
                     <UserCard isOpen={isSidebarOpen} />
                 </div>
@@ -54,7 +54,7 @@ export function AppShell({ children }: AppShellProps) {
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col overflow-hidden">
                     {/* Pass toggle function down to TopToolbar */}
-                    <TopToolbar onToggleSidebar={toggleSidebar} />
+                    <TopToolbar onToggleSidebarAction={toggleSidebar} />
 
                     {/* Chat Windows Grid */}
                     <div className="flex-1 grid grid-cols-2 gap-4 p-4 overflow-y-auto">

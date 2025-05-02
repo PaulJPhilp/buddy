@@ -1,9 +1,10 @@
 "use client"
 
+import { Effect } from "effect"
 import { UploadIcon } from "lucide-react"
 import { useRef, useState } from "react"
-import { Button } from "../../components/ui/button"
-import { makeUIBarService } from "../services/UIBarService"
+import { Button } from "../../../../../src/components/components/ui/button"
+import { UIBarServiceApi } from "../services/UIBarService"
 
 interface FileUploadUIBarProps {
     onFileSelect?: (files: File[]) => void
@@ -63,6 +64,12 @@ function FileUploadUIBar({ onFileSelect }: FileUploadUIBarProps) {
     )
 }
 
-// Create a service factory that accepts file selection callback
-export const createFileUploadUIBarService = (onFileSelect?: (files: File[]) => void) =>
-    makeUIBarService(() => <FileUploadUIBar onFileSelect={onFileSelect} />) 
+export class FileUploadUIBarService extends Effect.Service<UIBarServiceApi>()(
+    "FileUploadUIBarService",
+    {
+        effect: Effect.succeed({
+            render: () => <FileUploadUIBar />
+        }),
+        dependencies: []
+    }
+) { } 

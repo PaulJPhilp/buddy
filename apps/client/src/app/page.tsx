@@ -1,10 +1,10 @@
-import { MinimalChatApp } from "@/app-chat/MinimalChatApp"
+import { ChatApp } from "@/app-chat/ChatApp"
 
 export default function Home() {
     return (
         <>
-            <MinimalChatApp />
-            <MinimalChatApp />
+            <ChatApp />
+            <ChatApp />
         </>
     )
 } 
