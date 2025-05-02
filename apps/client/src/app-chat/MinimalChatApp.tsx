@@ -2,43 +2,18 @@
 
 import { MessageItem } from "@/components/MessageItem"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Effect } from "effect"
-import { useCallback, useEffect, useState } from "react"
-import { ChatService } from "./ChatService"
-import type { ChatStateApi } from "./ChatServiceApi"
+import { useState } from "react"
+import type { ChatState, MessageApi } from "./ChatServiceApi"
+
+const minChat = {
+    id: "minimal-chat",
+    messages: [] as MessageApi[],
+    isTyping: false
+} as const as ChatState
 
 export function MinimalChatApp() {
-    const [chatState, setChatState] = useState<ChatStateApi>({
-        id: "default",
-        messages: [],
-        isTyping: false
-    })
+    const [chatState, setChatState] = useState(minChat)
     const [inputText, setInputText] = useState("")
-
-    useEffect(() => {
-        Effect.runPromise(
-            Effect.gen(function* ($) {
-                const service = yield* ChatService
-                const state = yield* service.getState
-                return state
-            }).pipe(Effect.provide(ChatService.Default))
-        ).then(setChatState)
-    }, [])
-
-    const handleSendMessage = useCallback((text: string) => {
-        if (!text.trim()) return
-
-        Effect.runPromise(
-            Effect.gen(function* ($) {
-                const service = yield* ChatService
-                yield* service.sendMessage(text)
-                const state = yield* service.getState
-                return state
-            }).pipe(Effect.provide(ChatService.Default))
-        )
-            .then(setChatState)
-            .catch(console.error)
-    }, [])
 
     return (
         <Card className="flex h-full flex-col">
@@ -76,14 +51,14 @@ export function MinimalChatApp() {
                         onKeyDown={e => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault()
-                                handleSendMessage(inputText)
+                                setInputText("")
                             }
                         }}
                     />
                     <button
                         type="button"
                         disabled={!inputText.trim()}
-                        onClick={() => handleSendMessage(inputText)}
+                        onClick={() => setInputText("")}
                         className={`p-1 rounded hover:bg-slate-100 transition-colors duration-200 ${!inputText.trim() && "opacity-50 cursor-not-allowed"}`}
                         aria-label="Send message"
                     >

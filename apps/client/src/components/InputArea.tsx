@@ -1,37 +1,37 @@
 "use client"
 
-import * as React from "react"
+import { useState } from "react"
+import { Button } from "./ui/button"
+import { Textarea } from "./ui/textarea"
 
 interface InputAreaProps {
-    onSubmit?: (message: string) => void
+    onSubmit: (text: string) => void
 }
 
 export function InputArea({ onSubmit }: InputAreaProps) {
-    const [message, setMessage] = React.useState("")
+    const [text, setText] = useState("")
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault()
-        if (message.trim() && onSubmit) {
-            onSubmit(message.trim())
-            setMessage("")
-        }
+    const handleSubmit = () => {
+        if (!text.trim()) return
+        onSubmit(text)
+        setText("")
     }
 
     return (
-        <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="flex gap-2">
+            <Textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSubmit()
+                    }
+                }}
+                placeholder="Type a message..."
+                className="min-h-[40px] max-h-[200px]"
             />
-            <button
-                type="submit"
-                className="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-                Send
-            </button>
-        </form>
+            <Button onClick={handleSubmit} disabled={!text.trim()}>Send</Button>
+        </div>
     )
 } 

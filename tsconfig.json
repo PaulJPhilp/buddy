@@ -23,10 +23,16 @@
       "@api/*": ["./packages/api/*"],
       "@server/*": ["./apps/server/src/*"],
       "@client/*": ["./apps/client/src/*"],
-      "@components/*": ["./packages/ui/src/components/*"],
-      "@ui/*": ["./packages/ui/src/*"]
+      "@components/*": ["./src/components/components/*"],
+      "@ui/*": ["./src/components/components/ui/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/**/*"
+  ],
   "exclude": ["node_modules"]
 }

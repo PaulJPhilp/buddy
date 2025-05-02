@@ -36,61 +36,70 @@ User: ${message.text}
 Assistant:`
 }
 
-export class SimpleChatAgent extends Effect.Service<SimpleChatAgentApi>()("SimpleChatAgent", {
-    effect: Effect.gen(function* () {
-        const configRef = yield* Ref.make(DEFAULT_CONFIG)
+/**
+ * Implementation of the SimpleChatAgent using Effect.Service pattern.
+ * Provides chat functionality with configurable settings.
+ */
+export class SimpleChatAgent extends Effect.Service<SimpleChatAgentApi>()(
+    "SimpleChatAgent",
+    {
+        effect: Effect.gen(function* (_) {
+            const configRef = yield* Ref.make(DEFAULT_CONFIG)
 
-        return {
-            updateConfig: (newConfig: Partial<AgentConfig>) =>
-                Effect.gen(function* () {
-                    const currentConfig = yield* Ref.get(configRef)
-                    const updatedConfig = { ...currentConfig, ...newConfig }
-                    yield* Ref.set(configRef, updatedConfig)
-                    return updatedConfig
-                }),
-            processMessage: (message: MessageApi) =>
-                Effect.gen(function* () {
-                    const config = yield* Ref.get(configRef)
+            return {
+                updateConfig: (newConfig: Partial<AgentConfig>) =>
+                    Effect.gen(function* (_) {
+                        const currentConfig = yield* Ref.get(configRef)
+                        const updatedConfig = { ...currentConfig, ...newConfig }
+                        yield* Ref.set(configRef, updatedConfig)
+                        return updatedConfig
+                    }),
 
-                    try {
-                        const prompt = formatPrompt(config, message)
+                processMessage: (message: MessageApi) =>
+                    Effect.gen(function* (_) {
+                        const config = yield* Ref.get(configRef)
 
-                        const response = yield* Effect.tryPromise(() =>
-                            fetch("http://localhost:3000/api/tools/sampleLlm", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                    prompt,
-                                    maxTokens: config.maxTokens,
-                                }),
-                            }).then(res => res.json())
-                        )
+                        try {
+                            const prompt = formatPrompt(config, message)
 
-                        if (response.error) {
-                            throw new Error(response.error)
-                        }
+                            const response = yield* Effect.tryPromise(() =>
+                                fetch("http://localhost:3000/api/tools/sampleLlm", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        prompt,
+                                        maxTokens: config.maxTokens,
+                                    }),
+                                }).then(res => res.json())
+                            )
 
-                        return {
-                            text: response.text || "I apologize, but I'm having trouble generating a response.",
-                            metadata: {
-                                thinking: false
+                            if (response.error) {
+                                throw new Error(response.error)
+                            }
+
+                            return {
+                                text: response.text || "I apologize, but I'm having trouble generating a response.",
+                                metadata: {
+                                    thinking: false
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Error calling LLM:", error)
+                            return {
+                                text: "I apologize, but I'm having trouble processing your message right now.",
+                                metadata: {
+                                    thinking: false,
+                                    error: error instanceof Error ? error.message : "Unknown error"
+                                }
                             }
                         }
-                    } catch (error) {
-                        console.error("Error calling LLM:", error)
-                        return {
-                            text: "I apologize, but I'm having trouble processing your message right now.",
-                            metadata: {
-                                thinking: false,
-                                error: error instanceof Error ? error.message : "Unknown error"
-                            }
-                        }
-                    }
-                }),
-            getConfig: () => Ref.get(configRef)
-        }
-    })
-}) { }
+                    }),
 
+                getConfig: () => Ref.get(configRef)
+            }
+        }),
+        dependencies: []
+    }
+) { }

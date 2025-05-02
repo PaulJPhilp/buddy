@@ -4,8 +4,8 @@ import { ChevronLeft, ChevronRight, Home, MessageCircle, Settings } from "lucide
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Button } from "/Users/paul/Projects/buddy/src/components/components/ui/button"
 
 interface SidebarProps {
     isOpen: boolean

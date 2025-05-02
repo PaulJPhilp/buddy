@@ -1,8 +1,8 @@
 "use client"
 
 import { Menu } from "lucide-react"
-import { Button } from "../ui/button"
 import { useToast } from "../ui/use-toast"
+import { Button } from "/Users/paul/Projects/buddy/src/components/components/ui/button"
 
 interface TopToolbarProps {
     onToggleSidebarAction: () => void
