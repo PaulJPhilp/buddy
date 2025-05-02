@@ -1,16 +1,13 @@
 "use client"
 
-import { Effect } from "effect"
-import { FileIcon, PaperclipIcon, XIcon } from "lucide-react"
+import { FileIcon, XIcon } from "lucide-react"
 import * as React from "react"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { InputArea } from "../components/InputArea"
 import { MessageItem } from "../components/MessageItem"
-import { ChatService } from "./ChatService"
+import { cn } from "../utils/cn"
 import type { MessageApi } from "./ChatServiceApi"
-import { FileUploadUIBarService } from "./components/FileUploadUIBar"
-import { UIBarServiceApi } from "./services/UIBarService"
-import { Button } from "/Users/paul/Projects/buddy/src/components/components/ui/button"
+import { DashboardCard } from "./components/DashboardCard"
 
 interface DisplayFile {
     id: string
@@ -20,64 +17,158 @@ interface DisplayFile {
     file: File
 }
 
+const MOCK_THREADS = {
+    thread1: [
+        {
+            id: "1",
+            text: "Hi, I need help with my React application",
+            sender: "user" as const,
+            timestamp: Date.now() - 50000,
+            attachments: []
+        },
+        {
+            id: "2",
+            text: "I'd be happy to help! What specific issues are you encountering with your React application?",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 40000,
+            attachments: []
+        },
+        {
+            id: "3",
+            text: "I'm having trouble with state management. My components aren't updating when I expect them to.",
+            sender: "user" as const,
+            timestamp: Date.now() - 35000,
+            attachments: []
+        },
+        {
+            id: "4",
+            text: "That's a common issue. Could you share a specific example of where the state updates aren't working as expected?",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 30000,
+            attachments: []
+        },
+        {
+            id: "5",
+            text: "Sure, I have a counter component that's not updating when I click the increment button.",
+            sender: "user" as const,
+            timestamp: Date.now() - 25000,
+            attachments: []
+        },
+        {
+            id: "6",
+            text: "Let's take a look at that. Are you using useState for the counter? Make sure you're using the setter function and not modifying state directly.",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 20000,
+            attachments: []
+        },
+        {
+            id: "7",
+            text: "Yes, I'm using useState. Here's my code: const [count, setCount] = useState(0); const increment = () => count++;",
+            sender: "user" as const,
+            timestamp: Date.now() - 15000,
+            attachments: []
+        },
+        {
+            id: "8",
+            text: "Ah, I see the issue. You're modifying the count variable directly. Instead, use setCount: const increment = () => setCount(prev => prev + 1);",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 10000,
+            attachments: []
+        }
+    ] as MessageApi[],
+    thread2: [
+        {
+            id: "1",
+            text: "Can you help me optimize my database queries?",
+            sender: "user" as const,
+            timestamp: Date.now() - 45000,
+            attachments: []
+        },
+        {
+            id: "2",
+            text: "Of course! Are you using any specific database system?",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 35000,
+            attachments: []
+        },
+        {
+            id: "3",
+            text: "Yes, I'm using PostgreSQL with multiple joins that are running slowly",
+            sender: "user" as const,
+            timestamp: Date.now() - 30000,
+            attachments: []
+        },
+        {
+            id: "4",
+            text: "I see. Could you share one of the slow queries? We can look at the execution plan and suggest optimizations.",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 25000,
+            attachments: []
+        },
+        {
+            id: "5",
+            text: "Here's my query: SELECT * FROM users JOIN orders ON users.id = orders.user_id JOIN products ON orders.product_id = products.id",
+            sender: "user" as const,
+            timestamp: Date.now() - 20000,
+            attachments: []
+        },
+        {
+            id: "6",
+            text: "I notice a few potential optimizations: 1) Avoid SELECT *, only select needed columns 2) Consider adding indexes on join columns 3) Check if you really need all those joins",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 15000,
+            attachments: []
+        },
+        {
+            id: "7",
+            text: "Thanks! I'll try adding indexes. Should I create them on both sides of the join?",
+            sender: "user" as const,
+            timestamp: Date.now() - 10000,
+            attachments: []
+        },
+        {
+            id: "8",
+            text: "Generally, you want indexes on the foreign key columns (orders.user_id and orders.product_id). The primary key columns (users.id and products.id) are automatically indexed.",
+            sender: "assistant" as const,
+            timestamp: Date.now() - 5000,
+            attachments: []
+        }
+    ] as MessageApi[]
+};
+
 interface ChatAppProps {
-    uiBarService?: Effect.Effect<never, never, UIBarServiceApi>
+    isSelected?: boolean
+    onSelect?: () => void
+    threadId: keyof typeof MOCK_THREADS
 }
 
-export function ChatApp({ uiBarService }: ChatAppProps) {
+export function ChatApp({ isSelected = false, onSelect, threadId }: ChatAppProps) {
     const [messages, setMessages] = useState<MessageApi[]>([])
     const [error, setError] = useState<string | null>(null)
     const [attachedFiles, setAttachedFiles] = useState<DisplayFile[]>([])
-    const [uiBar, setUiBar] = useState<React.ReactNode>(null)
+    const [isDashboardOpen, setIsDashboardOpen] = useState(false)
     const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-    // Handle file selection from UIBar
-    const handleUIBarFileSelect = useCallback((files: File[]) => {
-        const newFiles: DisplayFile[] = files.map(file => ({
-            id: `${file.name}-${Date.now()}`,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            file
-        }))
-        setAttachedFiles(prev => [...prev, ...newFiles])
-    }, [])
-
-    // Initialize chat service and UI bar
     useEffect(() => {
-        const init = async () => {
-            await Effect.runPromise(
-                Effect.try({
-                    try: () => Effect.gen(function* (_) {
-                        const service = yield* ChatService
-                        const state = yield* service.getState()
-                        setMessages(state.messages)
-
-                        const uiBarService = yield* FileUploadUIBarService
-                        setUiBar(uiBarService.render())
-                    }),
-                    catch: () => new Error("Failed to initialize chat")
-                })
-            )
-        }
-        init()
-    }, [])
+        setMessages(MOCK_THREADS[threadId] || [])
+    }, [threadId])
 
     // Handle sending messages
     const handleSendMessage = async (content: string) => {
         try {
-            await Effect.runPromise(
-                Effect.try({
-                    try: () => Effect.gen(function* (_) {
-                        const service = yield* ChatService
-                        const result: MessageApi = yield* service.sendMessage(content, attachedFiles.map(f => f.file))
-                        const state = yield* service.getState()
-                        setMessages(state.messages)
-                    }),
-                    catch: () => new Error("Failed to send message")
-                })
-            )
-            // Clear attachments after sending
+            const newMessage: MessageApi = {
+                id: Date.now().toString(),
+                text: content,
+                sender: "user",
+                timestamp: Date.now(),
+                attachments: attachedFiles.map(f => ({
+                    id: f.id,
+                    name: f.name,
+                    size: f.size,
+                    type: f.type
+                }))
+            }
+            setMessages(prev => [...prev, newMessage])
             setAttachedFiles([])
         } catch (err) {
             setError("Failed to send message")
@@ -110,9 +201,21 @@ export function ChatApp({ uiBarService }: ChatAppProps) {
     }
 
     return (
-        <div className="flex flex-col h-full border rounded-lg bg-background">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map(msg => (
+        <button
+            type="button"
+            className={cn(
+                "flex-1 flex flex-col h-full rounded-lg bg-background min-w-[400px] max-w-[800px] border-2 transition-colors",
+                isSelected ? "border-green-500" : "border-gray-200",
+                threadId === "thread1" ? "bg-teal-50" : "bg-orange-50"
+            )}
+            onClick={onSelect}
+        >
+            <div className="flex-1 overflow-y-auto p-4 relative">
+                <DashboardCard
+                    isOpen={isDashboardOpen}
+                    onCloseAction={() => setIsDashboardOpen(false)}
+                />
+                {messages?.map(msg => (
                     <MessageItem
                         key={msg.id}
                         message={{
@@ -122,38 +225,41 @@ export function ChatApp({ uiBarService }: ChatAppProps) {
                             timestamp: new Date(msg.timestamp).toLocaleTimeString(),
                             attachments: msg.attachments
                         }}
+                        theme={threadId === "thread1" ? "blue" : "rose"}
                     />
                 ))}
                 {error && (
                     <div className="text-red-500 text-sm">{error}</div>
                 )}
             </div>
-            <div className="border-t">
-                <div className="px-1 py-1">
+            <div className="border-t bg-background/50">
+                <div className="px-4 py-3">
                     {attachedFiles.length > 0 && (
-                        <div className="mb-1 flex flex-wrap gap-1 p-1 bg-muted/30 rounded-md">
+                        <div className="mb-2 flex flex-wrap gap-2 p-2 bg-muted/30 rounded-md">
                             {attachedFiles.map(file => (
                                 <div
                                     key={file.id}
-                                    className="flex items-center gap-1 bg-background px-1 py-0.5 rounded border"
+                                    className="flex items-center gap-2 bg-background px-2 py-1 rounded border"
                                 >
                                     <div
                                         className="group relative cursor-help"
                                         aria-label={`${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`}
                                     >
-                                        <FileIcon className="h-3 w-3 text-muted-foreground" />
+                                        <FileIcon className="h-4 w-4 text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
                                             {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
                                         </div>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-4 w-4"
-                                        onClick={() => handleRemoveFile(file.id)}
+                                    <button
+                                        type="button"
+                                        className="text-muted-foreground hover:text-foreground transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleRemoveFile(file.id)
+                                        }}
                                     >
-                                        <XIcon className="h-2 w-2" />
-                                    </Button>
+                                        <XIcon className="h-4 w-4" />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -167,19 +273,15 @@ export function ChatApp({ uiBarService }: ChatAppProps) {
                             multiple
                             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                         />
-                        <InputArea onSubmitAction={handleSendMessage} />
-                        <PaperclipIcon
-                            className="absolute right-10 top-1.5 h-4 w-4 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
-                            onClick={() => fileInputRef.current?.click()}
+                        <InputArea
+                            onSubmitAction={handleSendMessage}
+                            onAttach={() => fileInputRef.current?.click()}
+                            onShowDashboard={() => setIsDashboardOpen(prev => !prev)}
+                            threadId={threadId}
                         />
                     </div>
                 </div>
-                {uiBar && (
-                    <div className="border-t p-4">
-                        {uiBar}
-                    </div>
-                )}
             </div>
-        </div>
+        </button>
     )
 } 

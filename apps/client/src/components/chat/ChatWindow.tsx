@@ -3,6 +3,7 @@
 import { Message } from "@/app-chat/ChatServiceApi"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import { useState } from "react"
 
 interface ChatWindowProps {
@@ -35,22 +36,36 @@ export function ChatWindow({ messages, isTyping, onSendMessage }: ChatWindowProp
                 {messages.map((message) => (
                     <div
                         key={message.id}
-                        className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                        className={cn(
+                            "flex gap-2",
+                            message.sender === "user" ? "flex-row-reverse" : "flex-row"
+                        )}
                     >
                         <div
-                            className={`max-w-[80%] rounded-lg p-3 ${message.sender === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                                }`}
+                            className={cn(
+                                "flex flex-col max-w-[80%] gap-1",
+                                message.sender === "user" ? "items-end" : "items-start"
+                            )}
                         >
-                            {message.text}
+                            <div
+                                className={cn(
+                                    "rounded-lg px-4 py-2",
+                                    message.sender === "user"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted"
+                                )}
+                            >
+                                <p className="text-sm whitespace-pre-wrap break-words">
+                                    {message.text}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 ))}
                 {isTyping && (
                     <div className="flex justify-start">
                         <div className="bg-muted rounded-lg p-3">
-                            Typing...
+                            <p className="text-sm">Typing...</p>
                         </div>
                     </div>
                 )}

@@ -21,48 +21,60 @@ interface Message {
 
 interface MessageItemProps {
     message: Message
+    theme?: "blue" | "rose"
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export function MessageItem({ message, theme = "blue" }: MessageItemProps) {
     const isUser = message.sender === "user"
+
+    const themeColors = {
+        blue: {
+            user: "bg-teal-500 text-white",
+            assistant: "bg-teal-100 text-teal-900"
+        },
+        rose: {
+            user: "bg-orange-300 text-white",
+            assistant: "bg-orange-50 text-orange-800"
+        }
+    }
 
     return (
         <div
             className={cn(
-                "flex gap-2",
-                isUser ? "flex-row-reverse" : "flex-row"
+                "flex w-full mb-2",
+                isUser ? "justify-end" : "justify-start"
             )}
         >
             <div
                 className={cn(
-                    "flex flex-col max-w-[80%] gap-1",
+                    "max-w-[85%] flex flex-col",
                     isUser ? "items-end" : "items-start"
                 )}
             >
                 <div
                     className={cn(
-                        "rounded-lg px-4 py-2",
+                        "rounded-lg px-0.5 py-0.5 text-[6pt] shadow-sm",
                         isUser
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                            ? themeColors[theme].user
+                            : themeColors[theme].assistant
                     )}
                 >
-                    <p className="text-sm whitespace-pre-wrap break-words">
+                    <p className="whitespace-pre-wrap break-words leading-relaxed">
                         {message.content}
                     </p>
                 </div>
                 {message.attachments && message.attachments.length > 0 && (
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-2 mt-2">
                         {message.attachments.map(file => (
                             <div
                                 key={file.id}
                                 className={cn(
-                                    "flex items-center gap-2 px-2 py-1 rounded bg-background border text-sm",
+                                    "flex items-center gap-2 px-0.5 py-0.5 rounded bg-background/80 border shadow-sm text-[6pt]",
                                     isUser && "flex-row-reverse"
                                 )}
                             >
                                 <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="truncate max-w-[200px]">
+                                <span className="truncate max-w-[200px] text-foreground">
                                     {file.name}
                                 </span>
                                 <span className="text-xs text-muted-foreground shrink-0">
@@ -72,14 +84,6 @@ export function MessageItem({ message }: MessageItemProps) {
                         ))}
                     </div>
                 )}
-                <span
-                    className={cn(
-                        "text-xs text-muted-foreground",
-                        isUser ? "text-right" : "text-left"
-                    )}
-                >
-                    {message.timestamp}
-                </span>
             </div>
         </div>
     )

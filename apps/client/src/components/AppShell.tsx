@@ -1,10 +1,8 @@
 "use client"
 
-import { Effect, Fiber, Runtime } from "effect";
-import { useEffect, useState } from "react";
-
 import { Toaster } from "@/components/ui/toaster";
-// Import the components
+import { Effect, Fiber, Runtime } from "effect";
+import React, { useEffect, useState } from "react";
 import { Sidebar } from "./app-shell/Sidebar";
 import { TopToolbar } from "./app-shell/TopToolbar";
 import { UserCard } from "./app-shell/UserCard";
@@ -14,17 +12,24 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-    console.log("AppShell component rendering");
-
-    // State to manage sidebar visibility
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+    const [selectedChatIndex, setSelectedChatIndex] = useState<number>(0)
 
-    // Function to toggle the sidebar state
     function toggleSidebar() {
-        const newState = !isSidebarOpen
-        console.log("Toggling sidebar, new state:", newState)
-        setIsSidebarOpen(newState)
+        setIsSidebarOpen(!isSidebarOpen)
     }
+
+    // Clone children with additional props
+    const enhancedChildren = React.Children.map(children, (child, index) => {
+        if (React.isValidElement(child)) {
+            return React.cloneElement(child as React.ReactElement<any>, {
+                isSelected: index === selectedChatIndex,
+                onSelect: () => setSelectedChatIndex(index),
+                threadId: `thread${index + 1}`
+            });
+        }
+        return child;
+    });
 
     useEffect(() => {
         const runtime = Runtime.defaultRuntime
@@ -43,25 +48,19 @@ export function AppShell({ children }: AppShellProps) {
     return (
         <>
             <div className="h-screen w-full flex bg-background overflow-hidden">
-                {/* Container for the left column (Sidebar + UserCard) */}
-                <div className={`border-r bg-muted/40 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-32' : 'w-8'}`}>
-                    {/* Pass state and toggle function down to Sidebar */}
+                <div className={`border-r bg-muted/40 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-16' : 'w-0 hidden'}`}>
                     <Sidebar isOpen={isSidebarOpen} onToggleAction={toggleSidebar} />
-                    {/* Pass state down to UserCard */}
-                    <UserCard isOpen={isSidebarOpen} />
                 </div>
 
-                {/* Main Content Area */}
                 <main className="flex-1 flex flex-col overflow-hidden">
-                    {/* Pass toggle function down to TopToolbar */}
                     <TopToolbar onToggleSidebarAction={toggleSidebar} />
 
-                    {/* Chat Windows Grid */}
-                    <div className="flex-1 grid grid-cols-2 gap-4 p-4 overflow-y-auto">
-                        {children}
+                    <div className="flex-1 flex gap-4 p-4 overflow-y-auto max-w-[1600px] mx-auto w-full">
+                        {enhancedChildren}
                     </div>
                 </main>
             </div>
+            <UserCard />
             <Toaster />
         </>
     )
