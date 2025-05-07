@@ -1,10 +1,10 @@
-import { ChatApp } from "@/app-chat/ChatApp"
+import { ChatApp } from "@/app-chat/ChatApp";
 
 export default function Home() {
-    return (
-        <>
-            <ChatApp threadId="thread1" />
-            <ChatApp threadId="thread2" />
-        </>
-    )
-} 
+  return (
+    <>
+      <ChatApp threadId="thread1" />
+      <ChatApp threadId="thread2" />
+    </>
+  );
+}

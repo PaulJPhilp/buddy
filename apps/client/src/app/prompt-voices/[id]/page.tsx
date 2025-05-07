@@ -27,7 +27,9 @@ export default async function PromptVoiceDetailPage({
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   // Fetch the prompt voice data on the server
-  const { promptVoice, loading, error } = await getPromptVoiceById(resolvedParams.id);
+  const { promptVoice, loading, error } = await getPromptVoiceById(
+    resolvedParams.id,
+  );
 
   return (
     <div className="space-y-6">
@@ -101,12 +103,13 @@ export default async function PromptVoiceDetailPage({
             <div className="flex justify-between">
               <h3 className="text-lg">{promptVoice.prompt.name}</h3>
               <span
-                className={`px-2 py-1 text-xs rounded ${promptVoice.prompt.type === "system"
-                  ? "bg-purple-100 text-purple-800"
-                  : promptVoice.prompt.type === "template"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
-                  }`}
+                className={`px-2 py-1 text-xs rounded ${
+                  promptVoice.prompt.type === "system"
+                    ? "bg-purple-100 text-purple-800"
+                    : promptVoice.prompt.type === "template"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-gray-100 text-gray-800"
+                }`}
               >
                 {promptVoice.prompt.type}
               </span>

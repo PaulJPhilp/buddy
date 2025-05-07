@@ -1,24 +1,26 @@
-import { SignUp } from "@clerk/nextjs"
+import { SignUp } from "@clerk/nextjs";
 
 export default function Page() {
-    return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'hsl(var(--background))'
-        }}>
-            <SignUp
-                afterSignUpUrl="/"
-                signInUrl="/sign-in"
-                routing="path"
-                path="/sign-up"
-            />
-        </div>
-    )
-} 
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "hsl(var(--background))",
+      }}
+    >
+      <SignUp
+        afterSignUpUrl="/"
+        signInUrl="/sign-in"
+        routing="path"
+        path="/sign-up"
+      />
+    </div>
+  );
+}

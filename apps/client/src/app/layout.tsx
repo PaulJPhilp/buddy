@@ -1,29 +1,29 @@
-import { ClerkProvider } from '@clerk/nextjs'
-import { Analytics } from '@vercel/analytics/react'
-import type { Metadata } from 'next'
-import Script from 'next/script'
-import { Toaster } from 'sonner'
+import { ClerkProvider } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/react";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { Toaster } from "sonner";
 
-import { AppShell } from "@/components/AppShell"
-import { ErrorBoundary } from '@/components/ui/error-boundary'
-import { ThemeProvider } from '@components/app/theme-provider'
+import { AppShell } from "@/components/AppShell";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ThemeProvider } from "@components/app/theme-provider";
 
-import './globals.css'
+import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://buddy.vercel.ai'),
-  title: 'Buddy',
-  description: 'Your AI companion',
-}
+  metadataBase: new URL("https://buddy.vercel.ai"),
+  title: "Buddy",
+  description: "Your AI companion",
+};
 
 export const viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <ClerkProvider
@@ -36,15 +36,12 @@ export default function RootLayout({
           socialButtonsBlockButton: "text-foreground",
           formButtonPrimary: "bg-primary hover:bg-primary/90",
           footerActionLink: "text-primary hover:text-primary/90",
-        }
+        },
       }}
       afterSignInUrl="/"
       afterSignUpUrl="/"
     >
-      <html
-        lang="en"
-        suppressHydrationWarning
-      >
+      <html lang="en" suppressHydrationWarning>
         <head>
           <Script id="theme-color" strategy="beforeInteractive">
             {`
@@ -80,5 +77,5 @@ export default function RootLayout({
         </body>
       </html>
     </ClerkProvider>
-  )
+  );
 }

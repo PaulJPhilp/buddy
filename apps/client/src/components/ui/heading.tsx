@@ -17,7 +17,7 @@ const headingVariants = cva("font-bold leading-tight tracking-tighter", {
 
 interface HeadingProps
   extends React.HTMLAttributes<HTMLDivElement>,
-  VariantProps<typeof headingVariants> {
+    VariantProps<typeof headingVariants> {
   title: string;
   description?: string;
   descriptionClassName?: string;
