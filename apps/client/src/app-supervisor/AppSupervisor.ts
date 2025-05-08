@@ -1,28 +1,59 @@
-import { chatAppEffect } from "@/app-chat/ChatApp";
-import { ChatService, make } from "@/app-chat/ChatService";
-import { Effect } from "effect";
+import { ChatService } from "@/app-chat/ChatService";
+import { AgentRuntimeService } from "@/services/AgentRuntimeService";
+import { MockWebSocketServer } from "@/services/MockWebSocketServer";
+import { WebSocketService } from "@/services/WebSocketService";
+import { Effect, Layer } from "effect";
 
 // Supervisor Effect that manages all child Effects
 export const appSupervisorEffect = Effect.gen(function* () {
   // Start chat apps
   yield* Effect.logDebug("Starting chat apps");
 
-  // Create chat instances with their own services
-  const chat1 = chatAppEffect.pipe(
-    Effect.provideService(ChatService, make("chat-1")),
+  // Create the base layer with all required services
+  const baseLayer = Layer.mergeAll(
+    MockWebSocketServer.Default,
+    WebSocketService.Default,
+    AgentRuntimeService.Default
   );
 
-  const chat2 = chatAppEffect.pipe(
-    Effect.provideService(ChatService, make("chat-2")),
+  // Create independent chat service layers with dependencies
+  const chat1Layer = Layer.provide(
+    ChatService.Default,
+    baseLayer
   );
 
-  // Fork chat apps
-  yield* Effect.forkDaemon(chat1);
-  yield* Effect.forkDaemon(chat2);
+  const chat2Layer = Layer.provide(
+    ChatService.Default,
+    baseLayer
+  );
+
+  // Start mock server
+  yield* Effect.provide(
+    Effect.gen(function* () {
+      const server = yield* MockWebSocketServer;
+      yield* server.start(3000);
+    }),
+    baseLayer
+  );
+
+  // Fork chat apps with their respective layers
+  yield* Effect.forkDaemon(
+    Effect.provide(
+      Effect.never,
+      chat1Layer
+    )
+  );
+
+  yield* Effect.forkDaemon(
+    Effect.provide(
+      Effect.never,
+      chat2Layer
+    )
+  );
 
   // Keep supervisor alive
-  return Effect.never;
+  yield* Effect.never;
 }).pipe(
   Effect.interruptible,
-  Effect.annotateLogs({ supervisor: "AppSupervisor" }),
+  Effect.annotateLogs({ supervisor: "AppSupervisor" })
 );

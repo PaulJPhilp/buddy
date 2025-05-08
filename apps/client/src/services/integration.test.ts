@@ -37,20 +37,23 @@ describe("WebSocket Stack Integration", () => {
       } finally {
         yield* server.stop();
       }
-    }).pipe(
-      Effect.provide(
-        Layer.mergeAll(
-          ChatService.Default,
-          AgentRuntimeService.Default,
-          MockWebSocketServer.Default,
-          WebSocketService.Default,
-        ),
-      ),
-      // Explicitly specify that we've handled all dependencies
-      Effect.withSpan("test-environment"),
+    });
+
+    // Merge all required layers
+    const TestLayer = Layer.mergeAll(
+      ChatService.Default,
+      AgentRuntimeService.Default,
+      MockWebSocketServer.Default,
+      WebSocketService.Default
     );
+
     // Use runPromise since now Effect<T, Error, never>
-    return Effect.runPromise(program);
+    return Effect.runPromise(
+      program.pipe(
+        Effect.provide(TestLayer),
+        Effect.withSpan("test-environment")
+      )
+    );
   };
 
   it("should handle full chat flow with WebSocket communication", () =>

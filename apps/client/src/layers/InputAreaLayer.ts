@@ -75,7 +75,7 @@ export class LiveInputAreaRenderer implements InputAreaRenderer {
 /**
  * Create a new instance of the LiveInputAreaRenderer service
  */
-export const makeLiveInputAreaRenderer = Effect.gen(function* (_) {
+export const makeLiveInputAreaRenderer = Effect.gen(function* () {
   const inputRef = yield* Ref.make("");
   return new LiveInputAreaRenderer(inputRef);
 });

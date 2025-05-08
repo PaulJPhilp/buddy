@@ -1,8 +1,5 @@
 import { Effect, Ref, Stream } from "effect";
-import {
-  AgentRuntimeService,
-  type AgentRuntimeState,
-} from "../services/AgentRuntimeService";
+import { AgentRuntimeService, type AgentRuntimeState } from "../services/AgentRuntimeService";
 import type {
   ChatState,
   ChatStateApi,
@@ -27,6 +24,7 @@ type WebSocketMessage = {
  */
 export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
   effect: Effect.gen(function* () {
+    const runtime = yield* AgentRuntimeService;
     const stateRef = yield* Ref.make<ChatState>({
       id: "default",
       messages: [],
@@ -37,7 +35,6 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
       },
     });
     let messageCounter = 0;
-    const runtime = yield* AgentRuntimeService;
 
     const validateFiles = (files?: File[]) => {
       if (!files?.length) return { isValid: true, errors: [] };
@@ -161,7 +158,6 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
         }).pipe(
           Effect.catchAll((error) => {
             console.error("Error sending message:", error);
-            // Return a fallback message or re-throw as needed
             return Effect.succeed({
               id: `error-${Date.now()}`,
               text: "Failed to send message. Please try again.",
@@ -240,4 +236,5 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
 
     return service;
   }),
-}) {}
+  dependencies: [AgentRuntimeService.Default],
+}) { }

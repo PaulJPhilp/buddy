@@ -1,20 +1,7 @@
-import { Effect } from "effect";
-import { MockChatStateApi } from "./MockChatStateApi";
-
 import { describe, it } from "@effect/vitest";
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { WebSocketError } from "../services/WebSocketService";
-
-// Define test-specific message type that extends the base WebSocketMessage
-interface WebSocketMessage {
-  text: string;
-  timestamp: string;
-  sender?: string;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
 import { ChatService } from "./ChatService";
 import { ChatState } from "./ChatServiceApi";
 import { HistoryError, MessageCreationError, StateUpdateError } from "./errors";
@@ -53,14 +40,13 @@ const MockWebSocketServer = {
 
 describe("ChatService", () => {
   // Helper to run tests with mock WebSocket server
-  // Helper to run tests with a mock WebSocket server
   const withMockServer =
     <T, E>(
       test: (mockServer: MockWebSocketServer) => Effect.Effect<T, E | WebSocketError, never>,
     ) =>
       () =>
         Effect.runPromise(
-          Effect.gen(function* (_) {
+          Effect.gen(function* () {
             // Create and start mock server
             const mockServer = MockWebSocketServer.make();
             mockServer.start(3000);
@@ -78,6 +64,9 @@ describe("ChatService", () => {
           )
         );
 
+  // Create a Layer that provides both ChatService and MockChatStateApi
+  const TestLayer = ChatService.Default;
+
   describe("getState", () => {
     it("should return the initial state", () =>
       Effect.gen(function* () {
@@ -91,8 +80,10 @@ describe("ChatService", () => {
         });
 
         return undefined;
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -113,8 +104,10 @@ describe("ChatService", () => {
         // Verify state was actually updated
         const currentState = yield* service.getState();
         expect(currentState).toEqual(newState);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should fail when setting invalid state", () =>
@@ -135,8 +128,10 @@ describe("ChatService", () => {
           expect(typedError.description).toContain("Invalid state object");
           expect(typedError.method).toBe("setState");
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -156,8 +151,10 @@ describe("ChatService", () => {
         const state = yield* service.getState();
         expect(state.messages).toHaveLength(1);
         expect(state.messages[0]).toEqual(message);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should fail when sending empty message", () =>
@@ -177,8 +174,10 @@ describe("ChatService", () => {
           );
           expect(typedError.method).toBe("sendMessage");
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should fail when sending whitespace-only message", () =>
@@ -198,8 +197,10 @@ describe("ChatService", () => {
           );
           expect(typedError.method).toBe("sendMessage");
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should send multiple messages and maintain order", () =>
@@ -217,8 +218,10 @@ describe("ChatService", () => {
           "Second message",
           "Third message",
         ]);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -233,8 +236,10 @@ describe("ChatService", () => {
         // Verify state was updated
         const currentState = yield* service.getState();
         expect(currentState.isTyping).toBe(true);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should update isTyping state to false", () =>
@@ -251,8 +256,10 @@ describe("ChatService", () => {
         // Verify state was updated
         const currentState = yield* service.getState();
         expect(currentState.isTyping).toBe(false);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -270,8 +277,10 @@ describe("ChatService", () => {
 
         yield* service.setState(initialState);
         // Rest of test would go here...
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -305,8 +314,10 @@ describe("ChatService", () => {
           messages: [userMessage],
           isTyping: false,
         });
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -334,8 +345,10 @@ describe("ChatService", () => {
         const validMessage = yield* service.validateMessage("Hello, world!");
         expect(validMessage.isValid).toBe(true);
         expect(validMessage.errors).toHaveLength(0);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should detect and prevent unsafe content", () =>
@@ -355,8 +368,10 @@ describe("ChatService", () => {
             "Message contains potentially unsafe content",
           );
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should sanitize messages when sending", () =>
@@ -379,8 +394,10 @@ describe("ChatService", () => {
         const message = yield* service.sendMessage("Hello, world! 123");
         expect(message.text).toBe("Hello, world! 123");
         expect(message.metadata?.validation?.isValid).toBe(true);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should handle concurrent message validation", () =>
@@ -401,8 +418,10 @@ describe("ChatService", () => {
         for (const validation of validations) {
           expect(validation.isValid).toBe(true);
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should maintain message metadata through the pipeline", () =>
@@ -420,8 +439,10 @@ describe("ChatService", () => {
         const state = yield* service.getState();
         expect(state.metadata?.messageCount).toBe(1);
         expect(state.metadata?.lastMessageAt).toBeDefined();
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -462,8 +483,10 @@ describe("ChatService", () => {
             `maximum message limit of ${MAX_MESSAGES_PER_CHAT}`,
           );
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should paginate chat history correctly", () =>
@@ -492,8 +515,10 @@ describe("ChatService", () => {
         allMessages.forEach((msg, i) => {
           expect(msg.text).toBe(`Message ${i}`);
         });
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should handle invalid cursors gracefully", () =>
@@ -510,8 +535,10 @@ describe("ChatService", () => {
           expect(typedError).toBeInstanceOf(HistoryError);
           expect(typedError.description).toContain("Invalid cursor");
         }
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should clear chat history", () =>
@@ -536,8 +563,10 @@ describe("ChatService", () => {
         expect(history.messages).toHaveLength(0);
         expect(history.hasMore).toBe(false);
         expect(history.nextCursor).toBeUndefined();
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
 
     it("should handle concurrent history operations", () =>
@@ -564,8 +593,10 @@ describe("ChatService", () => {
         const state = yield* service.getState();
         expect(state.messages).toHaveLength(2);
         expect(state.metadata?.messageCount).toBe(2);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -583,8 +614,10 @@ describe("ChatService", () => {
 
             return undefined;
           })
-            .pipe(Effect.provideService(ChatService, MockChatStateApi))
-            .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+            .pipe(
+              Effect.provide(TestLayer),
+              Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+            ) as Effect.Effect<undefined, WebSocketError, never>
       )
     );
 
@@ -620,8 +653,10 @@ describe("ChatService", () => {
           expect(history.messages).toHaveLength(0);
           expect(history.hasMore).toBe(false);
           expect(history.nextCursor).toBeUndefined();
-        }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-          .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<void, WebSocketError, never>
+        }).pipe(
+          Effect.provide(TestLayer),
+          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+        ) as Effect.Effect<void, WebSocketError, never>
       ));
 
     it("should handle concurrent history operations", () =>
@@ -648,8 +683,10 @@ describe("ChatService", () => {
         const state = yield* service.getState();
         expect(state.messages).toHaveLength(2);
         expect(state.metadata?.messageCount).toBe(2);
-      }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-        .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+      ) as Effect.Effect<undefined, WebSocketError, never>
     );
   });
 
@@ -665,14 +702,16 @@ describe("ChatService", () => {
           expect(connections.length).toBe(1);
 
           return undefined;
-        }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-          .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+        }).pipe(
+          Effect.provide(TestLayer),
+          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+        ) as Effect.Effect<undefined, WebSocketError, never>
       ),
     );
 
     it("should send messages through WebSocket", () =>
       withMockServer((mockServer) =>
-        Effect.gen(function* (_) {
+        Effect.gen(function* () {
           const service = yield* ChatService;
           const messageText = "Test message";
 
@@ -698,14 +737,14 @@ describe("ChatService", () => {
           expect(history.hasMore).toBe(false);
           expect(history.nextCursor).toBeUndefined();
         })
-          .pipe(Effect.provideService(ChatService, MockChatStateApi))
+          .pipe(Effect.provide(TestLayer))
           .pipe(Effect.catchAll(() => Effect.succeed(undefined))) as Effect.Effect<undefined, WebSocketError, never>
       )
     );
-    
+
     it("should handle runtime responses", () =>
       withMockServer((mockServer) =>
-        Effect.gen(function* (_) {
+        Effect.gen(function* () {
           // Execute the test with ChatService
           const service = yield* ChatService;
 
@@ -728,13 +767,15 @@ describe("ChatService", () => {
           expect(lastMessage.text).toBe("Response from runtime");
 
           return undefined;
-        }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-          .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+        }).pipe(
+          Effect.provide(TestLayer),
+          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+        ) as Effect.Effect<undefined, WebSocketError, never>
       ));
 
     it("should handle runtime errors", () =>
       withMockServer((mockServer) =>
-        Effect.gen(function* (_) {
+        Effect.gen(function* () {
           // Execute the test with ChatService
           const service = yield* ChatService;
 
@@ -759,8 +800,10 @@ describe("ChatService", () => {
           expect(historyPage.messages.some(m => m.text.includes("Error"))).toBe(true);
 
           return undefined;
-        }).pipe(Effect.provideService(ChatService, MockChatStateApi))
-          .pipe(Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))) as Effect.Effect<undefined, WebSocketError, never>
+        }).pipe(
+          Effect.provide(TestLayer),
+          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
+        ) as Effect.Effect<undefined, WebSocketError, never>
       ));
   })
 })

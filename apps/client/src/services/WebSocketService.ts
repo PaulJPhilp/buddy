@@ -1,4 +1,4 @@
-import { Effect, Queue, Stream, Layer } from "effect";
+import { Effect, Layer, Queue, Stream } from "effect";
 import { WebSocket } from "ws";
 
 // Message types for WebSocket communication
@@ -11,14 +11,14 @@ export interface WebSocketMessage {
     };
 }
 
-export interface WebSocketError {
+export interface WebSocketErrorData {
     code: string;
     message: string;
 }
 
-export class WebSocketError extends Error implements WebSocketError {
+export class WebSocketError extends Error implements WebSocketErrorData {
     code: string;
-    constructor(message: string, code: string = "GENERIC") {
+    constructor(message: string, code = "GENERIC") {
         super(message);
         this.name = "WebSocketError";
         this.code = code;
@@ -34,10 +34,6 @@ export interface WebSocketServiceApi {
     receive(): Stream.Stream<WebSocketMessage, WebSocketError, never>;
 }
 
-/**
- * WebSocket service class implementing the Effect.Service pattern
- */
-export class WebSocketService extends Effect.Tag("WebSocketService")<WebSocketService, WebSocketServiceApi>() {}
 
 /**
  * Create a WebSocket service instance
@@ -58,7 +54,7 @@ export const makeWebSocketService = Effect.gen(function* (_) {
                         try {
                             // Handle different types of WebSocket data formats
                             let text: string;
-                            if (typeof event.data === 'string') {
+                            if (typeof event.data === "string") {
                                 text = event.data;
                             } else if (event.data instanceof ArrayBuffer) {
                                 text = new TextDecoder().decode(event.data);
@@ -82,19 +78,20 @@ export const makeWebSocketService = Effect.gen(function* (_) {
                     };
                 } catch (error) {
                     throw new WebSocketError(
-                        typeof error === 'object' && error !== null && 'message' in error 
-                            ? String(error.message) 
+                        typeof error === "object" && error !== null && "message" in error
+                            ? String(error.message)
                             : "Failed to connect",
-                        "CONNECT_ERROR"
+                        "CONNECT_ERROR",
                     );
                 }
             },
-            catch: (error) => new WebSocketError(
-                typeof error === 'object' && error !== null && 'message' in error 
-                    ? String(error.message) 
-                    : "Failed to connect",
-                "CONNECT_ERROR"
-            )
+            catch: (error) =>
+                new WebSocketError(
+                    typeof error === "object" && error !== null && "message" in error
+                        ? String(error.message)
+                        : "Failed to connect",
+                    "CONNECT_ERROR",
+                ),
         });
 
     const disconnect = (): Effect.Effect<void, WebSocketError> =>
@@ -106,13 +103,16 @@ export const makeWebSocketService = Effect.gen(function* (_) {
                 socket.close();
                 socket = null;
             },
-            catch: (error) => new WebSocketError(
-                error instanceof Error ? error.message : "Failed to disconnect",
-                "DISCONNECT_ERROR"
-            )
+            catch: (error) =>
+                new WebSocketError(
+                    error instanceof Error ? error.message : "Failed to disconnect",
+                    "DISCONNECT_ERROR",
+                ),
         });
 
-    const send = (message: WebSocketMessage): Effect.Effect<void, WebSocketError> =>
+    const send = (
+        message: WebSocketMessage,
+    ): Effect.Effect<void, WebSocketError> =>
         Effect.try({
             try: () => {
                 if (!socket) {
@@ -120,20 +120,24 @@ export const makeWebSocketService = Effect.gen(function* (_) {
                 }
                 socket.send(JSON.stringify(message));
             },
-            catch: (error) => new WebSocketError(
-                error instanceof Error ? error.message : "Failed to send message",
-                "SEND_ERROR"
-            )
+            catch: (error) =>
+                new WebSocketError(
+                    error instanceof Error ? error.message : "Failed to send message",
+                    "SEND_ERROR",
+                ),
         });
 
     const receive = (): Stream.Stream<WebSocketMessage, WebSocketError, never> =>
         Stream.fromQueue(messageQueue).pipe(
-            Stream.mapError((error: unknown): WebSocketError => new WebSocketError(
-                typeof error === 'object' && error !== null && 'message' in error 
-                    ? String((error as any).message) 
-                    : "Failed to receive message",
-                "RECEIVE_ERROR"
-            ))
+            Stream.mapError(
+                (error: unknown): WebSocketError =>
+                    new WebSocketError(
+                        typeof error === "object" && error !== null && "message" in error
+                            ? String((error as any).message)
+                            : "Failed to receive message",
+                        "RECEIVE_ERROR",
+                    ),
+            ),
         );
 
     const service: WebSocketServiceApi = {
@@ -141,15 +145,19 @@ export const makeWebSocketService = Effect.gen(function* (_) {
         connect,
         disconnect,
         send,
-        receive
+        receive,
     };
     return service;
 });
 
 /**
- * Layer providing the WebSocketService implementation
+ * WebSocket service class implementing the Effect.Service pattern
  */
-export const WebSocketServiceLive = Layer.effect(
-    WebSocketService,
-    makeWebSocketService
-);
+export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
+    "WebSocketService",
+    {
+        effect: makeWebSocketService,
+        dependencies: [],
+    },
+) { }
+
