@@ -6,16 +6,17 @@ import {
   AgentRuntimeError,
   AgentRuntimeService,
   AgentRuntimeServiceApi,
-} from "./AgentRuntimeService";
+} from "./AgentRuntimeService.js";
 import {
   MockWebSocketServer,
   MockWebSocketServerApi,
-} from "./MockWebSocketServer";
+  WebSocketMessage
+} from "./MockWebSocketServer.js";
 import {
   WebSocketError,
   WebSocketService,
   WebSocketServiceApi,
-} from "./WebSocketService";
+} from "./WebSocketService.js";
 
 describe("WebSocket Stack Integration", () => {
   // Helper to setup test environment with mock server
@@ -70,6 +71,8 @@ describe("WebSocket Stack Integration", () => {
         yield* server.broadcast({
           type: "TYPING",
           payload: null,
+          text: "",
+          timestamp: ""
         });
 
         // Verify chat shows typing
@@ -80,6 +83,8 @@ describe("WebSocket Stack Integration", () => {
         yield* server.broadcast({
           type: "MESSAGE",
           payload: "Hello! How can I help you?",
+          text: "",
+          timestamp: ""
         });
 
         // Verify final state
@@ -104,10 +109,14 @@ describe("WebSocket Stack Integration", () => {
         yield* server.broadcast({
           type: "MESSAGE",
           payload: "Response to chat 1",
+          text: "",
+          timestamp: ""
         });
         yield* server.broadcast({
           type: "MESSAGE",
           payload: "Response to chat 2",
+          text: "",
+          timestamp: ""
         });
 
         // Verify states

@@ -1,7 +1,7 @@
 import { describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { WebSocketError } from "../services/WebSocketService";
+import { WebSocketError, WebSocketMessage } from "../services/WebSocketService";
 import { ChatService } from "./ChatService";
 import { ChatState } from "./ChatServiceApi";
 import { HistoryError, MessageCreationError, StateUpdateError } from "./errors";
@@ -754,8 +754,7 @@ describe("ChatService", () => {
           // Simulate runtime response
           mockServer.sendMessage({
             text: "Response from runtime",
-            timestamp: new Date().toISOString(),
-            sender: "assistant"
+            timestamp: new Date().toISOString()
           });
 
           // Wait for a moment to allow processing

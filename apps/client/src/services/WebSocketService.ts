@@ -3,8 +3,10 @@ import { WebSocket } from "ws";
 
 // Message types for WebSocket communication
 export interface WebSocketMessage {
+    type?: string;
     text: string;
     timestamp: string;
+    payload?: unknown;
     error?: {
         code: string;
         message: string;

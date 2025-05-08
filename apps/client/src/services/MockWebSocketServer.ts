@@ -1,5 +1,7 @@
 import { Effect, Queue, Ref } from "effect";
-import { WebSocketError, WebSocketMessage } from "./WebSocketService";
+import { WebSocketError, WebSocketMessage } from "./WebSocketService.js";
+export type { WebSocketMessage } from "./WebSocketService.js";
+
 
 // Mock server interface
 export interface MockWebSocketServerApi {
