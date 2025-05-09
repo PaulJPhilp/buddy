@@ -1,13 +1,15 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { FileIcon, XIcon } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { InputArea } from "../components/InputArea";
 import { MessageItem } from "../components/MessageItem";
-import { cn } from "../utils/cn";
+import { type MockThreadId, useAppShellStore } from "../stores/appShellStore";
 import type { MessageApi } from "./ChatServiceApi";
 import { DashboardCard } from "./components/DashboardCard";
+import { MOCK_THREADS } from "./mockData";
 
 interface DisplayFile {
   id: string;
@@ -17,293 +19,351 @@ interface DisplayFile {
   file: File;
 }
 
-const MOCK_THREADS = {
-  thread1: [
-    {
-      id: "1",
-      text: "Hi, I need help with my React application",
-      sender: "user" as const,
-      timestamp: Date.now() - 50000,
-      attachments: [],
-    },
-    {
-      id: "2",
-      text: "I'd be happy to help! What specific issues are you encountering with your React application?",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 40000,
-      attachments: [],
-    },
-    {
-      id: "3",
-      text: "I'm having trouble with state management. My components aren't updating when I expect them to.",
-      sender: "user" as const,
-      timestamp: Date.now() - 35000,
-      attachments: [],
-    },
-    {
-      id: "4",
-      text: "That's a common issue. Could you share a specific example of where the state updates aren't working as expected?",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 30000,
-      attachments: [],
-    },
-    {
-      id: "5",
-      text: "Sure, I have a counter component that's not updating when I click the increment button.",
-      sender: "user" as const,
-      timestamp: Date.now() - 25000,
-      attachments: [],
-    },
-    {
-      id: "6",
-      text: "Let's take a look at that. Are you using useState for the counter? Make sure you're using the setter function and not modifying state directly.",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 20000,
-      attachments: [],
-    },
-    {
-      id: "7",
-      text: "Yes, I'm using useState. Here's my code: const [count, setCount] = useState(0); const increment = () => count++;",
-      sender: "user" as const,
-      timestamp: Date.now() - 15000,
-      attachments: [],
-    },
-    {
-      id: "8",
-      text: "Ah, I see the issue. You're modifying the count variable directly. Instead, use setCount: const increment = () => setCount(prev => prev + 1);",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 10000,
-      attachments: [],
-    },
-  ] as MessageApi[],
-  thread2: [
-    {
-      id: "1",
-      text: "Can you help me optimize my database queries?",
-      sender: "user" as const,
-      timestamp: Date.now() - 45000,
-      attachments: [],
-    },
-    {
-      id: "2",
-      text: "Of course! Are you using any specific database system?",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 35000,
-      attachments: [],
-    },
-    {
-      id: "3",
-      text: "Yes, I'm using PostgreSQL with multiple joins that are running slowly",
-      sender: "user" as const,
-      timestamp: Date.now() - 30000,
-      attachments: [],
-    },
-    {
-      id: "4",
-      text: "I see. Could you share one of the slow queries? We can look at the execution plan and suggest optimizations.",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 25000,
-      attachments: [],
-    },
-    {
-      id: "5",
-      text: "Here's my query: SELECT * FROM users JOIN orders ON users.id = orders.user_id JOIN products ON orders.product_id = products.id",
-      sender: "user" as const,
-      timestamp: Date.now() - 20000,
-      attachments: [],
-    },
-    {
-      id: "6",
-      text: "I notice a few potential optimizations: 1) Avoid SELECT *, only select needed columns 2) Consider adding indexes on join columns 3) Check if you really need all those joins",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 15000,
-      attachments: [],
-    },
-    {
-      id: "7",
-      text: "Thanks! I'll try adding indexes. Should I create them on both sides of the join?",
-      sender: "user" as const,
-      timestamp: Date.now() - 10000,
-      attachments: [],
-    },
-    {
-      id: "8",
-      text: "Generally, you want indexes on the foreign key columns (orders.user_id and orders.product_id). The primary key columns (users.id and products.id) are automatically indexed.",
-      sender: "assistant" as const,
-      timestamp: Date.now() - 5000,
-      attachments: [],
-    },
-  ] as MessageApi[],
-};
-
 interface ChatAppProps {
-  isSelected?: boolean;
-  onSelect?: () => void;
   onClose?: () => void;
-  threadId: keyof typeof MOCK_THREADS;
+  threadId: MockThreadId;
+  theme?: "blue" | "rose";
 }
 
 export function ChatApp({
-  isSelected = false,
-  onSelect,
   onClose,
   threadId,
+  theme = "blue",
 }: ChatAppProps) {
-  const [messages, setMessages] = useState<MessageApi[]>([]);
+  const { selectedThreadId, setSelectedThreadId } = useAppShellStore();
+  const isSelected = selectedThreadId === threadId;
+
+  const [messages, setMessages] = useState<MessageApi[]>(() => MOCK_THREADS[threadId] || []);
   const [error, setError] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<DisplayFile[]>([]);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
+  // Agent names for each thread
+  const AGENT_NAMES: Record<MockThreadId, string[]> = {
+    thread1: ["Alice (React Expert)", "Bob (UI Specialist)", "Carol (State Guru)"],
+    thread2: ["Dave (DB Pro)", "Eve (Query Optimizer)", "Frank (Index Master)"]
+  };
+
+  // Update messages when threadId changes
   useEffect(() => {
     setMessages(MOCK_THREADS[threadId] || []);
+    setSelectedAgent(AGENT_NAMES[threadId][0]);
   }, [threadId]);
 
-  // Handle sending messages
-  const handleSendMessage = async (content: string) => {
-    try {
-      const newMessage: MessageApi = {
-        id: Date.now().toString(),
-        text: content,
-        sender: "user",
-        timestamp: Date.now(),
-        attachments: attachedFiles.map((f) => ({
-          id: f.id,
-          name: f.name,
-          size: f.size,
-          type: f.type,
-        })),
-      };
-      setMessages((prev) => [...prev, newMessage]);
-      setAttachedFiles([]);
-    } catch (err) {
-      setError("Failed to send message");
-      console.error(err);
+  // Scroll to bottom when messages change or when chat is selected
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
+  }, [messages, isSelected]);
+
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim() && attachedFiles.length === 0) return;
+
+    const newMessage: MessageApi = {
+      id: Date.now().toString(),
+      text: content,
+      sender: "user",
+      timestamp: Date.now(),
+      attachments: attachedFiles.map((f) => ({
+        id: f.id,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      })),
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setAttachedFiles([]);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files) return;
-
-    const newFiles: DisplayFile[] = Array.from(files).map((file) => ({
-      id: `${file.name}-${Date.now()}`,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      file,
-    }));
-
-    setAttachedFiles((prev) => [...prev, ...newFiles]);
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (files) {
+      const newFiles = Array.from(files).map((file) => ({
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 15),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file,
+      }));
+      setAttachedFiles((prevFiles) => [...prevFiles, ...newFiles]);
     }
   };
 
   const handleRemoveFile = (fileId: string) => {
-    setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId));
+    setAttachedFiles((prevFiles) =>
+      prevFiles.filter((file) => file.id !== fileId)
+    );
   };
 
-  return (
-    <fieldset
-      className={cn(
-        "flex-1 flex flex-col h-full rounded-lg bg-background min-w-[400px] max-w-[800px] border-2 transition-colors cursor-pointer relative",
-        isSelected ? "border-green-500" : "border-gray-200",
-        threadId === "thread1" ? "bg-teal-50" : "bg-orange-50",
-      )}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect?.();
-        }
-      }}
-    >
-      {onClose && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 transition-colors z-10"
-          aria-label="Close chat"
-        >
-          <XIcon className="h-4 w-4" />
-        </button>
-      )}
-      <div className="flex-1 overflow-y-auto p-4 relative">
-        <DashboardCard
-          isOpen={isDashboardOpen}
-          onCloseAction={() => setIsDashboardOpen(false)}
-        />
-        {messages?.map((msg) => (
-          <MessageItem
-            key={msg.id}
-            message={{
-              id: msg.id,
-              content: msg.text,
-              sender: msg.sender,
-              timestamp: new Date(msg.timestamp).toLocaleTimeString(),
-              attachments: msg.attachments,
-            }}
-            theme={threadId === "thread1" ? "blue" : "rose"}
-          />
-        ))}
-        {error && <div className="text-red-500 text-sm">{error}</div>}
+  // Define the three row components for user area
+  const AttachmentRow = ({ attachedFiles, handleRemoveFile }: {
+    attachedFiles: DisplayFile[],
+    handleRemoveFile: (fileId: string) => void
+  }) => {
+    if (attachedFiles.length === 0) return (
+      <div className="w-[90%] mx-auto py-0">
+        <div className="h-1" /> {/* Empty placeholder for consistent layout */}
       </div>
-      <div className="border-t bg-background/50">
-        <div className="px-4 py-3">
-          {attachedFiles.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-2 p-2 bg-muted/30 rounded-md">
-              {attachedFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center gap-2 bg-background px-2 py-1 rounded border"
+    );
+
+    return (
+      <div className="w-[90%] mx-auto py-0">
+        <div className="mx-1">
+          <div className={cn(
+            "flex flex-wrap gap-0 p-0 rounded-sm",
+            theme === "blue" ? 'bg-teal-50' : 'bg-orange-50'
+          )}>
+            {attachedFiles.map((file) => (
+              <div
+                key={file.id}
+                className={cn(
+                  "flex items-center bg-white px-0.5 py-0 rounded-sm border text-[6px] gap-0",
+                  theme === "blue" ? 'border-teal-100' : 'border-orange-100'
+                )}
+              >
+                <FileIcon className={cn(
+                  "h-1 w-1",
+                  theme === "blue" ? 'text-teal-500' : 'text-orange-500'
+                )} />
+                <span className="max-w-[30px] truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFile(file.id)}
+                  className={cn(
+                    "ml-0 rounded-full p-0",
+                    theme === "blue" ? 'hover:bg-teal-50' : 'hover:bg-orange-50'
+                  )}
+                  aria-label={`Remove ${file.name}`}
                 >
-                  <div
-                    className="group relative cursor-help"
-                    aria-label={`${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`}
-                  >
-                    <FileIcon className="h-4 w-4 text-muted-foreground" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-                      {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveFile(file.id);
-                    }}
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="relative w-full">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              className="hidden"
-              multiple
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-            />
-            <InputArea
-              onSubmitAction={handleSendMessage}
-              onAttach={() => fileInputRef.current?.click()}
-              onShowDashboard={() => setIsDashboardOpen((prev) => !prev)}
-              threadId={threadId}
-            />
+                  <XIcon className="h-1 w-1 text-gray-500 hover:text-red-500" aria-hidden={true} />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </fieldset>
+    );
+  };
+
+  // InputRow simplified as icons moved into InputArea
+  const InputRow = ({
+    onFileClick,
+    onDashboardClick,
+    onSubmitMessage,
+    onClose
+  }: {
+    onFileClick: () => void,
+    onDashboardClick: () => void,
+    onSubmitMessage: (message: string) => void,
+    onClose?: () => void
+  }) => {
+    return (
+      <div className="w-[90%] mx-auto flex items-center justify-center gap-0 py-0">
+        <div className="flex-1">
+          <InputArea
+            onSubmitMessage={onSubmitMessage}
+            onPaperclipClick={onFileClick}
+            onDashboardClick={onDashboardClick}
+            theme={theme}
+          />
+        </div>
+
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-0.5 hover:bg-gray-200 rounded-sm"
+            aria-label="Close chat"
+            style={{ padding: '1px' }}
+          >
+            <XIcon className="w-1.5 h-1.5 text-gray-600" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  // Update UserUIRow to remove IconBar since icons have been moved to InputRow
+  const UserUIRow = ({
+    selectedAgent,
+    setSelectedAgent,
+    agentNames,
+    theme
+  }: {
+    selectedAgent: string,
+    setSelectedAgent: (agent: string) => void,
+    agentNames: string[],
+    theme: "blue" | "rose"
+  }) => {
+    return (
+      <div className="w-[90%] mx-auto flex items-center py-0 mb-0">
+        {/* Agent selector as leftmost item */}
+        <div className="relative">
+          <select
+            className={cn(
+              "text-[5px] pl-0.5 pr-1.5 py-0 rounded-sm border bg-white text-gray-600 focus:outline-none focus:ring-0 shadow-none h-2 appearance-none",
+              theme === "blue" ? "border-teal-200" : "border-orange-200"
+            )}
+            value={selectedAgent}
+            onChange={e => setSelectedAgent(e.target.value)}
+            aria-label="Select agent"
+            style={{ minWidth: 40, maxWidth: 60 }}
+          >
+            {agentNames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          <div
+            className={cn(
+              "absolute top-1/2 right-0.5 -translate-y-1/2 pointer-events-none",
+              "w-0.5 h-0.5"
+            )}
+          >
+            <svg
+              width="4"
+              height="3"
+              viewBox="0 0 4 3"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={theme === "blue" ? "text-teal-400" : "text-orange-400"}
+            >
+              <path d="M2 3L0 0L4 0L2 3Z" fill="currentColor" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const baseStylingClasses = "relative flex flex-col h-full transition-all text-left";
+
+  // Always show full view for both chat apps
+
+  // Chat App View (always shown)
+  return (
+    <div
+      className={cn(
+        baseStylingClasses,
+        "w-full h-full opacity-100 rounded-lg shadow overflow-hidden",
+        "relative",
+        isSelected
+          ? "bg-white"
+          : cn(
+            "bg-gray-50",
+            theme === "blue" ? "hover:bg-teal-50" : "hover:bg-orange-50"
+          )
+      )}
+      aria-label={`Chat thread ${threadId}`}
+      onClick={() => !isSelected && setSelectedThreadId(threadId)}
+      style={{ cursor: isSelected ? 'default' : 'pointer' }}
+    >
+      <DashboardCard
+        isOpen={isDashboardOpen}
+        onCloseAction={() => setIsDashboardOpen(false)}
+      />
+
+      <div className="px-1 py-0.5 shadow-sm bg-white flex justify-between items-center h-4">
+        <div className="flex items-center gap-1">
+          <div className={cn(
+            "w-1.5 h-1.5 rounded-full",
+            isSelected
+              ? (theme === "blue" ? 'bg-teal-500' : 'bg-orange-500')
+              : 'bg-gray-400'
+          )} />
+          <h3 className="font-medium text-[8px] leading-none">Chat {threadId}</h3>
+        </div>
+        {isSelected && (
+          <span className={cn(
+            "text-[6px] px-1 py-0 rounded-full leading-tight",
+            theme === "blue"
+              ? 'bg-teal-100 text-teal-800'
+              : 'bg-orange-100 text-orange-800'
+          )}>
+            Selected
+          </span>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-white">
+        {messages.map((message) => (
+          <MessageItem
+            key={message.id}
+            message={{
+              id: message.id,
+              content: message.text,
+              sender: message.sender,
+              timestamp: String(message.timestamp),
+              attachments: message.attachments,
+            }}
+            theme={theme}
+          />
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="bg-gray-50 p-0 flex flex-col" style={{ maxHeight: '40px', height: '40px' }}>
+        {error && (
+          <div className="p-0.5 bg-red-100 text-red-700 text-[6px] rounded-md mb-0 mx-1 flex justify-between items-center">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setError(null);
+                }
+              }}
+              className="ml-0.5 text-red-500 hover:text-red-700"
+              aria-label="Dismiss error"
+            >
+              <XIcon className="h-1.5 w-1.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Row 1: Attachment bar - First distinct row */}
+        <div className="bg-gray-50 flex-none" style={{ height: '10px' }}>
+          <AttachmentRow
+            attachedFiles={attachedFiles}
+            handleRemoveFile={handleRemoveFile}
+          />
+        </div>
+
+        {/* Row 2: User Input Area - Second distinct row with icons */}
+        <div className="bg-gray-50 flex-auto" style={{ height: '20px' }}>
+          <InputRow
+            onFileClick={() => fileInputRef.current?.click()}
+            onDashboardClick={() => setIsDashboardOpen(true)}
+            onSubmitMessage={handleSendMessage}
+            onClose={onClose}
+          />
+        </div>
+
+        {/* Row 3: User UI Row - Third distinct row with agent selector */}
+        <div className="bg-gray-50 flex-none" style={{ height: '10px' }}>
+          <UserUIRow
+            selectedAgent={selectedAgent}
+            setSelectedAgent={setSelectedAgent}
+            agentNames={AGENT_NAMES[threadId]}
+            theme={theme}
+          />
+        </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileSelect}
+          multiple
+        />
+      </div>
+    </div>
   );
 }

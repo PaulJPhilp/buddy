@@ -47,7 +47,7 @@ export function DashboardCard({ isOpen, onCloseAction }: DashboardCardProps) {
       <div className="p-3 flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <BarChart2Icon className="h-3 w-3 text-primary" />
+            <BarChart2Icon className="h-3 w-3 text-primary" aria-hidden={true} />
             <h3 className="text-[8pt] font-medium">Dashboard</h3>
           </div>
           <button
@@ -55,7 +55,7 @@ export function DashboardCard({ isOpen, onCloseAction }: DashboardCardProps) {
             className="text-muted-foreground hover:text-foreground"
             type="button"
           >
-            <XIcon className="h-3 w-3" />
+            <XIcon className="h-3 w-3" aria-hidden={true} />
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2 text-[6pt] mb-3">
@@ -111,7 +111,7 @@ export function DashboardCard({ isOpen, onCloseAction }: DashboardCardProps) {
                           className={cn(
                             "px-1.5 py-0.5 rounded",
                             data.month > 10 &&
-                              "bg-yellow-200 text-yellow-900 font-medium",
+                            "bg-yellow-200 text-yellow-900 font-medium",
                           )}
                         >
                           ${data.month.toFixed(3)}

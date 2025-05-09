@@ -13,7 +13,10 @@ describe("MockWebSocketServer", () => {
 
         // Stop server
         yield* server.stop();
-      }).pipe(Effect.runPromise));
+      }).pipe(
+        Effect.provide(MockWebSocketServer.Default),
+        Effect.runPromise
+      ));
   });
 
   describe("Message handling", () => {
@@ -36,6 +39,8 @@ describe("MockWebSocketServer", () => {
         yield* server.broadcast({
           type: "MESSAGE",
           payload: "Test message",
+          text: "Test message",
+          timestamp: new Date().toISOString(),
         });
 
         // Verify message was received
@@ -43,11 +48,16 @@ describe("MockWebSocketServer", () => {
         expect(messages[0]).toEqual({
           type: "MESSAGE",
           payload: "Test message",
+          text: "Test message",
+          timestamp: new Date().toISOString(),
         });
 
         // Cleanup
         yield* server.stop();
-      }).pipe(Effect.runPromise));
+      }).pipe(
+        Effect.provide(MockWebSocketServer.Default),
+        Effect.runPromise
+      ));
 
     it("should handle multiple message handlers", () =>
       Effect.gen(function* () {
@@ -74,6 +84,8 @@ describe("MockWebSocketServer", () => {
         yield* server.broadcast({
           type: "MESSAGE",
           payload: "Test message",
+          text: "Test message",
+          timestamp: new Date().toISOString(),
         });
 
         // Verify both handlers received the message
@@ -83,6 +95,9 @@ describe("MockWebSocketServer", () => {
 
         // Cleanup
         yield* server.stop();
-      }).pipe(Effect.runPromise));
+      }).pipe(
+        Effect.provide(MockWebSocketServer.Default),
+        Effect.runPromise
+      ));
   });
 });

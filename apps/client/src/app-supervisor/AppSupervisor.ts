@@ -1,11 +1,19 @@
 import { ChatService } from "@/app-chat/ChatService";
+import { MockChatService } from "../app-chat/MockChatService";
 import { AgentRuntimeService } from "@/services/AgentRuntimeService";
 import { MockWebSocketServer } from "@/services/MockWebSocketServer";
 import { WebSocketService } from "@/services/WebSocketService";
-import { Effect, Layer } from "effect";
+import { Config, Effect, Layer } from "effect";
 
 // Supervisor Effect that manages all child Effects
 export const appSupervisorEffect = Effect.gen(function* () {
+  // Configuration for using mock chat service
+  const useMockChat = yield* Config.boolean("USE_MOCK_CHAT").pipe(Config.withDefault(false));
+
+  yield* Effect.logInfo(
+    useMockChat ? "Using MockChatService" : "Using ChatService"
+  );
+
   // Start chat apps
   yield* Effect.logDebug("Starting chat apps");
 
@@ -16,14 +24,19 @@ export const appSupervisorEffect = Effect.gen(function* () {
     AgentRuntimeService.Default
   );
 
+  // Determine which chat service layer to use
+  const chatServiceImpl = useMockChat
+    ? MockChatService.Default // Use MockChatService.Default if the flag is true
+    : ChatService.Default;    // Otherwise, use the real ChatService.Default
+
   // Create independent chat service layers with dependencies
   const chat1Layer = Layer.provide(
-    ChatService.Default,
+    chatServiceImpl, // Use the selected implementation
     baseLayer
   );
 
   const chat2Layer = Layer.provide(
-    ChatService.Default,
+    chatServiceImpl, // Use the selected implementation
     baseLayer
   );
 

@@ -4,7 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 
 export function UserCard() {
   return (
-    <div className="fixed bottom-4 left-4 z-50">
+    <div className="flex items-center transform scale-75">
       <UserButton />
     </div>
   );

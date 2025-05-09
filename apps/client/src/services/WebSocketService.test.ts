@@ -71,9 +71,13 @@ describe("WebSocketService", () => {
           // Connect using Effect.scoped to ensure cleanup
           yield* service.connect(mockUrl);
 
+
+          // Send message - explicitly ignore the return value
           const message = {
             type: "MESSAGE" as const,
             payload: "Hello, world!",
+            text: "Hello, world!", // Added text property
+            timestamp: new Date().toDateString(), // Added timestamp property
           };
 
           // Send message - explicitly ignore the return value
@@ -98,6 +102,8 @@ describe("WebSocketService", () => {
               service.send({
                 type: "MESSAGE" as const,
                 payload: "Should fail",
+                text: "Should fail",
+                timestamp: new Date().toDateString(),
               }),
             catch: (error) => {
               expect(error).toEqual({

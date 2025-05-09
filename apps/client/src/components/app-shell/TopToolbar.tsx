@@ -1,8 +1,9 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { Button } from "/Users/paul/Projects/buddy/src/components/components/ui/button";
 import { useToast } from "../ui/use-toast";
+import { UserCard } from "./UserCard";
+import { Button } from "/Users/paul/Projects/buddy/src/components/components/ui/button";
 
 interface TopToolbarProps {
   onToggleSidebarAction: () => void;
@@ -29,16 +30,19 @@ export function TopToolbar({ onToggleSidebarAction }: TopToolbarProps) {
   };
 
   return (
-    <div className="h-8 border-b bg-muted/40 flex items-center px-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onToggleSidebarAction}
-        className="mr-2"
-      >
-        <Menu className="h-4 w-4" />
-      </Button>
-      <h1 className="text-sm font-semibold">Buddy</h1>
+    <div className="h-6 border-b bg-muted/40 flex items-center justify-between px-0.5">
+      <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleSidebarAction}
+          className="mr-2 h-full px-1"
+        >
+          <Menu className="h-3 w-3" aria-hidden={true} />
+        </Button>
+        <h1 className="text-sm font-semibold leading-none">Buddy</h1>
+      </div>
+      <UserCard />
     </div>
   );
 }
