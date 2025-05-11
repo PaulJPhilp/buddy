@@ -156,12 +156,14 @@ export function ChatApp({
     onFileClick,
     onDashboardClick,
     onSubmitMessage,
-    onClose
+    onClose,
+    agentName
   }: {
     onFileClick: () => void,
     onDashboardClick: () => void,
     onSubmitMessage: (message: string) => void,
-    onClose?: () => void
+    onClose?: () => void,
+    agentName?: string
   }) => {
     return (
       <div className="w-[90%] mx-auto flex items-center justify-center gap-0 py-0">
@@ -171,6 +173,7 @@ export function ChatApp({
             onPaperclipClick={onFileClick}
             onDashboardClick={onDashboardClick}
             theme={theme}
+            agentName={agentName}
           />
         </div>
 
@@ -247,6 +250,7 @@ export function ChatApp({
 
   // Chat App View (always shown)
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
       className={cn(
         baseStylingClasses,
@@ -268,19 +272,19 @@ export function ChatApp({
         onCloseAction={() => setIsDashboardOpen(false)}
       />
 
-      <div className="px-1 py-0.5 shadow-sm bg-white flex justify-between items-center h-4">
+      <div className="px-2 py-1 shadow-sm bg-white flex justify-between items-center h-6 border-b">
         <div className="flex items-center gap-1">
           <div className={cn(
-            "w-1.5 h-1.5 rounded-full",
+            "w-2 h-2 rounded-full",
             isSelected
               ? (theme === "blue" ? 'bg-teal-500' : 'bg-orange-500')
               : 'bg-gray-400'
           )} />
-          <h3 className="font-medium text-[8px] leading-none">Chat {threadId}</h3>
+          <h3 className="font-medium text-xs leading-none">Chat {threadId}</h3>
         </div>
         {isSelected && (
           <span className={cn(
-            "text-[6px] px-1 py-0 rounded-full leading-tight",
+            "text-xs px-2 py-0.5 rounded-full leading-none",
             theme === "blue"
               ? 'bg-teal-100 text-teal-800'
               : 'bg-orange-100 text-orange-800'
@@ -316,11 +320,13 @@ export function ChatApp({
               onClick={() => setError(null)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
                   setError(null);
                 }
               }}
               className="ml-0.5 text-red-500 hover:text-red-700"
               aria-label="Dismiss error"
+              tabIndex={0}
             >
               <XIcon className="h-1.5 w-1.5" />
             </button>
@@ -342,6 +348,7 @@ export function ChatApp({
             onDashboardClick={() => setIsDashboardOpen(true)}
             onSubmitMessage={handleSendMessage}
             onClose={onClose}
+            agentName={selectedAgent}
           />
         </div>
 

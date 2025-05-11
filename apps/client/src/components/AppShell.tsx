@@ -39,7 +39,7 @@ export function AppShell({ children }: AppShellProps) {
         <div
           className={cn(
             "border-r bg-muted/40 flex flex-col transition-all duration-300 ease-in-out",
-            isSidebarOpen ? "w-16" : "w-0 hidden"
+            isSidebarOpen ? "w-12" : "w-0 hidden"
           )}
         >
           <Sidebar isOpen={isSidebarOpen} onToggleAction={toggleSidebar} />
@@ -48,7 +48,7 @@ export function AppShell({ children }: AppShellProps) {
         <main className="flex-1 flex flex-col overflow-hidden">
           <TopToolbar onToggleSidebarAction={toggleSidebar} />
 
-          <div className="flex-1 flex flex-col gap-4 p-4 overflow-hidden max-w-[1600px] mx-auto w-full">
+          <div className="flex-1 flex flex-col gap-1 p-1 overflow-hidden max-w-full mx-auto w-full">
             {children}
           </div>
         </main>

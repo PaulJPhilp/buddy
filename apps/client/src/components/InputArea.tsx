@@ -10,9 +10,10 @@ interface InputAreaProps {
   onPaperclipClick?: () => void;
   onDashboardClick?: () => void;
   theme?: "blue" | "rose";
+  agentName?: string;
 }
 
-export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick, theme = "blue" }: InputAreaProps) {
+export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick, theme = "blue", agentName }: InputAreaProps) {
   const [text, setText] = useState("");
 
   const handleSubmit = () => {
@@ -23,7 +24,7 @@ export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick,
 
   return (
     <div className="relative flex-1 flex flex-col px-[5px]">
-      <div className="relative flex items-center justify-center w-full mx-auto" style={{ height: '10px' }}>
+      <div className="relative flex items-center justify-center w-full mx-auto" style={{ height: '20px' }}>
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -33,14 +34,14 @@ export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick,
               handleSubmit();
             }
           }}
-          placeholder="Send a message..."
+          placeholder={agentName ? `Speak to ${agentName}` : "Send a message..."}
           className={cn(
-            "min-h-[10px] max-h-[10px] pl-2 pr-12 py-0 w-full text-[8px] overflow-hidden resize-none border rounded-sm",
+            "min-h-[20px] max-h-[20px] pl-2 pr-12 py-0 w-full text-[12px] overflow-hidden resize-none border rounded-sm",
             theme === "blue"
               ? "bg-teal-50 border-teal-200"
               : "bg-orange-50 border-orange-200"
           )}
-          style={{ height: '10px', lineHeight: '1', paddingTop: '0', paddingBottom: '0' }}
+          style={{ height: '20px', lineHeight: '1', paddingTop: '0', paddingBottom: '0' }}
         />        <div className="absolute right-1 flex items-center gap-1" style={{ top: '50%', transform: 'translateY(-50%)' }}>
           {onDashboardClick && (
             <button
@@ -54,7 +55,7 @@ export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick,
               )}
               aria-label="Show dashboard"
             >
-              <BarChart2Icon className="h-1.5 w-1.5" aria-hidden={true} />
+              <BarChart2Icon className="h-2.5 w-2.5" aria-hidden={true} />
             </button>
           )}
 
@@ -70,7 +71,7 @@ export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick,
               )}
               aria-label="Attach file"
             >
-              <PaperclipIcon className="h-1.5 w-1.5" aria-hidden={true} />
+              <PaperclipIcon className="h-2.5 w-2.5" aria-hidden={true} />
             </button>
           )}
 
@@ -83,7 +84,7 @@ export function InputArea({ onSubmitMessage, onPaperclipClick, onDashboardClick,
           >
             <SendIcon
               className={cn(
-                "h-1.5 w-1.5 cursor-pointer transition-colors",
+                "h-2.5 w-2.5 cursor-pointer transition-colors",
                 theme === "blue"
                   ? "text-teal-500 hover:text-teal-700"
                   : "text-orange-500 hover:text-orange-700"

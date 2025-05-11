@@ -30,13 +30,13 @@ export function TopToolbar({ onToggleSidebarAction }: TopToolbarProps) {
   };
 
   return (
-    <div className="h-6 border-b bg-muted/40 flex items-center justify-between px-0.5">
+    <div className="h-5 border-b bg-muted/40 flex items-center justify-between px-0.5">
       <div className="flex items-center">
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleSidebarAction}
-          className="mr-2 h-full px-1"
+          className="mr-1 h-full px-0.5"
         >
           <Menu className="h-3 w-3" aria-hidden={true} />
         </Button>
