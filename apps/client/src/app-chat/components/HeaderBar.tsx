@@ -6,11 +6,15 @@ interface HeaderBarProps {
     threadId?: string;
     isSelected: boolean;
     theme: "blue" | "rose";
+    error?: string | null; // Add error prop
 }
 
-export function HeaderBar({ threadId, isSelected, theme }: HeaderBarProps) {
+export function HeaderBar({ threadId, isSelected, theme, error }: HeaderBarProps) {
     return (
-        <div className="px-2 shadow-sm bg-white flex justify-between items-center h-2 border-b border-gray-200/50">
+        <div className={cn(
+            "px-2 shadow-sm flex justify-between items-center h-2 border-b",
+            error ? "bg-red-100 border-red-300" : "bg-white border-gray-200/50" // Conditional background and border
+        )}>
             <div className="flex items-center gap-1">
                 <div className={cn(
                     "w-1 h-1 rounded-full",

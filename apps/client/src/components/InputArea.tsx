@@ -36,27 +36,27 @@ export function InputArea({ onSubmitMessageAction, onPaperclipClickAction, onDas
           }}
           placeholder={agentName ? `Speak to ${agentName}` : "Send a message..."}
           className={cn(
-            "h-[34px] pr-20 py-1 w-full text-sm resize-none border rounded-md",
+            "h-[22px] min-h-[22px] pr-14 py-0 w-full text-xs resize-none border border-gray-200 rounded-[4px]",
             theme === "blue"
               ? "bg-teal-50 border-teal-200 focus-visible:border-teal-300"
               : "bg-orange-50 border-orange-200 focus-visible:border-orange-300"
           )}
-          style={{ lineHeight: '30px' }}
+          style={{ lineHeight: '18px' }}
         />
-        <div className="absolute right-2 flex items-center gap-2">
+        <div className="absolute right-1.5 flex items-center gap-1.5">
           {onDashboardClickAction && (
             <button
               type="button"
               onClick={onDashboardClickAction}
               className={cn(
-                "transition-colors rounded hover:bg-gray-100",
+                "transition-colors rounded-sm p-0.5 hover:bg-gray-100",
                 theme === "blue"
                   ? "text-teal-400 hover:text-teal-600"
                   : "text-orange-400 hover:text-orange-600"
               )}
               aria-label="Show dashboard"
             >
-              <BarChart2Icon className="h-4 w-4" aria-hidden={true} />
+              <BarChart2Icon className="h-2.5 w-2.5" aria-hidden={true} />
             </button>
           )}
 
@@ -65,27 +65,27 @@ export function InputArea({ onSubmitMessageAction, onPaperclipClickAction, onDas
               type="button"
               onClick={onPaperclipClickAction}
               className={cn(
-                "transition-colors rounded hover:bg-gray-100",
+                "transition-colors rounded-sm p-0.5 hover:bg-gray-100",
                 theme === "blue"
                   ? "text-teal-400 hover:text-teal-600"
                   : "text-orange-400 hover:text-orange-600"
               )}
               aria-label="Attach file"
             >
-              <PaperclipIcon className="h-4 w-4" aria-hidden={true} />
+              <PaperclipIcon className="h-2.5 w-2.5" aria-hidden={true} />
             </button>
           )}
 
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center justify-center rounded hover:bg-gray-100 focus:outline-none"
+            className="flex items-center justify-center rounded-sm p-0.5 hover:bg-gray-100 focus:outline-none"
             disabled={!text.trim()}
             aria-label="Send message"
           >
             <SendIcon
               className={cn(
-                "h-4 w-4 cursor-pointer transition-colors",
+                "h-2.5 w-2.5 cursor-pointer transition-colors",
                 theme === "blue"
                   ? "text-teal-500 hover:text-teal-700"
                   : "text-orange-500 hover:text-orange-700"

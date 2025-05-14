@@ -85,14 +85,14 @@ export function ChatApp({
     );
   };
 
-  const baseStylingClasses = "relative flex flex-col h-full transition-all text-left";
+  const baseStylingClasses = "relative transition-all text-left"; // Removed flex flex-col, h-full
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
       className={cn(
         baseStylingClasses,
-        "w-full h-full opacity-100 rounded-lg shadow overflow-hidden",
+        "grid grid-rows-[auto_1fr_auto] w-full h-full opacity-100 rounded-lg shadow overflow-hidden", // Added grid layout
         "relative",
         isSelected
           ? "bg-white"
@@ -114,11 +114,14 @@ export function ChatApp({
         threadId={threadId}
         isSelected={isSelected}
         theme={theme}
+        error={error} // Pass the error state
       />
 
       <MessageArea
         messages={messages}
         theme={theme}
+      // MessageArea should have overflow-y-auto and h-full if it's not already set internally
+      // to ensure it scrolls and fills the 1fr space.
       />
 
       <UserArea

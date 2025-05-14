@@ -12,11 +12,7 @@ interface AttachmentRowProps {
 
 export function AttachmentRow({ attachedFiles, onRemoveFileAction, theme }: AttachmentRowProps) {
     if (attachedFiles.length === 0) {
-        return (
-            <div className="w-[90%] mx-auto py-0">
-                <div className="h-0.5" /> {/* Empty placeholder for consistent layout */}
-            </div>
-        );
+        return null;
     }
 
     return (

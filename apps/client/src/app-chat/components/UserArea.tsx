@@ -1,6 +1,6 @@
 "use client";
 
-import { InputArea } from "@/components/InputArea";
+import { MinimalInput } from "@/components/MinimalInput";
 import { XIcon } from "lucide-react";
 import type { DisplayFile, Theme } from "../types";
 import { AttachmentRow } from "./AttachmentRow";
@@ -36,10 +36,10 @@ export function UserArea({
     onDismissErrorAction
 }: UserAreaProps) {
     return (
-        <div className="w-full bg-gray-50 border border-gray-200 rounded-sm absolute bottom-0 left-0 right-0 flex flex-col overflow-hidden" style={{ transform: 'translateY(-75px)' }}>
+        <div className="w-full bg-gray-50 border border-gray-200 rounded-sm absolute bottom-0 left-0 right-0 flex flex-col overflow-hidden">
             {/* Row 1: FileList */}
-            <div className="flex-none p-2">
-                <div className="w-[90%] mx-auto">
+            <div className="flex-none">
+                <div className="w-[95%] mx-auto">
                     <AttachmentRow
                         theme={theme}
                         attachedFiles={attachedFiles}
@@ -49,9 +49,9 @@ export function UserArea({
             </div>
 
             {/* Row 2: Input */}
-            <div className="h-[50px] flex-none">
-                <div className="w-[90%] mx-auto h-full">
-                    <InputArea
+            <div className="flex-none py-px">
+                <div className="w-[95%] mx-auto">
+                    <MinimalInput
                         theme={theme}
                         onSubmitMessageAction={onSubmitMessageAction}
                         onPaperclipClickAction={onFileClickAction}
@@ -61,8 +61,8 @@ export function UserArea({
             </div>
 
             {/* Row 3: Agent Selection UIBar */}
-            <div className="w-full border-t bg-gray-50 flex-none py-2">
-                <div className="w-[90%] mx-auto">
+            <div className="w-full border-t bg-gray-50 flex-none pt-0.5">
+                <div className="w-[95%] mx-auto">
                     <UIBar
                         theme={theme}
                         onPaperclipClickAction={onFileClickAction}
