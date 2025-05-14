@@ -53,11 +53,11 @@ export function MessageItem({ message, theme = "blue" }: MessageItemProps) {
       >
         <div
           className={cn(
-            "rounded-lg px-0.5 py-0.5 text-[8.6pt] shadow-sm", // Increased from 7.2pt to 8.6pt (another 20% increase)
+            "rounded-lg px-1.5 py-1 text-[5pt] shadow-sm",
             isUser ? themeColors[theme].user : themeColors[theme].assistant,
           )}
         >
-          <p className="whitespace-pre-wrap break-words leading-relaxed text-[8.6pt]">
+          <p className="whitespace-pre-wrap break-words leading-none text-[5pt]">
             {message.content}
           </p>
         </div>
@@ -67,15 +67,15 @@ export function MessageItem({ message, theme = "blue" }: MessageItemProps) {
               <div
                 key={file.id}
                 className={cn(
-                  "flex items-center gap-2 px-0.5 py-0.5 rounded bg-background/80 border shadow-sm text-[8.6pt]",
+                  "flex items-center gap-2 px-0.5 py-0.5 rounded bg-background/80 border shadow-sm text-[5pt]",
                   isUser && "flex-row-reverse",
                 )}
               >
                 <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="truncate max-w-[200px] text-foreground text-[8.6pt]">
+                <span className="truncate max-w-[200px] text-foreground text-[5pt]">
                   {file.name}
                 </span>
-                <span className="text-[8.6pt] text-muted-foreground shrink-0">
+                <span className="text-[5pt] text-muted-foreground shrink-0">
                   {(file.size / 1024 / 1024).toFixed(2)}MB
                 </span>
               </div>

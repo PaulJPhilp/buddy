@@ -32,6 +32,15 @@
   "devDependencies": {
     "@clerk/dev-cli": "^0.0.11",
     "@tailwindcss/postcss": "^4.1.5",
-    "@tailwindcss/vite": "^4.1.5"
+    "@tailwindcss/vite": "^4.1.5",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jsdom": "^21.1.7",
+    "@vitejs/plugin-react": "^4.4.1",
+    "@web/test-runner": "^0.20.1",
+    "@web/test-runner-playwright": "^0.11.0",
+    "happy-dom": "^17.4.7",
+    "jsdom": "^26.1.0"
   }
 }
