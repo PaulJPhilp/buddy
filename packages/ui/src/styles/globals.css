@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @theme {
   --font-family-sans: "geist";
@@ -11,7 +13,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 100%; /* pure white */
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -21,13 +23,13 @@
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 96%; /* very light gray */
+    --muted-foreground: 220 10% 40%; /* neutral gray text */
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
+    --border: 220 14% 90%; /* neutral gray */
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
@@ -40,18 +42,18 @@
     --chart-5: 27 87% 67%;
 
     /* Custom sidebar colors */
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 0 0% 100%; /* match main background */
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent: 0 0% 100%; /* match main background */
     --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 220 14% 90%; /* match main border */
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 0 0% 100%; /* pure white for dark mode too */
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
@@ -61,13 +63,13 @@
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 14% 96%; /* very light gray for dark mode */
+    --muted-foreground: 220 10% 40%; /* neutral gray text for dark mode */
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
+    --border: 220 14% 90%; /* neutral gray for dark mode */
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
@@ -79,13 +81,13 @@
     --chart-5: 340 75% 55%;
 
     /* Dark mode sidebar colors */
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 0 0% 100%; /* match main background for dark mode */
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 0 0% 100%; /* match main background for dark mode */
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-border: 220 14% 90%; /* match main border for dark mode */
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -123,8 +125,8 @@
     }
   }
 
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+
   }
 
   .skeleton {
@@ -134,7 +136,7 @@
 
     *[class^="text-"] {
       color: transparent;
-      @apply rounded-[calc(var(--radius)-2px)] bg-[hsl(var(--foreground)/0.2)] select-none animate-pulse;
+      @apply rounded-[calc(var(--radius)-2px)] bg-[hsl(var(--foreground)/0.2)] select-none;
     }
 
     .skeleton-bg {
@@ -142,10 +144,10 @@
     }
 
     .skeleton-div {
-      @apply bg-[hsl(var(--foreground)/0.2)] animate-pulse;
+      @apply bg-[hsl(var(--foreground)/0.2)];
     }
   }
-}
+
 
 /* Editor styles */
 .ProseMirror {
@@ -186,4 +188,11 @@
 
 .suggestion-highlight {
   @apply bg-[hsl(214,93%,88%)] hover:bg-[hsl(214,93%,82%)] dark:hover:bg-[hsl(214,93%,50%,0.5)] dark:text-[hsl(214,93%,95%)] dark:bg-[hsl(214,93%,50%,0.4)];
+}
+
+*,
+*::before,
+*::after {
+  background-color: #fff !important;
+  border-color: #e5e7eb !important; /* Tailwind gray-200 */
 }

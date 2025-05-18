@@ -1,4 +1,4 @@
-import { cn } from "../../utils/cn";
+import { cn } from "../../../../packages/ui/src/utils/cn";
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   isLoading?: boolean;
@@ -17,7 +17,7 @@ function Skeleton({
 
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
+      className={cn("rounded-md bg-muted", className)}
       {...props}
     />
   );

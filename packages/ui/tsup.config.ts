@@ -16,7 +16,7 @@ export default defineConfig({
   loader: {
     ".css": "copy"
   },
-  watch: true,
+  watch: process.argv.includes('--watch'),
   env: {
     NODE_OPTIONS: '--max-old-space-size=4096',
   },

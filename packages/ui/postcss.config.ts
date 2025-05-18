@@ -7,7 +7,7 @@ interface PostCSSConfig {
 
 const config: PostCSSConfig = {
   plugins: {
-    "tailwindcss": {},
+    "@tailwindcss/postcss": {},
   },
 }
 

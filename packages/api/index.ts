@@ -9,13 +9,16 @@ import {
   UserLogin,
 } from "./src/UserSchema";
 
-export class ServerApi extends HttpApi.make("server-api")
-  .add(PromptApiGroup)
-  .add(PromptVoiceApiGroup)
-  .add(UserApiGroup) {
-  readonly [HttpApi.TypeId] = HttpApi.TypeId
-  readonly _tag = "ServerApi"
-}
+export const ServerApi = Object.assign(
+  HttpApi.make("server-api")
+    .add(PromptApiGroup)
+    .add(PromptVoiceApiGroup)
+    .add(UserApiGroup),
+  {
+    [HttpApi.TypeId]: HttpApi.TypeId,
+    _tag: "ServerApi" as const
+  }
+)
 
 export {
   AuthToken,

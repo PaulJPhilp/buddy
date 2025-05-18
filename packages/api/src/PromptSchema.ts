@@ -41,6 +41,12 @@ const promptGetEndpoint = HttpApiEndpoint.post(
   .addError(Schema.String)
   .addSuccess(Prompt);
 
-export class PromptApiGroup extends HttpApiGroup.make("prompt")
-  .add(promptCreateEndpoint)
-  .add(promptGetEndpoint) {}
+export const PromptApiGroup = Object.assign(
+  HttpApiGroup.make("prompt")
+    .add(promptCreateEndpoint)
+    .add(promptGetEndpoint),
+  {
+    [HttpApiGroup.TypeId]: HttpApiGroup.TypeId,
+    _tag: "PromptApiGroup" as const
+  }
+)

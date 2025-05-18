@@ -28,6 +28,12 @@ const promptVoiceGetEndpoint = HttpApiEndpoint.post(
   .addError(Schema.String)
   .addSuccess(PromptVoice);
 
-export class PromptVoiceApiGroup extends HttpApiGroup.make("prompt-voice")
-  .add(promptVoiceCreateEndpoint)
-  .add(promptVoiceGetEndpoint) { }
+export const PromptVoiceApiGroup = Object.assign(
+  HttpApiGroup.make("prompt-voice")
+    .add(promptVoiceCreateEndpoint)
+    .add(promptVoiceGetEndpoint),
+  {
+    [HttpApiGroup.TypeId]: HttpApiGroup.TypeId,
+    _tag: "PromptVoiceApiGroup" as const
+  }
+)

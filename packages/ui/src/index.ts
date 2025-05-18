@@ -1,1 +1,1 @@
-export * from "./components/ui/button";
+export { ChatApp } from "./components/ChatApp";

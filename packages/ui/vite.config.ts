@@ -5,7 +5,7 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
     plugins: [react(), tsconfigPaths()],
-    root: 'demo',
+    // root is not needed since we're building a library
     build: {
         outDir: '../dist',
         lib: {

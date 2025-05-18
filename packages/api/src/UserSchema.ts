@@ -49,7 +49,13 @@ const userLoginEndpoint = HttpApiEndpoint.post("loginUser")`/user/login`
   .addError(Schema.String)
   .addSuccess(AuthToken);
 
-export class UserApiGroup extends HttpApiGroup.make("user")
-  .add(userCreateEndpoint)
-  .add(userGetEndpoint)
-  .add(userLoginEndpoint) {}
+export const UserApiGroup = Object.assign(
+  HttpApiGroup.make("user")
+    .add(userCreateEndpoint)
+    .add(userGetEndpoint)
+    .add(userLoginEndpoint),
+  {
+    [HttpApiGroup.TypeId]: HttpApiGroup.TypeId,
+    _tag: "UserApiGroup" as const
+  }
+)
