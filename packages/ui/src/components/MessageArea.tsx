@@ -29,24 +29,24 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
     }, [messages.length]);
 
     return (
-        <div className={`overflow-auto p-3 space-y-3 ${className}`}>
+        <div className={`overflow-auto px-sm py-xs space-y-xs ${className}`}>
             {isLoading ? (
-                <div className="p-2 bg-gray-100 rounded-md text-sm text-gray-600">Loading messages...</div>
+                <div className="p-xs bg-muted rounded-sm text-xs text-muted-foreground">Loading messages...</div>
             ) : error && messages.length === 0 ? (
-                <div className="p-2 bg-red-50 rounded-md text-sm text-red-600 border border-red-200">{error}</div>
+                <div className="p-xs bg-destructive/10 rounded-sm text-xs text-destructive border border-destructive/30">{error}</div>
             ) : messages.length === 0 ? (
-                <div className="p-2 bg-gray-50 rounded-md text-sm text-gray-500">No messages yet. Start a conversation.</div>
+                <div className="p-xs bg-muted rounded-sm text-xs text-muted-foreground">No messages yet. Start a conversation.</div>
             ) : (
                 messages.map((message) => (
                     <div
                         key={message.id}
-                        className={`p-2 rounded-md max-w-[85%] ${message.isUser
-                            ? "bg-blue-50 ml-auto border border-blue-100"
-                            : "bg-gray-50 border border-gray-100"
+                        className={`p-xs rounded-sm max-w-[85%] ${message.isUser
+                            ? "bg-primary/10 ml-auto border border-primary/20"
+                            : "bg-background border border-border"
                             }`}
                     >
-                        <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs whitespace-pre-wrap break-words">{message.text}</p>
+                        <p className="text-xxs text-muted-foreground mt-xxs">
                             {message.timestamp instanceof Date
                                 ? message.timestamp.toLocaleTimeString()
                                 : typeof message.timestamp === 'number'

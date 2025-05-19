@@ -1,5 +1,5 @@
-import { ChatService } from "@/app-chat/ChatService";
-import { MockChatService } from "../app-chat/MockChatService";
+import { ChatService } from "@/features/chat/ChatService";
+import { MockChatService } from "@/features/chat/MockChatService";
 import { AgentRuntimeService } from "@/services/AgentRuntimeService";
 import { MockWebSocketServer } from "@/services/MockWebSocketServer";
 import { WebSocketService } from "@/services/WebSocketService";

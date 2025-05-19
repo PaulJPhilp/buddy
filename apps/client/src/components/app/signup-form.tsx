@@ -2,9 +2,9 @@
 
 import type React from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/ui/button";
+import { Input } from "@ui/components/ui/input";
+import { Label } from "@ui/components/ui/label";
 import { useState } from "react";
 
 export function SignupForm() {

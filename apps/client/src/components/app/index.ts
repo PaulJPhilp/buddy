@@ -1,2 +1,2 @@
-export * from "./auth-form";
-export * from "./submit-button";
+export * from "./signup-form";
+export * from "./theme-provider";

@@ -1,10 +1,4 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'url';
 // filepath: /Users/paul/Projects/buddy/packages/ui/tailwind.config.ts
-import type { Config } from 'tailwindcss';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export default {
     content: [
@@ -22,6 +16,26 @@ export default {
             },
         },
         extend: {
+            spacing: {
+                'xxs': '0.125rem', // 2px
+                'xs': '0.25rem',   // 4px
+                'sm': '0.5rem',    // 8px
+                'md': '0.75rem',   // 12px
+                'lg': '1rem',      // 16px
+            },
+            fontSize: {
+                'xxs': ['0.625rem', { lineHeight: '1rem' }], // 10px
+                'xs': ['0.75rem', { lineHeight: '1rem' }],   // 12px
+                'sm': ['0.875rem', { lineHeight: '1.25rem' }], // 14px
+                'md': ['1rem', { lineHeight: '1.5rem' }],    // 16px
+            },
+            borderRadius: {
+                'xxs': '1px',
+                'xs': '2px',
+                'sm': 'calc(var(--radius) - 4px)',
+                'md': 'calc(var(--radius) - 2px)',
+                'lg': 'var(--radius)',
+            },
             colors: {
                 border: 'hsl(var(--border) / <alpha>)',
                 input: 'hsl(var(--input) / <alpha>)',
@@ -56,17 +70,13 @@ export default {
                     DEFAULT: 'hsl(var(--card) / <alpha>)',
                     foreground: 'hsl(var(--card-foreground) / <alpha>)',
                 },
-            },
-            borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
-                sm: 'calc(var(--radius) - 4px)',
-            },
+            }
+
         },
     },
-    plugins: {
-
-        '@tailwindcss/typography': {},
-        '@tailwindcss/forms': {},
-    },
+    plugins: [
+        import('tailwindcss-animate'),
+        import('@tailwindcss/typography'),
+        import('@tailwindcss/forms')
+    ],
 } as const;

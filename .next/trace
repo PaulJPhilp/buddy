@@ -4,3 +4,5 @@
 [{"name":"next-dev","duration":556366,"timestamp":786858281855,"id":1,"tags":{},"startTime":1746555141294,"traceId":"7f21eef51c1be972"}]
 [{"name":"next-dev","duration":516202,"timestamp":786922516392,"id":1,"tags":{},"startTime":1746555205528,"traceId":"8f532fb9ed44f5f7"}]
 [{"name":"next-dev","duration":485272,"timestamp":1005001883615,"id":1,"tags":{},"startTime":1746773284250,"traceId":"3c5492eaf74ffd21"}]
+[{"name":"generate-buildid","duration":173,"timestamp":1852356542544,"id":4,"parentId":1,"tags":{},"startTime":1747620633286,"traceId":"3ac0206f2212bd83"},{"name":"load-custom-routes","duration":144,"timestamp":1852356542765,"id":5,"parentId":1,"tags":{},"startTime":1747620633286,"traceId":"3ac0206f2212bd83"},{"name":"next-build","duration":59693,"timestamp":1852356484613,"id":1,"tags":{"buildMode":"default","isTurboBuild":"false","version":"15.3.2"},"startTime":1747620633228,"traceId":"3ac0206f2212bd83"}]
+[{"name":"next-dev","duration":695130,"timestamp":1896755514437,"id":1,"tags":{},"startTime":1747665031711,"traceId":"f4a1f222a0de5252"}]

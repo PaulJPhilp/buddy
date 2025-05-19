@@ -4,9 +4,9 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Toaster } from "sonner";
 
-import { AppShell } from "@/components/AppShell";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { ThemeProvider } from "@components/app/theme-provider";
+import { AppShell } from "../components/app-shell/AppShell";
+import { ErrorBoundary } from "@ui/components/ui/error-boundary";
+import { ThemeProvider } from "../components/app/theme-provider";
 
 import "./globals.css";
 

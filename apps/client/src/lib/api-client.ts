@@ -1,27 +1,26 @@
-import { ServerApi } from "@api/core";
-import { FetchHttpClient, HttpApiClient } from "@effect/platform";
-import { Effect, Layer } from "effect";
+import { PromptApiGroup, PromptCreate } from "@api/src/PromptSchema";
+import { HttpClient } from "@effect/platform";
+import { Effect, Layer, Context } from "effect";
 
 // Create a client for the server API
-export class ApiClient extends Effect.Service<ApiClient>()("ApiClient", {
-  dependencies: [FetchHttpClient.layer],
-  effect: Effect.gen(function* () {
-    // @ts-ignore
-    const client = yield* HttpApiClient.make(ServerApi, {
-      baseUrl: "/api",
-    });
-    return client;
-  }),
-}) {}
+export interface ApiClient {
+  readonly _: unique symbol;
+  createPrompt(payload: PromptCreate): Effect.Effect<never, Error, unknown>;
+}
+
+export const ApiClient = Context.GenericTag<ApiClient>("ApiClient");
 
 // Export the layer for the ApiClient service
-export const ApiClientLayer = Layer.effect(
+export const ApiClientLayer = Layer.succeed(
   ApiClient,
-  Effect.gen(function* () {
-    // @ts-ignore
-    const client = yield* HttpApiClient.make(ServerApi, {
-      baseUrl: "/api",
-    });
-    return new ApiClient(client);
-  }),
-).pipe(Layer.provide(FetchHttpClient.layer));
+  {
+    createPrompt: (payload: PromptCreate) =>
+      Effect.promise(() =>
+        fetch("/api/prompt/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }).then((r) => r.json())
+      ),
+  }
+);

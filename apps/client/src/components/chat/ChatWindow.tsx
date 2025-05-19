@@ -1,13 +1,13 @@
 "use client";
 
-import { Message } from "@/app-chat/ChatServiceApi";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { type MessageApi } from "../../features/chat/ChatServiceApi";
+import { Button } from "@ui/components/ui/button";
+import { Input } from "@ui/components/ui/input";
+import { cn } from "@ui/lib/utils";
 import { useState } from "react";
 
 interface ChatWindowProps {
-  messages: Message[];
+  messages: MessageApi[];
   isTyping: boolean;
   onSendMessage: (text: string) => void;
 }
