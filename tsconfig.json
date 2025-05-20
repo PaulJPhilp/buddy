@@ -25,7 +25,7 @@
       "@server/*": ["./apps/server/src/*"],
       "@client/*": ["./apps/client/src/*"],
       "@components/*": ["./src/components/components/*"],
-      "@ui/*": ["./src/components/components/ui/*"],
+      "@ui/*": ["./packages/ui/src/*"],
       "@utils/*": ["./src/utils/*"],
       "@lib/*": ["./src/lib/*"]
     }

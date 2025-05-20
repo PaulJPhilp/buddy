@@ -3,17 +3,17 @@ import * as React from "react";
 
 import { cn } from "../../utils/cn";
 
-const TooltipProvider = TooltipPrimitive.Provider;
+const TooltipProvider: typeof TooltipPrimitive.Provider = TooltipPrimitive.Provider;
 
-const Tooltip = TooltipPrimitive.Root;
+const Tooltip: typeof TooltipPrimitive.Root = TooltipPrimitive.Root;
 
-const TooltipTrigger = TooltipPrimitive.Trigger;
+const TooltipTrigger: typeof TooltipPrimitive.Trigger = TooltipPrimitive.Trigger;
 
-interface TooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {
+type TooltipContentProps = React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> & {
   sideOffset?: number;
-}
+};
 
-const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
+const TooltipContent: React.ForwardRefExoticComponent<TooltipContentProps & React.RefAttributes<HTMLDivElement>> = React.forwardRef<HTMLDivElement, TooltipContentProps & React.RefAttributes<HTMLDivElement>>(
   ({ className, sideOffset = 4, ...props }, ref) => (
     <TooltipPrimitive.Content
       ref={ref}

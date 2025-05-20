@@ -29,6 +29,20 @@ export default {
                 'sm': ['0.875rem', { lineHeight: '1.25rem' }], // 14px
                 'md': ['1rem', { lineHeight: '1.5rem' }],    // 16px
             },
+            keyframes: {
+                'collapsible-down': {
+                    from: { height: '0' },
+                    to: { height: 'var(--radix-collapsible-content-height)' },
+                },
+                'collapsible-up': {
+                    from: { height: 'var(--radix-collapsible-content-height)' },
+                    to: { height: '0' },
+                },
+            },
+            animation: {
+                'collapsible-down': 'collapsible-down 0.2s ease-out',
+                'collapsible-up': 'collapsible-up 0.2s ease-out',
+            },
             borderRadius: {
                 'xxs': '1px',
                 'xs': '2px',

@@ -1,4 +1,4 @@
-import { AgentRuntimeService } from "@/services/AgentRuntimeService"; // Mock might not need full runtime
+import { AgentRuntimeService } from "@/services/agent-runtime/AgentRuntimeService"; // Mock might not need full runtime
 import { Effect, Ref } from "effect";
 import type {
     ChatHistoryPage,

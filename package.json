@@ -6,7 +6,7 @@
   "main": "src/index.tsx",
   "module": "src/index.tsx",
   "packageManager": "bun@1.2.3",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": ["apps/client", "packages/*"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

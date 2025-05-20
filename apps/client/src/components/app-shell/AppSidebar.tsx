@@ -1,5 +1,5 @@
 "use client";
-
+import React from "react";
 import { MessageCircle, Settings, HelpCircle } from "lucide-react";
 
 interface AppSidebarProps {

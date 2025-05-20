@@ -1,12 +1,46 @@
-import { TextareaHTMLAttributes } from "react";
+import * as React from "react";
+import { cn } from "../../lib/utils";
 
-interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {}
+export interface TextareaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  autoResize?: boolean;
+}
 
-export function Textarea({ className = "", ...props }: TextareaProps) {
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>((
+  { className, autoResize, onChange, ...props },
+  ref
+) => {
+  const localRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = (ref || localRef) as React.RefObject<HTMLTextAreaElement>;
+
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (autoResize && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+    onChange?.(event);
+  };
+
+  React.useEffect(() => {
+    if (autoResize && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [autoResize, textareaRef]);
+
   return (
     <textarea
-      className={`w-full rounded-lg border border-gray-300 px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+      ref={textareaRef}
+      onChange={handleChange}
+      className={cn(
+        "flex w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
       {...props}
     />
   );
-}
+});
+
+Textarea.displayName = "Textarea";
+
+export { Textarea };

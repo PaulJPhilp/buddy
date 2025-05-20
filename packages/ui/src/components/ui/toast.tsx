@@ -1,122 +1,70 @@
-import * as ToastPrimitives from "@radix-ui/react-toast";
-import { type VariantProps, cva } from "class-variance-authority";
-import { X } from "lucide-react";
-import * as React from "react";
+import { Toaster as SonnerToaster } from "sonner";
 
-import { cn } from "../../lib/utils";
+interface ToasterProps {
+  position?:
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right"
+  | "top-center"
+  | "bottom-center";
+  richColors?: boolean;
+  expand?: boolean;
+  duration?: number;
+  visibleToasts?: number;
+  closeButton?: boolean;
+  offset?: string | number;
+  theme?: "light" | "dark" | "system";
+}
 
-const ToastProvider: React.FC<React.ComponentProps<typeof ToastPrimitives.Provider>> = ToastPrimitives.Provider;
-
-type ToastViewportProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>;
-
-const ToastViewport: React.ForwardRefExoticComponent<ToastViewportProps & React.RefAttributes<React.ElementRef<typeof ToastPrimitives.Viewport>>> = React.forwardRef(({ className, ...props }, ref) => (
-  <ToastPrimitives.Viewport
-    ref={ref}
-    className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
-      className,
-    )}
-    {...props}
-  />
-));
-ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
-
-const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
-  {
-    variants: {
-      variant: {
-        default: "border bg-background text-foreground",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
-);
-
-interface ToastProps extends React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>,
-  VariantProps<typeof toastVariants> {}
-
-const Toast = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Root>,
-  ToastProps
->(({ className, variant, ...props }, ref) => {
+function Toaster({
+  position = "top-center",
+  richColors = false,
+  expand = false,
+  duration = 4000,
+  visibleToasts = 3,
+  closeButton = true,
+  offset = "32px",
+  theme = "system",
+  ...props
+}: ToasterProps) {
   return (
-    <ToastPrimitives.Root
-      ref={ref}
-      className={cn(toastVariants({ variant }), className)}
+    <SonnerToaster
+      theme={theme}
+      className="toaster group"
+      toastOptions={{
+        classNames: {
+          toast:
+            "group toast group-[.toaster]:bg-[hsl(var(--background))] group-[.toaster]:text-[hsl(var(--foreground))] group-[.toaster]:border group-[.toaster]:border-[hsl(var(--border))] group-[.toaster]:shadow-lg",
+          description: "group-[.toast]:text-[hsl(var(--muted-foreground))]",
+          actionButton:
+            "group-[.toast]:bg-[hsl(var(--primary))] group-[.toast]:text-[hsl(var(--primary-foreground))]",
+          cancelButton:
+            "group-[.toast]:bg-[hsl(var(--muted))] group-[.toast]:text-[hsl(var(--muted-foreground))]",
+          error:
+            "group-[.toaster]:bg-[hsl(var(--destructive))] group-[.toaster]:text-[hsl(var(--destructive-foreground))]",
+          success:
+            "group-[.toaster]:bg-[hsl(var(--success))] group-[.toaster]:text-[hsl(var(--success-foreground))]",
+          warning:
+            "group-[.toaster]:bg-[hsl(var(--warning))] group-[.toaster]:text-[hsl(var(--warning-foreground))]",
+          info: "group-[.toaster]:bg-[hsl(var(--info))] group-[.toaster]:text-[hsl(var(--info-foreground))]",
+        },
+      }}
+      position={position}
+      richColors={richColors}
+      expand={expand}
+      duration={duration}
+      visibleToasts={visibleToasts}
+      closeButton={closeButton}
+      offset={offset}
       {...props}
     />
   );
-});
-Toast.displayName = ToastPrimitives.Root.displayName;
+}
 
-type ToastActionProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>;
+export { Toaster };
+export type { ToasterProps };
 
-const ToastAction: React.ForwardRefExoticComponent<ToastActionProps & React.RefAttributes<React.ElementRef<typeof ToastPrimitives.Action>>> = React.forwardRef(({ className, ...props }, ref) => (
-  <ToastPrimitives.Action
-    ref={ref}
-    className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
-      className,
-    )}
-    {...props}
-  />
-));
-ToastAction.displayName = ToastPrimitives.Action.displayName;
+// Re-export toast function from sonner for convenience
+export { toast } from "sonner";
 
-type ToastCloseProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>;
-
-const ToastClose: React.ForwardRefExoticComponent<ToastCloseProps & React.RefAttributes<React.ElementRef<typeof ToastPrimitives.Close>>> = React.forwardRef(({ className, ...props }, ref) => (
-  <ToastPrimitives.Close
-    ref={ref}
-    className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
-      className,
-    )}
-    toast-close=""
-    {...props}
-  >
-    <X className="h-4 w-4" />
-  </ToastPrimitives.Close>
-));
-ToastClose.displayName = ToastPrimitives.Close.displayName;
-
-type ToastTitleProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>;
-
-const ToastTitle: React.ForwardRefExoticComponent<ToastTitleProps & React.RefAttributes<React.ElementRef<typeof ToastPrimitives.Title>>> = React.forwardRef(({ className, ...props }, ref) => (
-  <ToastPrimitives.Title
-    ref={ref}
-    className={cn("text-sm font-semibold", className)}
-    {...props}
-  />
-));
-ToastTitle.displayName = ToastPrimitives.Title.displayName;
-
-type ToastDescriptionProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>;
-
-const ToastDescription: React.ForwardRefExoticComponent<ToastDescriptionProps & React.RefAttributes<React.ElementRef<typeof ToastPrimitives.Description>>> = React.forwardRef(({ className, ...props }, ref) => (
-  <ToastPrimitives.Description
-    ref={ref}
-    className={cn("text-sm opacity-90", className)}
-    {...props}
-  />
-));
-ToastDescription.displayName = ToastPrimitives.Description.displayName;
-
-type ToastActionElement = React.ReactElement<typeof ToastAction>;
-
-export {
-  Toast,
-  ToastAction,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-  type ToastActionElement,
-  type ToastProps,
-};

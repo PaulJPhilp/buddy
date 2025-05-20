@@ -1,5 +1,5 @@
-import { type VariantProps, cva } from "class-variance-authority";
 import { cn } from "../../lib/utils";
+import { type VariantProps, cva } from "class-variance-authority";
 
 const headingVariants = cva("font-bold leading-tight tracking-tighter", {
   variants: {
