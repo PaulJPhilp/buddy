@@ -1,7 +1,7 @@
-import React from 'react';
-import { X, FileIcon } from 'lucide-react';
-import { cn } from '@ui/lib/utils';
-import { Button } from '@ui/components/ui/button';
+import { Button } from "@ui/components/ui/button";
+import { cn } from "@ui/lib/utils";
+import { FileIcon, X } from "lucide-react";
+import React from "react";
 
 export interface AttachmentFile {
   id: string;
@@ -17,18 +17,18 @@ export interface AttachmentBarProps {
 }
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes < 0) return '0 B';
-  
-  const units = ['B', 'KB', 'MB', 'GB'];
+  if (bytes < 0) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB"];
   let size = Math.abs(bytes);
   let unitIndex = 0;
-  
+
   while (size >= 1024 && unitIndex < units.length - 1) {
     size /= 1024;
     unitIndex++;
   }
-  
-  return `${Math.round(size * 10) / 10} ${units[unitIndex]}`
+
+  return `${Math.round(size * 10) / 10} ${units[unitIndex]}`;
 };
 
 const AttachmentBar: React.FC<AttachmentBarProps> = ({
@@ -39,10 +39,10 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
   if (!Array.isArray(attachments) || attachments.length === 0) return null;
 
   return (
-    <div 
+    <div
       className={cn(
-        'flex flex-wrap gap-2 p-2 bg-muted/50 rounded-lg',
-        className
+        "flex flex-wrap gap-2 bg-white rounded",
+        className,
       )}
       role="list"
       aria-label="Attached files"
@@ -53,17 +53,14 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
           className="flex items-center gap-2 bg-background rounded px-3 py-1.5 text-sm"
           role="listitem"
         >
-          <FileIcon 
-            className="h-4 w-4 text-muted-foreground" 
-            aria-hidden="true" 
+          <FileIcon
+            className="h-4 w-4 text-muted-foreground"
+            aria-hidden="true"
           />
-          <span 
-            className="max-w-[200px] truncate"
-            title={file.name}
-          >
+          <span className="max-w-[200px] truncate" title={file.name}>
             {file.name}
           </span>
-          <span 
+          <span
             className="text-xs text-muted-foreground"
             title={`File size: ${formatFileSize(file.size)}`}
           >
@@ -76,7 +73,7 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
             onClick={() => onRemoveAttachment(file.id)}
             aria-label={`Remove ${file.name}`}
           >
-            <X className="h-3 w-3" />
+            <X className="h-3 w-3" aria-hidden="true" />
           </Button>
         </div>
       ))}

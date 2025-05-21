@@ -9,7 +9,11 @@ interface LoginModalProps {
   onLoginAction: () => void;
 }
 
-export function LoginModal({ isOpen, onCloseAction, onLoginAction }: LoginModalProps) {
+export function LoginModal({
+  isOpen,
+  onCloseAction,
+  onLoginAction,
+}: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -36,7 +40,10 @@ export function LoginModal({ isOpen, onCloseAction, onLoginAction }: LoginModalP
           className="space-y-3"
         >
           <div>
-            <label htmlFor="email" className="block text-[6pt] mb-1 text-muted-foreground">
+            <label
+              htmlFor="email"
+              className="block text-[6pt] mb-1 text-muted-foreground"
+            >
               Email
             </label>
             <input
@@ -49,7 +56,10 @@ export function LoginModal({ isOpen, onCloseAction, onLoginAction }: LoginModalP
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-[6pt] mb-1 text-muted-foreground">
+            <label
+              htmlFor="password"
+              className="block text-[6pt] mb-1 text-muted-foreground"
+            >
               Password
             </label>
             <input

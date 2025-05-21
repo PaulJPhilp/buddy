@@ -1,11 +1,12 @@
 "use client";
 
-import { Menu, Settings, Moon, Sun, Volume2, VolumeX } from "lucide-react";
-import { useToast } from "@ui/components/ui/use-toast";
-import { UserCard } from "./UserCard";
 import { Button } from "@ui/components/ui/button";
+import { useToast } from "@ui/components/ui/use-toast";
+import { Icon } from "@ui/components/Icon";
+import { Menu, Moon, Settings, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { UserCard } from "./UserCard";
 
 interface AppToolbarProps {
   onToggleSidebarAction: () => void;
@@ -26,8 +27,8 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleMute = () => {
@@ -38,16 +39,13 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast({
-        title: "Copied!",
+      toast("Copied!", {
         description: "Text copied to clipboard",
       });
     } catch (err) {
       console.error("Failed to copy:", err);
-      toast({
-        title: "Copy failed",
+      toast.error("Copy failed", {
         description: "Your browser doesn't support clipboard operations",
-        variant: "destructive",
       });
     }
   };
@@ -80,26 +78,26 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
             <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-card ring-1 ring-border divide-y divide-border">
               <div className="py-1">
                 <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="flex items-center w-full px-4 py-2 text-sm text-foreground hover:bg-accent"
                 >
-                  {theme === 'dark' ? (
+                  {theme === "dark" ? (
                     <Sun className="h-4 w-4 mr-3" aria-hidden={true} />
                   ) : (
                     <Moon className="h-4 w-4 mr-3" aria-hidden={true} />
                   )}
-                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </button>
                 <button
                   onClick={toggleMute}
                   className="flex items-center w-full px-4 py-2 text-sm text-foreground hover:bg-accent"
                 >
                   {isMuted ? (
-                    <VolumeX className="h-4 w-4 mr-3" aria-hidden={true} />
+                    <Icon name="VolumeX" size={16} className="mr-3" />
                   ) : (
-                    <Volume2 className="h-4 w-4 mr-3" aria-hidden={true} />
+                    <Icon name="Volume2" size={16} className="mr-3" />
                   )}
-                  {isMuted ? 'Unmute' : 'Mute'}
+                  {isMuted ? "Unmute" : "Mute"}
                 </button>
               </div>
             </div>

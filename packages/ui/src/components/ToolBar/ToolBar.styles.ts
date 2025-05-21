@@ -40,22 +40,28 @@ export interface ToolBarVariantStyles {
  */
 export const toolbarVariantStyles: ToolBarVariantStyles = {
   default: {
-    containerClasses: 'flex items-center p-1.5 space-x-1.5 rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700',
-    itemClasses: 'flex items-center justify-center p-1.5 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none transition-colors',
-    iconClasses: 'h-5 w-5 text-neutral-700 dark:text-neutral-300', // Default icon size & color
-    labelClasses: 'ml-1.5 text-sm text-neutral-700 dark:text-neutral-300',
-    disabledItemClasses: 'opacity-50 cursor-not-allowed',
-    spacerClasses: 'flex-grow', // Essential for spacer functionality
-    tooltipClasses: 'px-2 py-1 text-xs bg-neutral-900 text-white rounded-md shadow-lg dark:bg-neutral-700 dark:text-neutral-100',
+    containerClasses:
+      "flex items-center p-1.5 space-x-1.5 rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700",
+    itemClasses:
+      "flex items-center justify-center p-1.5 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none transition-colors",
+    iconClasses: "h-5 w-5 text-neutral-700 dark:text-neutral-300", // Default icon size & color
+    labelClasses: "ml-1.5 text-sm text-neutral-700 dark:text-neutral-300",
+    disabledItemClasses: "opacity-50 cursor-not-allowed",
+    spacerClasses: "flex-grow", // Essential for spacer functionality
+    tooltipClasses:
+      "px-2 py-1 text-xs bg-neutral-900 text-white rounded-md shadow-lg dark:bg-neutral-700 dark:text-neutral-100",
   },
   tiny: {
-    containerClasses: 'flex items-center p-1 space-x-1 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700',
-    itemClasses: 'flex items-center justify-center p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 focus-visible:ring-1 focus-visible:ring-blue-500 focus:outline-none transition-colors',
-    iconClasses: 'h-4 w-4 text-neutral-700 dark:text-neutral-300',
-    labelClasses: 'ml-1 text-xs text-neutral-700 dark:text-neutral-300',
-    disabledItemClasses: 'opacity-50 cursor-not-allowed',
-    spacerClasses: 'flex-grow',
-    tooltipClasses: 'px-1.5 py-0.5 text-xs bg-neutral-900 text-white rounded shadow-lg dark:bg-neutral-700 dark:text-neutral-100',
+    containerClasses:
+      "flex items-center p-1 space-x-1 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700",
+    itemClasses:
+      "flex items-center justify-center p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 focus-visible:ring-1 focus-visible:ring-blue-500 focus:outline-none transition-colors",
+    iconClasses: "h-4 w-4 text-neutral-700 dark:text-neutral-300",
+    labelClasses: "ml-1 text-xs text-neutral-700 dark:text-neutral-300",
+    disabledItemClasses: "opacity-50 cursor-not-allowed",
+    spacerClasses: "flex-grow",
+    tooltipClasses:
+      "px-1.5 py-0.5 text-xs bg-neutral-900 text-white rounded shadow-lg dark:bg-neutral-700 dark:text-neutral-100",
   },
   // Add more variants here as needed, e.g., 'compact', 'menu-item-like'
 };
@@ -63,4 +69,4 @@ export const toolbarVariantStyles: ToolBarVariantStyles = {
 /**
  * Default variant name to use if `ToolBarProps.variant` is not specified.
  */
-export const DEFAULT_TOOLBAR_VARIANT = 'default';
+export const DEFAULT_TOOLBAR_VARIANT = "default";

@@ -1,5 +1,11 @@
-import type { ChatStateApi, ChatState, MessageApi, MessageValidation, ChatHistoryPage } from "./ChatServiceApi";
 import { Effect } from "effect";
+import type {
+  ChatHistoryPage,
+  ChatState,
+  ChatStateApi,
+  MessageApi,
+  MessageValidation,
+} from "./types";
 
 // Minimal in-memory state for the mock
 const defaultState: ChatState = {
@@ -13,27 +19,34 @@ const defaultState: ChatState = {
 };
 
 export const MockChatStateApi: ChatStateApi = {
-  getState: () => Effect.succeed(defaultState),
-  setState: (state: ChatState) => Effect.succeed(state),
-  sendMessage: (text: string) =>
-    Effect.succeed({
-      id: Date.now().toString(),
-      text,
-      sender: "user",
-      timestamp: Date.now(),
-    } as MessageApi),
+  get state() {
+    return defaultState;
+  },
+  getState: () =>
+    Effect.succeed(defaultState) as Effect.Effect<ChatState, never, never>,
+  setState: (state: ChatState) =>
+    Effect.succeed(state) as Effect.Effect<ChatState, never, never>,
+  sendMessage: (message: MessageApi) =>
+    Effect.gen(function* () {
+      yield* Effect.logInfo(`Mock sending message: ${message.text}`);
+    }) as Effect.Effect<void, Error, never>,
   setTyping: (isTyping: boolean) =>
     Effect.succeed({
       ...defaultState,
       isTyping,
-    }),
-  validateMessage: (text: string) =>
-    Effect.succeed({ isValid: true, errors: [] } as MessageValidation),
-  getHistory: () =>
+    }) as Effect.Effect<ChatState, never, never>,
+  validateMessage: (text: string): MessageValidation => ({
+    isValid: text.length > 0 && text.length <= 2000,
+    errors:
+      text.length > 0 && text.length <= 2000
+        ? []
+        : ["Message length must be between 1 and 2000 characters"],
+  }),
+  loadMoreHistory: () =>
     Effect.succeed({
       messages: [],
       hasMore: false,
-      nextCursor: undefined,
-    } as ChatHistoryPage),
-  clearHistory: () => Effect.succeed(undefined),
+    }) as Effect.Effect<ChatHistoryPage, Error, never>,
+  clearHistory: () =>
+    Effect.succeed(undefined) as Effect.Effect<void, Error, never>,
 };

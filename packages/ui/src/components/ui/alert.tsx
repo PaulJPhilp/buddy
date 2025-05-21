@@ -1,5 +1,5 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import { type VariantProps, cva } from "class-variance-authority";
+import * as React from "react";
 
 const alertVariants = cva(
   "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
@@ -14,8 +14,8 @@ const alertVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
-)
+  },
+);
 
 export interface AlertProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -29,9 +29,9 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       className={alertVariants({ variant, className })}
       {...props}
     />
-  )
-)
-Alert.displayName = "Alert"
+  ),
+);
+Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef<
   HTMLParagraphElement,
@@ -42,19 +42,15 @@ const AlertTitle = React.forwardRef<
     className="mb-1 font-medium leading-none tracking-tight"
     {...props}
   />
-))
-AlertTitle.displayName = "AlertTitle"
+));
+AlertTitle.displayName = "AlertTitle";
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className="text-sm [&_p]:leading-relaxed"
-    {...props}
-  />
-))
-AlertDescription.displayName = "AlertDescription"
+  <div ref={ref} className="text-sm [&_p]:leading-relaxed" {...props} />
+));
+AlertDescription.displayName = "AlertDescription";
 
-export { Alert, AlertTitle, AlertDescription }
+export { Alert, AlertTitle, AlertDescription };

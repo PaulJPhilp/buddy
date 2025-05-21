@@ -1,10 +1,17 @@
 import { describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { WebSocketError, WebSocketMessage } from "../websocket/WebSocketService";
+import {
+  WebSocketError,
+  WebSocketMessage,
+} from "../websocket/WebSocketService";
 import { ChatService } from "./ChatService";
 import { ChatState } from "./ChatServiceApi";
-import { HistoryError, MessageCreationError, StateUpdateError } from "./ChatServiceErrors";
+import {
+  HistoryError,
+  MessageCreationError,
+  StateUpdateError,
+} from "./ChatServiceErrors";
 
 // Constants
 const MAX_MESSAGES_PER_CHAT = 100;
@@ -25,44 +32,52 @@ class MockWebSocketServerImpl implements MockWebSocketServer {
   private connections: WebSocket[] = [];
   private messages: WebSocketMessage[] = [];
 
-  start(port: number): void { }
-  stop(): void { }
-  getConnections(): WebSocket[] { return this.connections; }
-  getHistory(): WebSocketMessage[] { return this.messages; }
+  start(port: number): void {}
+  stop(): void {}
+  getConnections(): WebSocket[] {
+    return this.connections;
+  }
+  getHistory(): WebSocketMessage[] {
+    return this.messages;
+  }
   sendMessage(message: WebSocketMessage): void {
     this.messages.push(message);
   }
 }
 
 const MockWebSocketServer = {
-  make: (): MockWebSocketServer => new MockWebSocketServerImpl()
+  make: (): MockWebSocketServer => new MockWebSocketServerImpl(),
 };
 
 describe("ChatService", () => {
   // Helper to run tests with mock WebSocket server
   const withMockServer =
     <T, E>(
-      test: (mockServer: MockWebSocketServer) => Effect.Effect<T, E | WebSocketError, never>,
+      test: (
+        mockServer: MockWebSocketServer,
+      ) => Effect.Effect<T, E | WebSocketError, never>,
     ) =>
-      () =>
-        Effect.runPromise(
-          Effect.gen(function* () {
-            // Create and start mock server
-            const mockServer = MockWebSocketServer.make();
-            mockServer.start(3000);
+    () =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          // Create and start mock server
+          const mockServer = MockWebSocketServer.make();
+          mockServer.start(3000);
 
-            try {
-              // Run the test
-              const result = yield* test(mockServer);
-              return result;
-            } finally {
-              // Always clean up server
-              mockServer.stop();
-            }
-          }).pipe(
-            Effect.catchAll((error) => Effect.succeed(console.error("Test error:", error)))
-          )
-        );
+          try {
+            // Run the test
+            const result = yield* test(mockServer);
+            return result;
+          } finally {
+            // Always clean up server
+            mockServer.stop();
+          }
+        }).pipe(
+          Effect.catchAll((error) =>
+            Effect.succeed(console.error("Test error:", error)),
+          ),
+        ),
+      );
 
   // Create a Layer that provides both ChatService and MockChatStateApi
   const TestLayer = ChatService.Default;
@@ -82,9 +97,10 @@ describe("ChatService", () => {
         return undefined;
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("setState", () => {
@@ -106,9 +122,10 @@ describe("ChatService", () => {
         expect(currentState).toEqual(newState);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should fail when setting invalid state", () =>
       Effect.gen(function* () {
@@ -130,9 +147,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("sendMessage", () => {
@@ -153,9 +171,10 @@ describe("ChatService", () => {
         expect(state.messages[0]).toEqual(message);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should fail when sending empty message", () =>
       Effect.gen(function* () {
@@ -176,9 +195,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should fail when sending whitespace-only message", () =>
       Effect.gen(function* () {
@@ -199,9 +219,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should send multiple messages and maintain order", () =>
       Effect.gen(function* () {
@@ -220,9 +241,10 @@ describe("ChatService", () => {
         ]);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("setTyping", () => {
@@ -238,9 +260,10 @@ describe("ChatService", () => {
         expect(currentState.isTyping).toBe(true);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should update isTyping state to false", () =>
       Effect.gen(function* () {
@@ -258,9 +281,10 @@ describe("ChatService", () => {
         expect(currentState.isTyping).toBe(false);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("Error cases with state manipulation", () => {
@@ -279,9 +303,10 @@ describe("ChatService", () => {
         // Rest of test would go here...
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("Integration tests", () => {
@@ -316,9 +341,10 @@ describe("ChatService", () => {
         });
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("Message Validation", () => {
@@ -347,9 +373,10 @@ describe("ChatService", () => {
         expect(validMessage.errors).toHaveLength(0);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should detect and prevent unsafe content", () =>
       Effect.gen(function* () {
@@ -370,9 +397,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should sanitize messages when sending", () =>
       Effect.gen(function* () {
@@ -396,9 +424,10 @@ describe("ChatService", () => {
         expect(message.metadata?.validation?.isValid).toBe(true);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should handle concurrent message validation", () =>
       Effect.gen(function* () {
@@ -420,9 +449,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should maintain message metadata through the pipeline", () =>
       Effect.gen(function* () {
@@ -441,9 +471,10 @@ describe("ChatService", () => {
         expect(state.metadata?.lastMessageAt).toBeDefined();
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("Chat History Management", () => {
@@ -485,9 +516,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should paginate chat history correctly", () =>
       Effect.gen(function* () {
@@ -517,9 +549,10 @@ describe("ChatService", () => {
         });
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should handle invalid cursors gracefully", () =>
       Effect.gen(function* () {
@@ -537,9 +570,10 @@ describe("ChatService", () => {
         }
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should clear chat history", () =>
       Effect.gen(function* () {
@@ -565,9 +599,10 @@ describe("ChatService", () => {
         expect(history.nextCursor).toBeUndefined();
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
 
     it("should handle concurrent history operations", () =>
       Effect.gen(function* () {
@@ -595,9 +630,10 @@ describe("ChatService", () => {
         expect(state.metadata?.messageCount).toBe(2);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("WebSocket Integration", () => {
@@ -613,50 +649,53 @@ describe("ChatService", () => {
             expect(connections.length).toBe(1);
 
             return undefined;
-          })
-            .pipe(
-              Effect.provide(TestLayer),
-              Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-            ) as Effect.Effect<undefined, WebSocketError, never>
-      )
-    );
+          }).pipe(
+            Effect.provide(TestLayer),
+            Effect.catchAll((error) =>
+              Effect.fail(new WebSocketError(String(error))),
+            ),
+          ) as Effect.Effect<undefined, WebSocketError, never>,
+      ));
 
     it("should send messages through WebSocket", () =>
-      withMockServer((mockServer) =>
-        Effect.gen(function* (_) {
-          const service = yield* Effect.provide(ChatService, TestLayer);
-          const messageText = "Test message";
+      withMockServer(
+        (mockServer) =>
+          Effect.gen(function* (_) {
+            const service = yield* Effect.provide(ChatService, TestLayer);
+            const messageText = "Test message";
 
-          // Send message
-          const message = yield* service.sendMessage(messageText);
-          expect(message.text).toBe(messageText);
+            // Send message
+            const message = yield* service.sendMessage(messageText);
+            expect(message.text).toBe(messageText);
 
-          // Verify message was sent through WebSocket
-          const messages = mockServer.getHistory();
-          expect(messages.length).toBe(1);
+            // Verify message was sent through WebSocket
+            const messages = mockServer.getHistory();
+            expect(messages.length).toBe(1);
 
-          // Add some messages
-          yield* service.sendMessage("Message 1");
-          yield* service.sendMessage("Message 2");
+            // Add some messages
+            yield* service.sendMessage("Message 1");
+            yield* service.sendMessage("Message 2");
 
-          // Clear history
-          yield* service.clearHistory();
+            // Clear history
+            yield* service.clearHistory();
 
-          // Verify state
-          const state = yield* service.getState();
-          expect(state.messages).toHaveLength(0);
-          expect(state.metadata?.messageCount).toBe(0);
-          expect(state.metadata?.lastMessageAt).toBeUndefined();
+            // Verify state
+            const state = yield* service.getState();
+            expect(state.messages).toHaveLength(0);
+            expect(state.metadata?.messageCount).toBe(0);
+            expect(state.metadata?.lastMessageAt).toBeUndefined();
 
-          // Verify history is empty
-          const history = yield* service.getHistory();
-          expect(history.messages).toHaveLength(0);
-          expect(history.hasMore).toBe(false);
-          expect(history.nextCursor).toBeUndefined();
-        }).pipe(
-          Effect.provide(TestLayer),
-          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-        ) as Effect.Effect<void, WebSocketError, never>
+            // Verify history is empty
+            const history = yield* service.getHistory();
+            expect(history.messages).toHaveLength(0);
+            expect(history.hasMore).toBe(false);
+            expect(history.nextCursor).toBeUndefined();
+          }).pipe(
+            Effect.provide(TestLayer),
+            Effect.catchAll((error) =>
+              Effect.fail(new WebSocketError(String(error))),
+            ),
+          ) as Effect.Effect<void, WebSocketError, never>,
       ));
 
     it("should handle concurrent history operations", () =>
@@ -685,124 +724,138 @@ describe("ChatService", () => {
         expect(state.metadata?.messageCount).toBe(2);
       }).pipe(
         Effect.provide(TestLayer),
-        Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-      ) as Effect.Effect<undefined, WebSocketError, never>
-    );
+        Effect.catchAll((error) =>
+          Effect.fail(new WebSocketError(String(error))),
+        ),
+      ) as Effect.Effect<undefined, WebSocketError, never>);
   });
 
   describe("WebSocket Integration", () => {
     it("should connect to runtime service on initialization", () =>
-      withMockServer((mockServer) =>
-        Effect.gen(function* (_) {
-          const service = yield* Effect.provide(ChatService, TestLayer);
-          expect(service).toBeDefined();
+      withMockServer(
+        (mockServer) =>
+          Effect.gen(function* (_) {
+            const service = yield* Effect.provide(ChatService, TestLayer);
+            expect(service).toBeDefined();
 
-          // Verify connection
-          const connections = mockServer.getConnections();
-          expect(connections.length).toBe(1);
+            // Verify connection
+            const connections = mockServer.getConnections();
+            expect(connections.length).toBe(1);
 
-          return undefined;
-        }).pipe(
-          Effect.provide(TestLayer),
-          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-        ) as Effect.Effect<undefined, WebSocketError, never>
-      ),
-    );
+            return undefined;
+          }).pipe(
+            Effect.provide(TestLayer),
+            Effect.catchAll((error) =>
+              Effect.fail(new WebSocketError(String(error))),
+            ),
+          ) as Effect.Effect<undefined, WebSocketError, never>,
+      ));
 
     it("should send messages through WebSocket", () =>
-      withMockServer((mockServer) =>
-        Effect.gen(function* () {
-          const service = yield* Effect.provide(ChatService, TestLayer);
-          const messageText = "Test message";
+      withMockServer(
+        (mockServer) =>
+          Effect.gen(function* () {
+            const service = yield* Effect.provide(ChatService, TestLayer);
+            const messageText = "Test message";
 
-          // Send message
-          const message = yield* service.sendMessage(messageText);
-          expect(message.text).toBe(messageText);
-          // Add some messages
-          yield* service.sendMessage("Message 1");
-          yield* service.sendMessage("Message 2");
+            // Send message
+            const message = yield* service.sendMessage(messageText);
+            expect(message.text).toBe(messageText);
+            // Add some messages
+            yield* service.sendMessage("Message 1");
+            yield* service.sendMessage("Message 2");
 
-          // Clear history
-          yield* service.clearHistory();
+            // Clear history
+            yield* service.clearHistory();
 
-          // Verify state
-          const state = yield* service.getState();
-          expect(state.messages).toHaveLength(0);
-          expect(state.metadata?.messageCount).toBe(0);
-          expect(state.metadata?.lastMessageAt).toBeUndefined();
+            // Verify state
+            const state = yield* service.getState();
+            expect(state.messages).toHaveLength(0);
+            expect(state.metadata?.messageCount).toBe(0);
+            expect(state.metadata?.lastMessageAt).toBeUndefined();
 
-          // Verify history is empty
-          const history = yield* service.getHistory();
-          expect(history.messages).toHaveLength(0);
-          expect(history.hasMore).toBe(false);
-          expect(history.nextCursor).toBeUndefined();
-        })
-          .pipe(Effect.provide(TestLayer))
-          .pipe(Effect.catchAll(() => Effect.succeed(undefined))) as Effect.Effect<undefined, WebSocketError, never>
-      )
-    );
+            // Verify history is empty
+            const history = yield* service.getHistory();
+            expect(history.messages).toHaveLength(0);
+            expect(history.hasMore).toBe(false);
+            expect(history.nextCursor).toBeUndefined();
+          })
+            .pipe(Effect.provide(TestLayer))
+            .pipe(
+              Effect.catchAll(() => Effect.succeed(undefined)),
+            ) as Effect.Effect<undefined, WebSocketError, never>,
+      ));
 
     it("should handle runtime responses", () =>
-      withMockServer((mockServer) =>
-        Effect.gen(function* () {
-          // Execute the test with ChatService
-          const service = yield* Effect.provide(ChatService, TestLayer);
+      withMockServer(
+        (mockServer) =>
+          Effect.gen(function* () {
+            // Execute the test with ChatService
+            const service = yield* Effect.provide(ChatService, TestLayer);
 
-          // Send message
-          yield* service.sendMessage("Test message");
+            // Send message
+            yield* service.sendMessage("Test message");
 
-          // Simulate runtime response
-          mockServer.sendMessage({
-            text: "Response from runtime",
-            timestamp: new Date().toISOString()
-          });
+            // Simulate runtime response
+            mockServer.sendMessage({
+              text: "Response from runtime",
+              timestamp: new Date().toISOString(),
+            });
 
-          // Wait for a moment to allow processing
-          yield* Effect.sleep(10);
+            // Wait for a moment to allow processing
+            yield* Effect.sleep(10);
 
-          // Get updated messages
-          const historyPage = yield* service.getHistory();
-          const lastMessage = historyPage.messages[historyPage.messages.length - 1];
-          expect(lastMessage.text).toBe("Response from runtime");
+            // Get updated messages
+            const historyPage = yield* service.getHistory();
+            const lastMessage =
+              historyPage.messages[historyPage.messages.length - 1];
+            expect(lastMessage.text).toBe("Response from runtime");
 
-          return undefined;
-        }).pipe(
-          Effect.provide(TestLayer),
-          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-        ) as Effect.Effect<undefined, WebSocketError, never>
+            return undefined;
+          }).pipe(
+            Effect.provide(TestLayer),
+            Effect.catchAll((error) =>
+              Effect.fail(new WebSocketError(String(error))),
+            ),
+          ) as Effect.Effect<undefined, WebSocketError, never>,
       ));
 
     it("should handle runtime errors", () =>
-      withMockServer((mockServer) =>
-        Effect.gen(function* () {
-          // Execute the test with ChatService
-          const service = yield* Effect.provide(ChatService, TestLayer);
+      withMockServer(
+        (mockServer) =>
+          Effect.gen(function* () {
+            // Execute the test with ChatService
+            const service = yield* Effect.provide(ChatService, TestLayer);
 
-          // Send message
-          yield* service.sendMessage("Test message");
+            // Send message
+            yield* service.sendMessage("Test message");
 
-          // Simulate error from server
-          mockServer.sendMessage({
-            text: "Error: Test error",
-            timestamp: new Date().toISOString(),
-            error: {
-              code: "RUNTIME_ERROR",
-              message: "Test error"
-            }
-          });
+            // Simulate error from server
+            mockServer.sendMessage({
+              text: "Error: Test error",
+              timestamp: new Date().toISOString(),
+              error: {
+                code: "RUNTIME_ERROR",
+                message: "Test error",
+              },
+            });
 
-          // Wait for a moment to allow processing
-          yield* Effect.sleep(10);
+            // Wait for a moment to allow processing
+            yield* Effect.sleep(10);
 
-          // Verify error handling
-          const historyPage = yield* service.getHistory();
-          expect(historyPage.messages.some(m => m.text.includes("Error"))).toBe(true);
+            // Verify error handling
+            const historyPage = yield* service.getHistory();
+            expect(
+              historyPage.messages.some((m) => m.text.includes("Error")),
+            ).toBe(true);
 
-          return undefined;
-        }).pipe(
-          Effect.provide(TestLayer),
-          Effect.catchAll((error) => Effect.fail(new WebSocketError(String(error))))
-        ) as Effect.Effect<undefined, WebSocketError, never>
+            return undefined;
+          }).pipe(
+            Effect.provide(TestLayer),
+            Effect.catchAll((error) =>
+              Effect.fail(new WebSocketError(String(error))),
+            ),
+          ) as Effect.Effect<undefined, WebSocketError, never>,
       ));
-  })
-})
+  });
+});

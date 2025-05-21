@@ -1,10 +1,10 @@
-import { Effect, Layer, Stream, Duration } from "effect";
+import { Duration, Effect, Layer, Stream } from "effect";
 import {
-  WebSocketMessage as BaseWebSocketMessage,
   WebSocketError as BaseWebSocketError,
-  WebSocketServiceApi,
+  WebSocketMessage as BaseWebSocketMessage,
   WebSocketService,
-} from "./WebSocketService";
+  WebSocketServiceApi,
+} from "../websocket/WebSocketService";
 
 // --- Enums and Interfaces for Agent Runtime ---
 
@@ -43,10 +43,7 @@ export class AgentRuntimeError extends Error {
   // 'cause' is inherited from Error in modern JS/TS, but can be explicit
   // readonly cause?: unknown;
 
-  constructor(
-    message: string,
-    options?: { code?: string; cause?: unknown },
-  ) {
+  constructor(message: string, options?: { code?: string; cause?: unknown }) {
     super(message, options ? { cause: options.cause } : undefined);
     this.name = "AgentRuntimeError";
     this.code = options?.code;
@@ -161,11 +158,13 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
             );
           },
 
-          getState: ws.receive().pipe( // Stream<BaseWebSocketMessage, BaseWebSocketError, never>
+          getState: ws.receive().pipe(
+            // Stream<BaseWebSocketMessage, BaseWebSocketError, never>
             Stream.mapEffect(
               (
                 baseMessage: BaseWebSocketMessage,
-              ): Effect.Effect<AgentRuntimeState, AgentRuntimeError> => // Effect fails only with AgentRuntimeError
+              ): Effect.Effect<AgentRuntimeState, AgentRuntimeError> =>
+                // Effect fails only with AgentRuntimeError
                 Effect.try({
                   try: () => {
                     const serverActivity = JSON.parse(
@@ -178,7 +177,9 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
                     let currentMessage: string | undefined = undefined;
                     let currentStatus: AgentRuntimeState["status"] = "idle";
                     // ... (rest of parsing logic)
-                    if (serverActivity.type === ClientAgentActivityType.RESPONSE) {
+                    if (
+                      serverActivity.type === ClientAgentActivityType.RESPONSE
+                    ) {
                       currentStatus = "idle";
                       if (payload) {
                         currentMessage = payload.message;
@@ -214,5 +215,4 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
       }),
     dependencies: [],
   },
-) { }
-
+) {}

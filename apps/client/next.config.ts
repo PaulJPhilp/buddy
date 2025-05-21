@@ -17,7 +17,8 @@ const config: NextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   env: {
-    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:12345/mock",
+    NEXT_PUBLIC_WS_URL:
+      process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:12345/mock",
   },
   async rewrites() {
     return [

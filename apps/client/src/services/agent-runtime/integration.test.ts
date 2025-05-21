@@ -10,7 +10,7 @@ import {
 import {
   MockWebSocketServer,
   MockWebSocketServerApi,
-  WebSocketMessage
+  WebSocketMessage,
 } from "./MockWebSocketServer.js";
 import {
   WebSocketError,
@@ -45,15 +45,15 @@ describe("WebSocket Stack Integration", () => {
       ChatService.Default,
       AgentRuntimeService.Default,
       MockWebSocketServer.Default,
-      WebSocketService.Default
+      WebSocketService.Default,
     );
 
     // Use runPromise since now Effect<T, Error, never>
     return Effect.runPromise(
       program.pipe(
         Effect.provide(TestLayer),
-        Effect.withSpan("test-environment")
-      )
+        Effect.withSpan("test-environment"),
+      ),
     );
   };
 
@@ -72,7 +72,7 @@ describe("WebSocket Stack Integration", () => {
           type: "TYPING",
           payload: null,
           text: "",
-          timestamp: ""
+          timestamp: "",
         });
 
         // Verify chat shows typing
@@ -84,7 +84,7 @@ describe("WebSocket Stack Integration", () => {
           type: "MESSAGE",
           payload: "Hello! How can I help you?",
           text: "",
-          timestamp: ""
+          timestamp: "",
         });
 
         // Verify final state
@@ -110,13 +110,13 @@ describe("WebSocket Stack Integration", () => {
           type: "MESSAGE",
           payload: "Response to chat 1",
           text: "",
-          timestamp: ""
+          timestamp: "",
         });
         yield* server.broadcast({
           type: "MESSAGE",
           payload: "Response to chat 2",
           text: "",
-          timestamp: ""
+          timestamp: "",
         });
 
         // Verify states

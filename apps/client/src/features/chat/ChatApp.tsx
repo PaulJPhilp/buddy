@@ -1,24 +1,33 @@
-import React, { useCallback, useEffect } from 'react';
-import { Effect, pipe } from 'effect';
-import { HeaderBar, type StatusInfo } from './components/HeaderBar';
-import { ChatService } from '@/services/chat/ChatService';
-import type { ChatState } from '@/services/chat/ChatServiceApi';
-import ChatArea from './components/ChatArea';
-import UserArea, { type UserAreaProps } from './components/UserArea';
-import type { AttachmentFile } from './components/UserArea/AttachmentBar';
-import type { Agent } from './components/UserArea/AgentToolBar';
-import { useAppShellStore } from '@/stores/appShellStore';
+"use client";
+
+import { ChatService } from "@/services/chat/ChatService";
+import type { ChatState } from "@/services/chat/ChatServiceApi";
+import { useAppShellStore } from "@/stores/appShellStore";
+import { Effect, pipe } from "effect";
+import React, { useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
+import ChatArea from "./components/ChatArea";
+import { HeaderBar, type StatusInfo } from "./components/HeaderBar";
+import UserArea, { type UserAreaProps } from "./components/UserArea";
+import type { Agent } from "./components/UserArea/AgentToolBar";
+import type { AttachmentFile } from "./components/UserArea/AttachmentBar";
 
 // Style constants for reusable classes
 const STYLE_CONSTANTS = {
-  container: "h-full p-2 sm:p-4 md:p-6 flex flex-col relative bg-background text-foreground min-h-0 max-w-7xl mx-auto w-full",
-  innerContainer: "flex-1 border rounded-lg border-border overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200",
-  chatAreaWrapper: "flex-grow overflow-hidden transition-all duration-200 ease-in-out"
+  container:
+    "h-full p-0.5 flex flex-col relative bg-background text-foreground min-h-0 max-w-6xl mx-auto w-full",
+  innerContainer:
+    "flex-1 border rounded-lg border-border overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200",
+  chatAreaWrapper:
+    "flex-grow overflow-hidden transition-all duration-200 ease-in-out",
 };
 
 export interface ChatAppProps {
   // App name
   appName: string;
+
+  // Active state
+  isActive?: boolean;
+  onActivate?: () => void;
 
   // Theme colors
   primaryColor?: string;
@@ -27,7 +36,7 @@ export interface ChatAppProps {
   activeSecondaryColor?: string;
 
   // Messages
-  messages: ChatState['messages'];
+  messages: ChatState["messages"];
   isTyping?: boolean;
   isSending?: boolean;
   error?: string | null;
@@ -40,124 +49,80 @@ export interface ChatAppProps {
   // Actions
   onSendMessage: (text: string, files?: File[]) => Promise<void>;
 
-  // Rating toolbar
-  hasRatingToolbar?: boolean;
-  onRateMessage?: (messageId: string, rating: 'up' | 'down') => void;
+  // Toolbar configurations
+  messageToolbarConfig?: (message: ChatState["messages"][0]) => ToolBarItem[];
+  agentToolbarConfig?: (agent: Agent) => ToolBarItem[];
+  minimalInputToolbarConfig?: ToolBarItem[];
 }
 
-export default function ChatApp({
-  appName: appNameProp,
-  primaryColor,                 // Renamed
-  secondaryColor,               // Renamed
-  activePrimaryColor,           // Renamed
-  activeSecondaryColor,         // Renamed
-  hasRatingToolbar,
-  onRateMessage,
-}: ChatAppProps) {
-  // Create a wrapper for setSelectedAgent that matches React's setState type
-  const handleAgentChange: React.Dispatch<React.SetStateAction<string>> = (value) => {
-    if (typeof value === 'function') {
-      const newValue = value(selectedAgent);
-      setSelectedAgent(newValue);
-    } else {
-      setSelectedAgent(value);
-    }
-  };
-
+export default function ChatApp(props: ChatAppProps) {
   const {
-    messages,
-    addMessage,
-    error,
-    setError,
-    isTyping,
-    setIsTyping,
-    isSending,
-    setIsSending,
-    attachments,
-    setAttachments,
-    removeAttachment,
-    selectedAgent,
-    setSelectedAgent,
-    agents,
-    isStatusPanelOpen,
-    setIsStatusPanelOpen,
-    statusInfo,
-    sendMessage
-  } = useAppShellStore();
-
-  // Auto-dismiss error after 5 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        setError(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [error]);
-
-  // Load initial data
-  useEffect(() => {
-    // TODO: Load initial messages and agent list from API
-    return () => {};
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      setError(null);
-      setIsTyping(false);
-      setIsSending(false);
-    };
-  }, []);
-
-  const handleSendMessage = useCallback(async (text: string, files?: File[]) => {
-    if (!text.trim() && (!files || files.length === 0)) {
-      // Optionally set an error if trying to send empty with no files
-      // setError("Cannot send an empty message without attachments.");
-      return;
-    }
-
-    await sendMessage(text, files);
-  }, [sendMessage]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      setError(null);
-      setIsTyping(false);
-      setIsSending(false);
-    };
-  }, []);
-
-  const headerProps = {
-    title: appNameProp || "Buddy Chat",
-    errorInfo: error ? { message: error, severity: 'error' as const } : undefined,
-    isSelected: true,
-    statusInfo,
-    onToggleStatusPanel: setIsStatusPanelOpen,
+    appName: appNameProp,
+    isActive = false,
+    onActivate,
     primaryColor,
     secondaryColor,
     activePrimaryColor,
-    activeSecondaryColor
+    activeSecondaryColor,
+    messageToolbarConfig,
+    agentToolbarConfig,
+    minimalInputToolbarConfig,
+    messages,
+    isTyping,
+    isSending,
+    error,
+    agents,
+    selectedAgent,
+    onSelectedAgentChange: setSelectedAgent,
+    onSendMessage: sendMessage,
+  } = props;
+  const handleAgentChange: Dispatch<SetStateAction<string>> = (value) => {
+    const newValue = typeof value === 'function' ? value(selectedAgent) : value;
+    setSelectedAgent(newValue);
+  };
+
+  const handleSendMessage = useCallback(
+    async (text: string, files?: File[]) => {
+      if (!text.trim() && (!files || files.length === 0)) {
+        return;
+      }
+      await sendMessage(text, files);
+    },
+    [sendMessage],
+  );
+
+  const headerProps = {
+    title: appNameProp || "Buddy Chat",
+    errorInfo: error
+      ? { message: error, severity: "error" as const }
+      : undefined,
+    isSelected: isActive,
+    statusInfo: undefined,
+    onToggleStatusPanel: () => {},
+    primaryColor: isActive ? activePrimaryColor : primaryColor,
+    secondaryColor: isActive ? activeSecondaryColor : secondaryColor,
   };
 
   return (
-    <div className={STYLE_CONSTANTS.container}>
+    <div 
+      className={STYLE_CONSTANTS.container}
+      onClick={onActivate}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onActivate?.()}
+    >
       <div className={STYLE_CONSTANTS.innerContainer}>
         <HeaderBar {...headerProps} />
         <div className={STYLE_CONSTANTS.chatAreaWrapper}>
-          <ChatArea 
-            messages={messages} 
-            isTyping={isTyping} 
+          <ChatArea
+            messages={messages}
+            isTyping={isTyping}
             className="flex-1"
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
             activePrimaryColor={activePrimaryColor}
             activeSecondaryColor={activeSecondaryColor}
-            onMessageFeedback={hasRatingToolbar ? (messageId, type) => 
-              onRateMessage?.(messageId, type === 'thumbsUp' ? 'up' : 'down')
-            : undefined}
+            assistantMessageToolbarConfig={messageToolbarConfig}
           />
         </div>
         <UserArea
@@ -165,36 +130,15 @@ export default function ChatApp({
           agents={agents}
           selectedAgent={selectedAgent}
           onSelectedAgentChange={handleAgentChange}
-          currentAttachments={attachments}
-          onRemoveAttachment={removeAttachment}
+          currentAttachments={[]}
+          onRemoveAttachment={() => {}}
           disabled={isSending}
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
           activePrimaryColor={activePrimaryColor}
           activeSecondaryColor={activeSecondaryColor}
-          agentToolbarConfig={(agent) => [
-            {
-              id: 'start',
-              icon: '▶️',
-              action: () => console.log('Start agent:', agent.id),
-              tooltip: 'Start agent',
-              intent: 'primary'
-            },
-            {
-              id: 'stop',
-              icon: '⏹️',
-              action: () => console.log('Stop agent:', agent.id),
-              tooltip: 'Stop agent',
-              intent: 'secondary'
-            },
-            {
-              id: 'restart',
-              icon: '🔄',
-              action: () => console.log('Restart agent:', agent.id),
-              tooltip: 'Restart agent'
-            }
-          ]}
-          minimalInputToolbarConfig={[]}
+          agentToolbarConfig={agentToolbarConfig}
+          minimalInputToolbarConfig={minimalInputToolbarConfig}
         />
       </div>
     </div>

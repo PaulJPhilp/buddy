@@ -13,8 +13,10 @@ const DialogPortal: typeof DialogPrimitive.Portal = DialogPrimitive.Portal;
 const DialogClose: typeof DialogPrimitive.Close = DialogPrimitive.Close;
 
 const DialogOverlay: React.ForwardRefExoticComponent<
-  React.PropsWithoutRef<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>> &
-  React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Overlay>>
+  React.PropsWithoutRef<
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+  > &
+    React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Overlay>>
 > = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
@@ -28,8 +30,10 @@ const DialogOverlay: React.ForwardRefExoticComponent<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent: React.ForwardRefExoticComponent<
-  React.PropsWithoutRef<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>> &
-  React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Content>>
+  React.PropsWithoutRef<
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+  > &
+    React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Content>>
 > = React.forwardRef(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
@@ -82,20 +86,27 @@ const DialogFooter = React.forwardRef<
 DialogFooter.displayName = "DialogFooter";
 
 const DialogTitle: React.ForwardRefExoticComponent<
-  React.PropsWithoutRef<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>> &
-  React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Title>>
+  React.PropsWithoutRef<
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+  > &
+    React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Title>>
 > = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
     {...props}
   />
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
 const DialogDescription: React.ForwardRefExoticComponent<
-  React.PropsWithoutRef<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>> &
-  React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Description>>
+  React.PropsWithoutRef<
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+  > &
+    React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Description>>
 > = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}

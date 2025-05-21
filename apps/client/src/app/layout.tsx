@@ -5,8 +5,8 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { ErrorBoundary } from "@buddy/ui/components/ui/error-boundary";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ErrorBoundary } from "@ui/components/ui/error-boundary";
 
 import "./globals.css";
 

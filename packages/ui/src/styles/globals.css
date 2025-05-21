@@ -1,4 +1,3 @@
-
 @tailwind utilities;
 
 @theme {
@@ -123,30 +122,26 @@
       opacity: 0.5;
     }
   }
+}
 
-
-
+.skeleton {
+  * {
+    pointer-events: none !important;
   }
 
-  .skeleton {
-    * {
-      pointer-events: none !important;
-    }
-
-    *[class^="text-"] {
-      color: transparent;
-      @apply rounded-[calc(var(--radius)-2px)] bg-[hsl(var(--foreground)/0.2)] select-none;
-    }
-
-    .skeleton-bg {
-      @apply bg-[hsl(var(--foreground)/0.1)];
-    }
-
-    .skeleton-div {
-      @apply bg-[hsl(var(--foreground)/0.2)];
-    }
+  *[class^="text-"] {
+    color: transparent;
+    @apply rounded-[calc(var(--radius)-2px)] bg-[hsl(var(--foreground)/0.2)] select-none;
   }
 
+  .skeleton-bg {
+    @apply bg-[hsl(var(--foreground)/0.1)];
+  }
+
+  .skeleton-div {
+    @apply bg-[hsl(var(--foreground)/0.2)];
+  }
+}
 
 /* Editor styles */
 .ProseMirror {

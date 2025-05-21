@@ -1,5 +1,5 @@
-import type { MessageValidation } from "./ChatServiceApi";
-import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from "./ChatServiceApi";
+import type { MessageValidation } from "./types";
+import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from "./types";
 
 /**
  * Validates message text against length and content safety requirements

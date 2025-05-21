@@ -1,4 +1,4 @@
-import { type ToastT, ToasterProps as SonnerToasterProps } from "sonner";
+import { ToasterProps as SonnerToasterProps, type ToastT } from "sonner";
 
 export type ToastProps = ToastT;
 export type ToasterProps = SonnerToasterProps;

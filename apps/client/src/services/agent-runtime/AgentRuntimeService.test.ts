@@ -15,7 +15,7 @@ describe("AgentRuntimeService", () => {
         yield* runtime.stop();
       }).pipe(
         Effect.provide(AgentRuntimeService.Default), // Provide the AgentRuntimeService layer
-        Effect.runPromise
+        Effect.runPromise,
       ));
 
     it("should handle start errors", () =>
@@ -38,7 +38,7 @@ describe("AgentRuntimeService", () => {
         });
       }).pipe(
         Effect.provide(AgentRuntimeService.Default), // Provide the AgentRuntimeService layer
-        Effect.runPromise
+        Effect.runPromise,
       ));
   });
 
@@ -57,7 +57,7 @@ describe("AgentRuntimeService", () => {
         const stateUpdates = yield* runtime.getState.pipe(
           Stream.take(2),
           Stream.runCollect,
-          Effect.map(chunk => Array.from(chunk)),
+          Effect.map((chunk) => Array.from(chunk)),
         );
 
         // Should see thinking state followed by response
@@ -70,7 +70,7 @@ describe("AgentRuntimeService", () => {
         yield* runtime.stop();
       }).pipe(
         Effect.provide(AgentRuntimeService.Default), // Provide the AgentRuntimeService layer
-        Effect.runPromise
+        Effect.runPromise,
       ));
 
     it("should handle send errors when not started", () =>
@@ -92,7 +92,7 @@ describe("AgentRuntimeService", () => {
         });
       }).pipe(
         Effect.provide(AgentRuntimeService.Default), // Provide the AgentRuntimeService layer
-        Effect.runPromise
+        Effect.runPromise,
       ));
   });
 });

@@ -22,8 +22,7 @@ export function Toaster() {
             "group-[.toaster]:bg-[hsl(var(--success))] group-[.toaster]:text-[hsl(var(--success-foreground))]",
           warning:
             "group-[.toaster]:bg-[hsl(var(--warning))] group-[.toaster]:text-[hsl(var(--warning-foreground))]",
-          info:
-            "group-[.toaster]:bg-[hsl(var(--info))] group-[.toaster]:text-[hsl(var(--info-foreground))]",
+          info: "group-[.toaster]:bg-[hsl(var(--info))] group-[.toaster]:text-[hsl(var(--info-foreground))]",
         },
       }}
       position="top-center"

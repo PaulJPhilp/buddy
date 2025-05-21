@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 /**
  * Defines a regular interactive command for the ToolBar.
@@ -13,7 +13,7 @@ export interface ToolBarCommand {
   pressed?: boolean;
   ariaLabel?: string;
   className?: string;
-  intent?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
+  intent?: "primary" | "secondary" | "danger" | "success" | "warning";
 }
 
 /**
@@ -21,7 +21,7 @@ export interface ToolBarCommand {
  */
 export interface ToolBarSpacer {
   id: string; // Unique ID for the spacer (for React keys)
-  type: 'spacer-expand'; // Indicates a flexible spacer that grows
+  type: "spacer-expand"; // Indicates a flexible spacer that grows
   // Potentially add: 'minWidth' or 'fixedWidth' if non-expanding spacers are needed later
 }
 

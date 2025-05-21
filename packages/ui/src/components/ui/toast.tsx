@@ -2,12 +2,12 @@ import { Toaster as SonnerToaster } from "sonner";
 
 interface ToasterProps {
   position?:
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right"
-  | "top-center"
-  | "bottom-center";
+    | "top-left"
+    | "top-right"
+    | "bottom-left"
+    | "bottom-right"
+    | "top-center"
+    | "bottom-center";
   richColors?: boolean;
   expand?: boolean;
   duration?: number;
@@ -67,4 +67,3 @@ export type { ToasterProps };
 
 // Re-export toast function from sonner for convenience
 export { toast } from "sonner";
-

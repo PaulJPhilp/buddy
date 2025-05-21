@@ -71,7 +71,6 @@ describe("WebSocketService", () => {
           // Connect using Effect.scoped to ensure cleanup
           yield* service.connect(mockUrl);
 
-
           // Send message - explicitly ignore the return value
           const message = {
             type: "MESSAGE" as const,

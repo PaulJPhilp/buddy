@@ -1,5 +1,8 @@
 import { Effect, Ref, Stream } from "effect";
-import { AgentRuntimeService, type AgentRuntimeState } from "../agent-runtime/AgentRuntimeService";
+import {
+  AgentRuntimeService,
+  type AgentRuntimeState,
+} from "../agent-runtime/AgentRuntimeService";
 import type {
   ChatState,
   ChatStateApi,
@@ -237,4 +240,4 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
     return service;
   }),
   dependencies: [AgentRuntimeService.Default],
-}) { }
+}) {}

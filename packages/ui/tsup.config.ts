@@ -1,4 +1,4 @@
-import { defineConfig } from "tsup"
+import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: ["src/index.ts"],
@@ -9,18 +9,18 @@ export default defineConfig({
   esbuildOptions(options) {
     options.banner = {
       js: '"use client";',
-    }
-    options.target = "es2020"
+    };
+    options.target = "es2020";
   },
   onSuccess: "tsc --emitDeclarationOnly --declaration",
   loader: {
-    ".css": "copy"
+    ".css": "copy",
   },
-  watch: process.argv.includes('--watch'),
+  watch: process.argv.includes("--watch"),
   env: {
-    NODE_OPTIONS: '--max-old-space-size=4096',
+    NODE_OPTIONS: "--max-old-space-size=4096",
   },
   silent: false,
   minify: false,
-  sourcemap: true
-})
+  sourcemap: true,
+});

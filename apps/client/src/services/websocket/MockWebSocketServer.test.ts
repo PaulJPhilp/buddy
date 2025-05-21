@@ -13,10 +13,7 @@ describe("MockWebSocketServer", () => {
 
         // Stop server
         yield* server.stop();
-      }).pipe(
-        Effect.provide(MockWebSocketServer.Default),
-        Effect.runPromise
-      ));
+      }).pipe(Effect.provide(MockWebSocketServer.Default), Effect.runPromise));
   });
 
   describe("Message handling", () => {
@@ -54,10 +51,7 @@ describe("MockWebSocketServer", () => {
 
         // Cleanup
         yield* server.stop();
-      }).pipe(
-        Effect.provide(MockWebSocketServer.Default),
-        Effect.runPromise
-      ));
+      }).pipe(Effect.provide(MockWebSocketServer.Default), Effect.runPromise));
 
     it("should handle multiple message handlers", () =>
       Effect.gen(function* () {
@@ -95,9 +89,6 @@ describe("MockWebSocketServer", () => {
 
         // Cleanup
         yield* server.stop();
-      }).pipe(
-        Effect.provide(MockWebSocketServer.Default),
-        Effect.runPromise
-      ));
+      }).pipe(Effect.provide(MockWebSocketServer.Default), Effect.runPromise));
   });
 });
