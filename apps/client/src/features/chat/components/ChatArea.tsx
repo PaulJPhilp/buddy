@@ -8,7 +8,7 @@ import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
 import { cn } from "@ui/lib/utils";
 
 import { Icon } from "@ui/components/Icon";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ChatAreaProps {
   messages: ChatState["messages"];
@@ -54,8 +54,20 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
 
+  const scrollableAreaRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom handler
+  const scrollToBottom = useCallback(() => {
+    if (scrollableAreaRef.current) {
+      scrollableAreaRef.current.scrollTo({
+        top: scrollableAreaRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
   // Handle scroll events
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!scrollableAreaRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = scrollableAreaRef.current;
@@ -67,26 +79,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     if (scrollTop < 100 && onLoadMoreMessages && !isLoadingHistory) {
       onLoadMoreMessages();
     }
-  };
-
-  // Scroll to bottom handler
-  const scrollToBottom = () => {
-    if (scrollableAreaRef.current) {
-      scrollableAreaRef.current.scrollTo({
-        top: scrollableAreaRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  const scrollableAreaRef = useRef<HTMLDivElement>(null);
+  }, [onLoadMoreMessages, isLoadingHistory]);
 
   // Auto-scroll to bottom for new messages if we're already near the bottom
   useEffect(() => {
     if (scrollableAreaRef.current && isNearBottom) {
       scrollToBottom();
     }
-  }, [messages, isTyping, isNearBottom]);
+  }, [isNearBottom, scrollToBottom]);
 
   // Add scroll event listener
   useEffect(() => {
@@ -95,7 +95,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       scrollArea.addEventListener("scroll", handleScroll);
       return () => scrollArea.removeEventListener("scroll", handleScroll);
     }
-  }, []);
+  }, [handleScroll]);
+
+  const showScrollToBottomButton = !isNearBottom && messages.length > 0;
 
   return (
     <div className="relative flex flex-col h-full">
@@ -132,7 +134,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                   },
                   {
                     id: `thumbs-down-${msg.id}`,
-                    icon: <Icon name="ThumbsDown" size={6} aria-hidden="true" />,
+                    icon: (
+                      <Icon name="ThumbsDown" size={6} aria-hidden="true" />
+                    ),
                     action: () => onMessageFeedback?.(msg.id, "thumbsDown"),
                     tooltip: "Not Helpful",
                     intent: "secondary",
@@ -190,10 +194,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                   )}
                 </div>
                 {msg.timestamp && (
-                  <div className={cn(
-                    "flex items-center",
-                    msg.sender === "user" ? "order-first pr-2" : "order-last pl-2"
-                  )}>
+                  <div
+                    className={cn(
+                      "flex items-center",
+                      msg.sender === "user"
+                        ? "order-first pr-2"
+                        : "order-last pl-2",
+                    )}
+                  >
                     <span className="text-[0.4rem] text-muted-foreground whitespace-nowrap">
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </span>

@@ -1,8 +1,8 @@
+import { Icon } from "@ui/components/Icon";
 import { Button } from "@ui/components/ui/button";
 import { Textarea } from "@ui/components/ui/textarea";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
 import { cn } from "@ui/lib/utils";
-import { Icon } from "@ui/components/Icon";
 import React, { useRef, useState, forwardRef } from "react";
 
 export interface MinimalInputProps {
@@ -27,8 +27,8 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       onAttachFiles,
       disabled,
       selectedAgentId,
-  agents = [],
-  placeholder = "Select an agent...",
+      agents = [],
+      placeholder = "Select an agent...",
       className,
       primaryColor,
       secondaryColor,
@@ -82,7 +82,9 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       } as ToolBarItem,
     ];
 
-    const toolbarItems = Array.isArray(toolbarConfig) ? toolbarConfig : defaultToolbarItems;
+    const toolbarItems = Array.isArray(toolbarConfig)
+      ? toolbarConfig
+      : defaultToolbarItems;
 
     return (
       <div className="relative w-full h-full">
@@ -90,12 +92,18 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={selectedAgentId ? `Speak with ${agents.find(a => a.id === selectedAgentId)?.name}` : placeholder}
+          placeholder={
+            selectedAgentId
+              ? `Speak with ${agents.find((a) => a.id === selectedAgentId)?.name}`
+              : placeholder
+          }
           disabled={disabled}
           className="w-full h-full resize-none bg-white text-sm rounded overflow-hidden pr-16 pl-2 leading-[22px] focus-visible:ring-[2px]"
-          style={{
-            ['--tw-ring-color' as string]: primaryColor
-          } as React.CSSProperties}
+          style={
+            {
+              ["--tw-ring-color" as string]: primaryColor,
+            } as React.CSSProperties
+          }
           primaryColor={primaryColor}
           aria-label="Message input"
           ref={ref}

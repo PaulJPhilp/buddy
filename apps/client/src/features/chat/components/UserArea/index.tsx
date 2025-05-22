@@ -16,7 +16,7 @@ export interface UserAreaProps {
   /** Currently selected agent ID */
   selectedAgent: string;
   /** Callback when agent selection changes */
-  onSelectedAgentChange: Dispatch<SetStateAction<string>>;
+  onSelectedAgentChange: (agentId: string) => void | Promise<void>; // Updated type
   /** List of currently attached files */
   currentAttachments: AttachmentFile[];
   /** Callback when a file is removed */
@@ -90,7 +90,9 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
           <div className="flex items-center">
             <MinimalInput
               onSendMessage={handleSendMessage}
-              onAttachFiles={() => document.getElementById("file-input")?.click()}
+              onAttachFiles={() =>
+                document.getElementById("file-input")?.click()
+              }
               disabled={disabled}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}

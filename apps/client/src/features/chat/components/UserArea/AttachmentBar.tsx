@@ -39,19 +39,14 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
   if (!Array.isArray(attachments) || attachments.length === 0) return null;
 
   return (
-    <div
-      className={cn(
-        "flex flex-wrap gap-2 bg-white rounded",
-        className,
-      )}
-      role="list"
+    <ul
+      className={cn("flex flex-wrap gap-2 bg-white rounded", className)}
       aria-label="Attached files"
     >
       {attachments.map((file) => (
-        <div
+        <li
           key={file.id}
           className="flex items-center gap-2 bg-background rounded px-3 py-1.5 text-sm"
-          role="listitem"
         >
           <FileIcon
             className="h-4 w-4 text-muted-foreground"
@@ -75,9 +70,9 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
           >
             <X className="h-3 w-3" aria-hidden="true" />
           </Button>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 };
 

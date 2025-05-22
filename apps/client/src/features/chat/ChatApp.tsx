@@ -1,15 +1,13 @@
 "use client";
 
-import { ChatService } from "@/services/chat/ChatService";
 import type { ChatState } from "@/services/chat/ChatServiceApi";
-import { useAppShellStore } from "@/stores/appShellStore";
-import { Effect, pipe } from "effect";
-import React, { useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
+import { type ToolBarItem } from "@ui/components/ui/toolbar";
+import { useTheme } from "next-themes";
+import { useCallback } from "react";
 import ChatArea from "./components/ChatArea";
-import { HeaderBar, type StatusInfo } from "./components/HeaderBar";
-import UserArea, { type UserAreaProps } from "./components/UserArea";
+import { HeaderBar } from "./components/HeaderBar";
+import UserArea from "./components/UserArea";
 import type { Agent } from "./components/UserArea/AgentToolBar";
-import type { AttachmentFile } from "./components/UserArea/AttachmentBar";
 
 // Style constants for reusable classes
 const STYLE_CONSTANTS = {
@@ -44,10 +42,10 @@ export interface ChatAppProps {
   // Agents
   agents: Agent[];
   selectedAgent: string;
-  onSelectedAgentChange: (agentId: string) => void;
+  onSelectedAgentChange: (agentId: string) => void | Promise<void>;
 
   // Actions
-  onSendMessage: (text: string, files?: File[]) => Promise<void>;
+  onSendMessage: (text: string, files?: File[]) => void | Promise<void>;
 
   // Toolbar configurations
   messageToolbarConfig?: (message: ChatState["messages"][0]) => ToolBarItem[];
@@ -73,22 +71,18 @@ export default function ChatApp(props: ChatAppProps) {
     error,
     agents,
     selectedAgent,
-    onSelectedAgentChange: setSelectedAgent,
-    onSendMessage: sendMessage,
+    onSelectedAgentChange,
+    onSendMessage,
   } = props;
-  const handleAgentChange: Dispatch<SetStateAction<string>> = (value) => {
-    const newValue = typeof value === 'function' ? value(selectedAgent) : value;
-    setSelectedAgent(newValue);
-  };
 
   const handleSendMessage = useCallback(
     async (text: string, files?: File[]) => {
       if (!text.trim() && (!files || files.length === 0)) {
         return;
       }
-      await sendMessage(text, files);
+      await onSendMessage(text, files);
     },
-    [sendMessage],
+    [onSendMessage],
   );
 
   const headerProps = {
@@ -103,13 +97,15 @@ export default function ChatApp(props: ChatAppProps) {
     secondaryColor: isActive ? activeSecondaryColor : secondaryColor,
   };
 
+  const { theme } = useTheme();
+
   return (
-    <div 
+    <button
+      type="button"
       className={STYLE_CONSTANTS.container}
       onClick={onActivate}
-      role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onActivate?.()}
+      onKeyDown={(e) => e.key === "Enter" && onActivate?.()}
     >
       <div className={STYLE_CONSTANTS.innerContainer}>
         <HeaderBar {...headerProps} />
@@ -129,7 +125,7 @@ export default function ChatApp(props: ChatAppProps) {
           onSendMessage={handleSendMessage}
           agents={agents}
           selectedAgent={selectedAgent}
-          onSelectedAgentChange={handleAgentChange}
+          onSelectedAgentChange={onSelectedAgentChange}
           currentAttachments={[]}
           onRemoveAttachment={() => {}}
           disabled={isSending}
@@ -141,6 +137,6 @@ export default function ChatApp(props: ChatAppProps) {
           minimalInputToolbarConfig={minimalInputToolbarConfig}
         />
       </div>
-    </div>
+    </button>
   );
 }

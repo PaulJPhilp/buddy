@@ -1,8 +1,8 @@
 "use client";
 
+import { Icon } from "@ui/components/Icon";
 import { Button } from "@ui/components/ui/button";
 import { useToast } from "@ui/components/ui/use-toast";
-import { Icon } from "@ui/components/Icon";
 import { Menu, Moon, Settings, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
@@ -78,6 +78,7 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
             <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-card ring-1 ring-border divide-y divide-border">
               <div className="py-1">
                 <button
+                  type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="flex items-center w-full px-4 py-2 text-sm text-foreground hover:bg-accent"
                 >
@@ -89,6 +90,7 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
                   {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </button>
                 <button
+                  type="button"
                   onClick={toggleMute}
                   className="flex items-center w-full px-4 py-2 text-sm text-foreground hover:bg-accent"
                 >

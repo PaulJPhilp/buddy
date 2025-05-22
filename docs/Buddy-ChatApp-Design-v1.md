@@ -9,7 +9,7 @@ Understood, Paul. Apologies for combining them. Here they are, one document at a
 
 **1. Overview & Goals**
 The primary goal is to design and implement a modular, composable, and maintainable `ChatApp` component and its associated ecosystem. Key architectural characteristics include:
-*   **Effect-TS Driven:** Core business logic, state management, and asynchronous operations for each chat instance will be managed by Effect-TS, with each chat app potentially running as an isolated `Effect`.
+*   **Effect-TS Driven:** Core business logic, state management, and asynchronous operations for each chat instance will be managed by Effect-TS, with each chat app instance will run as an isolated `Effect`.
 *   **React UI:** The user interface will be built with React and TypeScript.
 *   **Agent Communication:** Chat apps will communicate with specialized agents (Actor-based, with logic defined by an AgentGraph) primarily via WebSockets.
 *   **Composability:** Components like `UIBar` and `MinimalInput` are designed to be highly configurable and reusable.
@@ -17,14 +17,14 @@ The primary goal is to design and implement a modular, composable, and maintaina
 
 **2. Core Styling Principles**
 *   **Compactness:** A primary visual goal is a compact design, prioritizing information density while maintaining usability. This influences choices in spacing, font sizes, and component dimensions.
-*   **Tailwind CSS:** Tailwind will be used for styling. Its configuration (e.g., `spacing`, `fontSize` scales in `tailwind.config.js`) will be reviewed/customized to support compactness.
+*   **Tailwind CSS:** Tailwind will be used for styling. Compactness is primarily achieved through the mindful application of Tailwind utility classes, component-specific variants (e.g., 'compact' or 'tiny' variants for toolbars), and careful consideration of padding and margins on a per-component basis. Global overrides to Tailwind's default `spacing` and `fontSize` scales are avoided to maintain flexibility and rely on Tailwind's comprehensive utility-first approach.
 *   **Consistency:** Uniform application of spacing, typography, color, and border styles is crucial.
 *   **Reference:** A simple style guide or visual reference for common compact elements will be established.
 
 **3. Main Application Structure (`ChatApp.tsx`)**
 *   The root `ChatApp.tsx` component will utilize a 3-row CSS Grid (`grid grid-rows-[auto_1fr_auto]`) for its main layout:
     1.  `HeaderBar` (top, auto-sized)
-    2.  `MessageArea` (middle, takes remaining space, scrollable)
+    2.  `ChatArea` (middle, takes remaining space, scrollable)
     3.  `UserArea` (bottom, auto-sized)
 *   An external "App Harness" (details TBD) will be responsible for managing the lifecycle of multiple `ChatApp` instances and global UI concerns (login, theme, settings).
 
@@ -34,18 +34,17 @@ The primary goal is to design and implement a modular, composable, and maintaina
     *   **Purpose:** Displays the chat title, status information, and global error indications. May also display current agent state.
     *   **Key Props:** `title?: string`, `error?: string | null` (triggers visual error state).
 
-    **4.2. `MessageArea.tsx`**
+    **4.2. `ChatArea.tsx`**
     *   **Purpose:** Displays the chronological list of user and agent messages.
     *   **Key Props:** `messages: ChatMessage[]` (where `ChatMessage` includes `id`, `text`, `sender`, `timestamp`).
     *   **Behavior:** Scrollable, auto-scrolls to the bottom on new messages.
 
     **4.3. `UserArea.tsx`**
     *   **Purpose:** Orchestrates all user input functionalities including text, attachments, and agent interactions.
-    *   **Internal Layout:** 4-row CSS Grid:
+    *   **Internal Layout:** A 3-row CSS Grid:
         1.  **Error/Close Row (Conditional):** Displays error messages specific to `UserArea` actions or a close button for the chat.
-        2.  **`AttachmentRow` (Conditional):** Displays currently attached files.
+        2.  **`AttachmentBar` (Conditional):** Displays currently attached files.
         3.  **`MinimalInput` (Always Present):** The primary text input component.
-        4.  **"Sub-Input `UIBar`" (Conditional):** For controls not directly part of message composition (e.g., `AgentSelector`).
     *   **State:** Manages its own UI state and orchestrates state for its children, often reflecting `Effect.Ref`s for data like input text or attached files.
     *   **Key Props:** `error?: string | null`, `onDismissErrorAction?`, `onCloseAction?`, `attachedFiles?: File[]`, `onRemoveFileAction?`, `onSubmitMessageEffect`, `uiBarElements` (for Sub-Input `UIBar`), `theme`.
 
@@ -59,26 +58,51 @@ The primary goal is to design and implement a modular, composable, and maintaina
     *   **Key Props:** `text`, `onTextChange`, `onSubmitEffect`, `placeholder?`, `theme?`, `isDisabled?`, `trailingAccessoryElements?: UIBarElementConfig[]`.
     *   **`trailingAccessoryElements`:** Used to configure icons like "Send," "Generic Attach File," and "Specialized Uploads" (e.g., Image, Video).
 
-    **4.5. `UIBar.tsx`**
-    *   **Purpose:** A general-purpose, highly configurable toolbar component used in various parts of the application (e.g., `MinimalInput`'s accessories, `UserArea`'s "Sub-Input `UIBar`").
-    *   **Layout:** Defaults to horizontal (flex row), with a potential `orientation` prop for vertical layout.
-    *   **Key Props:** `elements: UIBarElementConfig[]`, `theme?`, `orientation?: 'horizontal' | 'vertical'`.
-    *   **`UIBarElementConfig` (Discriminated Union):**
-        *   `IconElementConfig`: `{ type: "iconCommand", iconName: string, label?: string, effect: Effect.Effect<void, Error>, tooltip?: string, isDisabled?: boolean }`. Supports simple (icon-only) and descriptive (icon + label) variants.
-        *   `SelectorElementConfig`: `{ type: "selector", items: Array<{ value: string; label: string; disabled?: boolean }>, currentValue: string, onValueChangeEffect: (selectedValue: string) => Effect.Effect<void, Error>, placeholder?: string, isDisabled?: boolean }`.
-        *   Future types: Toggle Buttons, Checklists.
+    **4.5. `ToolBar` (from `@ui/components/ui/toolbar.tsx`)**
+    *   **Purpose:** A general-purpose, configurable toolbar component provided by the `@ui` package, used for creating rows of interactive elements like icon buttons and spacers.
+    *   **Implementation:** See `packages/ui/src/components/ui/toolbar.tsx`.
+    *   **Layout:** Primarily horizontal (flex row). Variants like 'default', 'compact', and 'tiny' control spacing and size.
+    *   **Key Props (from `toolbar.tsx`):** `commands: ToolBarItem[]`, `variant?: 'default' | 'compact' | 'tiny'`, `className?`, `ariaLabel?`, etc.
+    *   **`ToolBarItem` (Union Type from `toolbar.tsx`):** Defines the elements that can be rendered by the `ToolBar`.
+        *   `ToolBarCommand`: `{ id: string, icon: React.ReactNode, label?: string, action: () => void, tooltip?: string, disabled?: boolean, intent?: 'primary' | 'secondary' | 'danger' }`. Used for icon buttons with actions.
+        *   `ToolBarSpacer`: `{ id: string, type: "spacer-expand" }`. Used to create flexible space between items.
+    *   **Note on Selectors:** The generic `ToolBar` component itself does not render selector/dropdown menus directly via its `commands` prop. UI elements requiring selection (e.g., an `AgentSelector`) are implemented as separate, specialized components (like `AgentToolBar.tsx` in the `UserArea`) which might internally use or be styled similarly to `ToolBar` elements but are not configured through the `ToolBarItem` array of the main `ToolBar`.
 
-    **4.6. `AttachmentRow.tsx`**
+    **4.6. `AttachmentBar.tsx`**
     *   **Purpose:** Displays a list of currently attached files, allowing users to remove them before submission.
     *   **Key Props:** `attachedFiles: Array<File>`, `onRemoveFileEffect: (file: File) => Effect.Effect<void, Error>`.
 
 **5. State Management Strategy**
-*   **Effect-TS:** The primary source of truth for all business logic, agent communication state, message history, attached files, and other core `ChatApp` operational state. Utilizes `Effect.Ref`s and `Stream`s.
-*   **`@effect/react` (or Custom Hooks):** The chosen library or custom-built hooks will bridge Effect-managed state and streams into React components, enabling reactive UI updates. This is a key area for initial technical evaluation.
-*   **Zustand (or similar lightweight global store):**
-    *   Likely for global UI state managed by the "App Harness" (e.g., theme, global user settings).
-    *   Potentially for complex, localized UI state *within* specific `ChatApp` variants if needed, ensuring it does not duplicate or conflict with Effect-managed core logic state.
-*   **React `useState`/`useReducer`:** For simple, component-local UI state that doesn't need to be shared or managed by Effect (e.g., dropdown open/close status).
+*   **5.1. Effect-TS (Core Operational State):**
+    *   The primary source of truth for core business logic, agent communication state (e.g., WebSocket connections, message serialization/deserialization), raw message history objects, attached files, and other fundamental `ChatApp` operational state.
+    *   Utilizes `Effect.Ref`s and `Effect.Stream`s extensively for managing and exposing this state.
+
+*   **5.2. Effect-TS (`ChatApp` Instance-Specific State):**
+    *   **Purpose:** Each `ChatApp` instance's primary Effect program will create, own, and manage its own dedicated set of `Effect.Ref`s to store operational metadata, aggregated data, and history relevant specifically to that instance. This ensures that all runtime state, both core and derived/accumulated for an instance, is managed within the Effect-TS paradigm.
+    *   **Managed Data Structures (using Effect-TS types):**
+        *   **Token Usage and Cost Data:**
+            *   Example: `tokenCostRef: Ref<{ totalTokens: number, totalCost: Cents }>`
+            *   Source: Aggregated from data provided in agent responses.
+            *   Scope: Accumulated over the lifetime of the `ChatApp` instance.
+        *   **Asynchronous Agent Error History:**
+            *   Example: `agentErrorHistoryRef: Ref<Chunk<TimestampedAgentError>>` (where `Chunk` is Effect's immutable list, and `TimestampedAgentError` is a defined type).
+            *   Content: A log of recent errors specifically arising from asynchronous agent communications. This is distinct from transient error states that might be displayed for current operations.
+        *   **Chat Thread Metadata (e.g., Titles):**
+            *   Example: `threadTitlesRef: Ref<HashMap<AgentInstanceId, string>>` (where `HashMap` is Effect's immutable map and `AgentInstanceId` is a unique identifier for an agent interaction stream).
+            *   Content: LLM-generated thread titles for conversations, associated with specific agent dialogues.
+    *   **Updating State:** These instance-specific `Ref`s are updated directly within the `ChatApp` instance's Effect-TS workflows (e.g., using `Ref.update`, `Ref.set`).
+    *   **Lifecycle:** The lifecycle of these `Ref`s is inherently tied to the lifecycle of the `ChatApp` instance's main Effect program. They are created when the instance initializes and are garbage collected or finalized when the instance terminates.
+
+*   **5.3. `@effect/react` (Bridging Effect-TS State to UI):**
+    *   The `@effect/react` library (or custom hooks built upon the Effect runtime) is the designated mechanism for bridging all Effect-managed state—including core operational state and instance-specific `Ref`s/`Stream`s—into React components.
+    *   This enables reactive UI updates based on changes in Effect-TS managed state, allowing React components to subscribe to `Ref` values, `Stream` emissions, or the success/failure of Effects.
+
+*   **5.4. Global UI State Store (e.g., Zustand, for non-operational concerns):**
+    *   For UI state that is truly global and not tied to the operational lifecycle of a specific `ChatApp` instance (e.g., application-wide theme, global user preferences, state of an overarching "App Harness" if one exists).
+    *   A lightweight store like Zustand (as potentially indicated by existing files like `appShellStore.ts`) can be used for these concerns, ensuring a clear separation from Effect-TS's role in managing the dynamic, operational state of chat instances.
+
+*   **5.5. React `useState`/`useReducer` (Component-Local UI State):**
+    *   Remains appropriate for simple, ephemeral UI state that is local to a single React component and does not need to be shared, persisted, or managed by Effect-TS (e.g., dropdown open/close status, temporary input field values before validation/submission to an Effect).
 
 **6. Agent Communication**
 *   **Protocol:** WebSockets.

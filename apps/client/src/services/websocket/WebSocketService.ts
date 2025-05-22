@@ -1,5 +1,4 @@
 import { Effect, Layer, Queue, Stream } from "effect";
-import WebSocket from "ws";
 
 // Message types for WebSocket communication
 export interface WebSocketMessage {

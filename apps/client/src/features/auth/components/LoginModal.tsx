@@ -76,7 +76,7 @@ export function LoginModal({
               <input id="remember" type="checkbox" className="h-2 w-2" />
               Remember me
             </label>
-            <a href="#" className="text-primary hover:underline">
+            <a href="#!" className="text-primary hover:underline">
               Forgot password?
             </a>
           </div>

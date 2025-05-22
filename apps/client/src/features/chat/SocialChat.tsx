@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
 import { Icon } from "@ui/components/Icon";
 import type { ToolBarItem } from "@ui/components/ui/toolbar";
+import React from "react";
 import { useSocialChatStore } from "../../stores/chatStores";
 import ChatApp from "./ChatApp";
 

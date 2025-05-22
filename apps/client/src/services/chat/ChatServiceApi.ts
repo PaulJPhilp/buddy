@@ -14,7 +14,7 @@
  * const message = yield* chatService.sendMessage("Hello!");
  * ```
  */
-import type { Effect } from "effect";
+import { Context, type Effect } from "effect";
 
 export const MAX_MESSAGE_LENGTH = 2000;
 export const MIN_MESSAGE_LENGTH = 1;
@@ -146,3 +146,8 @@ export interface ChatStateApi {
    */
   readonly clearHistory: () => Effect.Effect<void>;
 }
+
+/**
+ * Tag for the ChatStateApi service.
+ */
+export const ChatStateApiTag = Context.Tag<ChatStateApi>();

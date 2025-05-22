@@ -86,13 +86,10 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
         ref={ref}
         open={isStatusOpen}
         onOpenChange={handleStatusToggle}
-        className={cn(
-          "w-full border-b transition-colors",
-          className,
-        )}
+        className={cn("w-full border-b transition-colors", className)}
         style={{
           borderColor: isSelected ? primaryColor : undefined,
-          backgroundColor: isSelected ? `${secondaryColor}33` : undefined
+          backgroundColor: isSelected ? `${secondaryColor}33` : undefined,
         }}
       >
         <div className="flex items-center justify-between px-1 py-0.5 text-[0.5rem] h-4">
@@ -177,16 +174,19 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
             <div className="flex items-center justify-between text-[10px]">
               <span>Agent Status</span>
               <span
-                className={cn("px-1 py-0.5 rounded-full text-[10px] font-medium", {
-                  "bg-primary/10 text-primary":
-                    statusInfo.agentStatus.state === "idle",
-                  "bg-warning/10 text-warning":
-                    statusInfo.agentStatus.state === "thinking",
-                  "bg-muted text-muted-foreground":
-                    statusInfo.agentStatus.state === "paused",
-                  "bg-destructive/10 text-destructive":
-                    statusInfo.agentStatus.state === "error",
-                })}
+                className={cn(
+                  "px-1 py-0.5 rounded-full text-[10px] font-medium",
+                  {
+                    "bg-primary/10 text-primary":
+                      statusInfo.agentStatus.state === "idle",
+                    "bg-warning/10 text-warning":
+                      statusInfo.agentStatus.state === "thinking",
+                    "bg-muted text-muted-foreground":
+                      statusInfo.agentStatus.state === "paused",
+                    "bg-destructive/10 text-destructive":
+                      statusInfo.agentStatus.state === "error",
+                  },
+                )}
               >
                 {statusInfo.agentStatus.state}
                 {statusInfo.agentStatus.details &&

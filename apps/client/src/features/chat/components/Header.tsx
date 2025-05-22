@@ -15,6 +15,7 @@ export interface HeaderStatusInfo {
 export interface HeaderErrorInfo {
   title: string;
   message: string;
+  variant?: "default" | "destructive";
   timestamp?: number;
   onDismiss?: () => void;
 }
@@ -99,7 +100,9 @@ const Header: React.FC<HeaderProps> = ({
     errorInfo &&
       onErrorClick && {
         id: "header-error",
-        icon: <AlertCircle className="h-4 w-4 text-yellow-500" aria-hidden="true" />,
+        icon: (
+          <AlertCircle className="h-4 w-4 text-yellow-500" aria-hidden="true" />
+        ),
         action: onErrorClick,
         tooltip: errorInfo.title,
         intent: "danger",
@@ -127,8 +130,8 @@ const Header: React.FC<HeaderProps> = ({
       <div className={statusPanelStyles}>
         {isStatusPanelOpen && statusInfo && (
           <div className="p-3 space-y-2 text-sm">
-            {statusInfo.messages.map((message, index) => (
-              <div key={index} className="text-muted-foreground">
+            {statusInfo.messages.map((message) => (
+              <div key={message} className="text-muted-foreground">
                 {message}
               </div>
             ))}
@@ -148,16 +151,20 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Error Alert */}
       {errorInfo && (
-        <Alert variant="destructive" className="m-2">
+        <Alert variant={errorInfo.variant || "destructive"} className="mt-2">
           <AlertCircle className="h-4 w-4 text-yellow-500" aria-hidden="true" />
-          <AlertTitle>{errorInfo.title}</AlertTitle>
+          <AlertTitle>{errorInfo.title || "Error"}</AlertTitle>
           <AlertDescription>{errorInfo.message}</AlertDescription>
           {errorInfo.onDismiss && (
             <button
+              type="button"
               onClick={errorInfo.onDismiss}
               className="absolute right-2 top-2 opacity-70 hover:opacity-100"
             >
-              <X className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-hidden="true" />
+              <X
+                className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                aria-hidden="true"
+              />
             </button>
           )}
         </Alert>

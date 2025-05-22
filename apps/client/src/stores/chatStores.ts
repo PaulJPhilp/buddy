@@ -83,7 +83,7 @@ const businessMessages = [
     sender: "assistant" as const,
     timestamp: BASE_TIMESTAMP,
     metadata: { length: 425 },
-  }
+  },
 ];
 
 export const useBusinessChatStore = createChatStore({
@@ -179,7 +179,7 @@ const socialMessages = [
     sender: "assistant" as const,
     timestamp: BASE_TIMESTAMP,
     metadata: { length: 385 },
-  }
+  },
 ];
 
 export const useSocialChatStore = createChatStore({
