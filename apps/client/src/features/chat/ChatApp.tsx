@@ -92,7 +92,7 @@ export default function ChatApp(props: ChatAppProps) {
       : undefined,
     isSelected: isActive,
     statusInfo: undefined,
-    onToggleStatusPanel: () => {},
+    onToggleStatusPanel: () => { },
     primaryColor: isActive ? activePrimaryColor : primaryColor,
     secondaryColor: isActive ? activeSecondaryColor : secondaryColor,
   };
@@ -100,10 +100,10 @@ export default function ChatApp(props: ChatAppProps) {
   const { theme } = useTheme();
 
   return (
-    <button
-      type="button"
+    <div
       className={STYLE_CONSTANTS.container}
       onClick={onActivate}
+      role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onActivate?.()}
     >
@@ -127,7 +127,7 @@ export default function ChatApp(props: ChatAppProps) {
           selectedAgent={selectedAgent}
           onSelectedAgentChange={onSelectedAgentChange}
           currentAttachments={[]}
-          onRemoveAttachment={() => {}}
+          onRemoveAttachment={() => { }}
           disabled={isSending}
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
@@ -137,6 +137,6 @@ export default function ChatApp(props: ChatAppProps) {
           minimalInputToolbarConfig={minimalInputToolbarConfig}
         />
       </div>
-    </button>
+    </div>
   );
 }

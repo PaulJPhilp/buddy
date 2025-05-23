@@ -3,33 +3,31 @@
 import { Icon } from "@ui/components/Icon";
 import type { ToolBarItem } from "@ui/components/ui/toolbar";
 import { useMemo } from "react";
-import type { AgentConfigData } from "../../features/chat/hooks/chatInstanceTypes"; // NEW TYPES
 // import { useChatAppInstance, type UseChatAppInstanceConfig } from "@/hooks/useChatAppInstance"; // OLD HOOK
-import { useChatInstance } from "../../features/chat/hooks/useChatInstance"; // NEW HOOK
+import { useChatInstance } from "../../hooks/useChatInstance"; // NEW HOOK
+import { useAppShellStore } from "../../stores/appShellStore"; // IMPORT appShellStore
 import { useBusinessChatStore } from "../../stores/chatStores";
 import ChatApp from "./ChatApp";
+// OLD: import type { AgentConfigData } from "../../hooks/chatInstanceTypes"; // NEW TYPES
+import type { ChatAgentConfig, Message as ChatInstanceMessage, FileAttachment } from "./types"; // UPDATED import from AgentConfigData to ChatAgentConfig
 
 interface BusinessChatProps {
   isActive?: boolean;
   onActivate?: () => void;
-  // Add a unique ID for this chat instance, or generate one if not provided
-  // For now, let's assume it might be passed or we generate a static one for example purposes
-  chatInstanceId?: string;
+  // chatInstanceId is now derived from the store
 }
-
-// TODO: This URL should come from configuration, environment variables, or a service discovery mechanism.
-const DEFAULT_AGENT_WS_URL = "ws://localhost:8080/api/agent/socket"; // Placeholder
 
 export default function BusinessChat({
   isActive,
   onActivate,
-  chatInstanceId = "business-chat-001",
-}: BusinessChatProps) {
+}: BusinessChatProps) { // Removed chatInstanceId from props
   const {
     theme,
     agents: initialAgents, // This is Array<Agent> from store
     selectedAgent: initialSelectedAgentId,
   } = useBusinessChatStore();
+
+  const { selectedThreadId } = useAppShellStore(); // GET selectedThreadId
 
   // Find the selected agent object to get its name for initialAgentName
   const selectedAgentObject = useMemo(
@@ -38,24 +36,45 @@ export default function BusinessChat({
   );
 
   // Prepare AgentConfigData for the new hook
-  // TODO: agentWsUrl should be dynamic based on the selected agent or a global config.
-  // For now, using a default. The agentId from the store will be used for the specific agent.
-  const agentConfig: AgentConfigData = useMemo(
-    () => ({
-      agentId:
-        initialSelectedAgentId ||
-        (initialAgents.length > 0 ? initialAgents[0].id : "default-agent"),
-      agentWsUrl: DEFAULT_AGENT_WS_URL, // Placeholder - This needs to be properly configured
+  const agentConfig: ChatAgentConfig = useMemo(() => {
+    const agentId =
+      initialSelectedAgentId ||
+      (initialAgents.length > 0 ? initialAgents[0].id : "default-agent");
+    const currentAgent = initialAgents.find((agent) => agent.id === agentId);
+
+    // Use a default/fallback URL if not specified on the agent object, or throw an error.
+    // For now, let's assume a default is less safe and we should ensure agents have their URLs.
+    const wsUrl = currentAgent?.agentWsUrl;
+    if (!wsUrl) {
+      // This case should ideally not happen if agents are configured correctly.
+      // Depending on requirements, could throw error, or use a global default as a last resort.
+      console.error(`Agent ${agentId} does not have agentWsUrl configured.`);
+      // Fallback to a globally defined default if absolutely necessary, but this is not ideal.
+      // For this implementation, we will throw to highlight misconfiguration.
+      throw new Error(`Configuration error: agentWsUrl missing for agent ${agentId}`);
+    }
+
+    return {
+      agentId,
+      agentWsUrl: wsUrl, // USE DYNAMIC URL
       initialAgentName:
-        selectedAgentObject?.name ||
+        currentAgent?.name ||
         (initialAgents.length > 0 ? initialAgents[0].name : "Business Agent"),
-    }),
-    [initialSelectedAgentId, initialAgents, selectedAgentObject],
-  );
+    };
+  }, [initialSelectedAgentId, initialAgents]);
+
+  // Conditional rendering if no thread is selected
+  if (!selectedThreadId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>No chat selected. Please select a chat thread.</p>
+      </div>
+    );
+  }
 
   // Use the new useChatInstance hook
   const { chatState, dispatchAction, runtimeError } = useChatInstance(
-    chatInstanceId,
+    selectedThreadId, // USE selectedThreadId from store
     agentConfig,
   );
 
@@ -63,8 +82,19 @@ export default function BusinessChat({
     if (!text.trim() && (!files || files.length === 0)) {
       return;
     }
-    dispatchAction({ _tag: "sendMessage", text });
-    // File handling with dispatchAction would need to be added if `sendMessage` action supports files.
+    // Map File[] to FileAttachment[] for the action
+    const attachmentsForAction: FileAttachment[] | undefined = files?.map(file => ({
+      id: file.name, // Using name as ID, consider more robust ID if needed for backend
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    }));
+
+    dispatchAction({
+      _tag: "sendMessage",
+      text,
+      attachments: attachmentsForAction
+    });
   };
 
   const handleSelectedAgentChange = (agentId: string) => {
@@ -74,11 +104,12 @@ export default function BusinessChat({
     // or the hook's Effect program would need a new ChatAction like `changeAgent`.
     // For now, this action might update the store, and then BusinessChat would get new props, leading to re-render and potentially new agentConfig.
     // This part needs further design based on how agent switching should affect the hook's lifecycle.
-    console.warn(
-      "handleSelectedAgentChange - Re-evaluate how agent switching impacts useChatInstance and its AgentConfig",
-      agentId,
-    );
+    // console.warn(
+    //   "handleSelectedAgentChange - Re-evaluate how agent switching impacts useChatInstance and its AgentConfig",
+    //   agentId,
+    // ); 
     // Potentially: useBusinessChatStore.getState().setSelectedAgent(agentId); // This would trigger re-render with new selectedAgentObject etc.
+    useBusinessChatStore.getState().setSelectedAgent(agentId);
   };
 
   const minimalInputToolbarConfig: ToolBarItem[] = [
@@ -126,8 +157,26 @@ export default function BusinessChat({
     appName: "Business Analytics", // Or could come from chatState.agentName or agentConfig.initialAgentName
     isActive: isActive,
     onActivate: onActivate,
-    messages: chatState.messages,
-    isTyping: chatState.status === "connected" && false, // The new hook doesn't have a dedicated isTyping in ChatState yet, inferring for now
+    messages: chatState.messages.map((m: ChatInstanceMessage) => {
+      // Construct metadata expected by ChatAppProps
+      const messageMetadata = {
+        length: m.text.length,
+        hasAttachments: !!(m.attachments && m.attachments.length > 0),
+        attachedFileCount: m.attachments?.length ?? 0,
+        fileNames: m.attachments?.map(att => att.name) ?? [],
+        // Preserve any other metadata if present, though ChatAppProps might only care about the above
+        // Cast m.metadata to ensure compatibility if it exists
+        ...(m.metadata as Record<string, unknown> || {}),
+      };
+
+      return {
+        ...m,
+        sender: m.role === "user" ? "user" as const : "assistant" as const, // Map role to sender
+        timestamp: m.timestamp, // timestamp is already a number from ChatInstanceMessage
+        metadata: messageMetadata,
+      };
+    }),
+    isTyping: chatState.isTyping, // USE new isTyping from chatState
     isSending: chatState.status === "connecting", // This maps to the brief moment of sending, might need refinement
     error: chatState.error,
     agents: initialAgents, // Pass agents from the store
@@ -140,3 +189,4 @@ export default function BusinessChat({
 
   return <ChatApp {...chatAppProps} />;
 }
+

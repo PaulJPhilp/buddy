@@ -71,3 +71,62 @@ export interface ChatStateApi {
   loadMoreHistory(): Effect.Effect<ChatHistoryPage, Error, never>;
   clearHistory(): Effect.Effect<void, Error, never>;
 }
+
+// Types for useChatInstance hook (inspired by Buddy-ReactEffect-Design.md)
+
+/**
+ * Represents the payload sent from the client to the agent
+ * when a user sends a message.
+ */
+export interface ClientMessagePayload {
+  type: "userMessage";
+  message: {
+    text: string;
+    attachments?: FileAttachment[]; // Added for file attachments
+  };
+  // chatId and agentId are typically sent as part of the WebSocket URL query params.
+}
+
+/**
+ * Represents the state managed by the useChatInstance hook.
+ * This is distinct from the ChatState defined above for ChatStateApi.
+ */
+export interface ChatInstanceHookState {
+  chatId: string;
+  messages: ReadonlyArray<Message>; // Uses the Message interface defined above
+  status:
+  | "initializing"
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "reconnecting"
+  | "error";
+  agentName: string;
+  error?: string;
+  isTyping?: boolean;
+}
+
+/**
+ * Defines actions that can be dispatched to the useChatInstance hook's Effect program.
+ */
+export type ChatInstanceAction =
+  | { _tag: "sendMessage"; text: string; attachments?: FileAttachment[] } // Added attachments
+  | { _tag: "tryReconnect" };
+
+/**
+ * Represents events received from the agent via WebSocket.
+ */
+export type AgentEvent =
+  | { type: "newMessage"; payload: Message } // Uses the Message interface defined above
+  | { type: "statusUpdate"; status: ChatInstanceHookState["status"]; agentName?: string }
+  | { type: "fullState"; payload: ChatInstanceHookState } // Uses the hook's state
+  | { type: "error"; message: string }
+  | { type: "pong" }
+  | { type: "agentTyping"; isTyping: boolean };
+
+// Renamed from AgentConfigData to ChatAgentConfig
+export interface ChatAgentConfig {
+  agentId: string;
+  agentWsUrl: string;
+  initialAgentName: string;
+}

@@ -1,4 +1,4 @@
-import { Effect, Layer, Queue, Stream } from "effect";
+import { Effect, Queue, Stream } from "effect";
 
 // Message types for WebSocket communication
 export interface WebSocketMessage {
@@ -152,11 +152,12 @@ export const makeWebSocketService = Effect.gen(function* (_) {
 
 /**
  * WebSocket service class implementing the Effect.Service pattern
+ * This class also serves as the Tag for WebSocketServiceApi.
  */
 export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
   "WebSocketService",
   {
     effect: makeWebSocketService,
     dependencies: [],
-  },
-) {}
+  }
+) { }

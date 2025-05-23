@@ -29,6 +29,7 @@ export interface Agent {
   capabilities: AgentCapabilities;
   avatar?: string;
   type?: string;
+  agentWsUrl?: string;
 }
 
 export interface AgentToolBarProps {

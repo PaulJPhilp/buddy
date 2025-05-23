@@ -1,13 +1,11 @@
-import { AgentRuntimeService } from "@/services/agent-runtime/AgentRuntimeService"; // Mock might not need full runtime
 import { Effect, Ref } from "effect";
 import type {
   ChatHistoryPage,
   ChatState,
   ChatStateApi,
-  FileAttachment,
   Message,
   MessageApi,
-  MessageValidation,
+  MessageValidation
 } from "./types";
 
 // A simple counter for generating unique IDs for mock messages
@@ -128,6 +126,6 @@ export class MockChatService extends Effect.Service<ChatStateApi>()(
     }),
     // MockChatService might not need the full AgentRuntimeService,
     // or it could use a mock version of it if necessary.
-    dependencies: [AgentRuntimeService.Default],
+    dependencies: [],
   },
-) {}
+) { }

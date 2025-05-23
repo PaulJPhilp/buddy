@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils";
 import type { ToolBarItem } from "@ui/components/ui/toolbar";
-import React from "react";
-import type { Dispatch, SetStateAction } from "react";
-import AgentToolBar from "./AgentToolBar";
+import React, { useState } from "react";
 import type { Agent } from "./AgentToolBar";
-import AttachmentBar from "./AttachmentBar";
+import AgentToolBar from "./AgentToolBar";
 import type { AttachmentFile } from "./AttachmentBar";
+import AttachmentBar from "./AttachmentBar";
 import MinimalInput from "./MinimalInput";
 
 export interface UserAreaProps {
@@ -55,20 +54,30 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     },
     ref,
   ) => {
+    const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+    const [inputText, setInputText] = useState("");
+
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
-      const newAttachments: AttachmentFile[] = files.map((file) => ({
-        id: Math.random().toString(36).slice(2),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      }));
-      onSendMessage("", files);
+      setStagedFiles((prevFiles) => [...prevFiles, ...files]);
     };
 
-    const handleSendMessage = (text: string) => {
-      if (!text.trim() && !currentAttachments.length) return;
-      onSendMessage(text, []);
+    const handleRemoveStagedFile = (fileNameToRemove: string) => {
+      setStagedFiles((prevFiles) => prevFiles.filter(file => file.name !== fileNameToRemove));
+    };
+
+    const stagedAttachmentFiles: AttachmentFile[] = stagedFiles.map(file => ({
+      id: file.name,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    }));
+
+    const internalHandleSendMessage = () => {
+      if (!inputText.trim() && stagedFiles.length === 0) return;
+      onSendMessage(inputText, stagedFiles);
+      setInputText("");
+      setStagedFiles([]);
     };
 
     return (
@@ -79,17 +88,19 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
       >
         <div className="grid grid-rows-3 h-full gap-1">
           <div className="flex items-center">
-            {currentAttachments.length > 0 && (
+            {stagedAttachmentFiles.length > 0 && (
               <AttachmentBar
-                attachments={currentAttachments}
-                onRemoveAttachment={onRemoveAttachment}
+                attachments={stagedAttachmentFiles}
+                onRemoveAttachment={handleRemoveStagedFile}
               />
             )}
           </div>
 
           <div className="flex items-center">
             <MinimalInput
-              onSendMessage={handleSendMessage}
+              text={inputText}
+              onTextChange={setInputText}
+              onSendMessage={internalHandleSendMessage}
               onAttachFiles={() =>
                 document.getElementById("file-input")?.click()
               }
@@ -135,7 +146,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
 
 UserArea.displayName = "UserArea";
 
-export type { AttachmentFile } from "./AttachmentBar";
 export type { Agent } from "./AgentToolBar";
+export type { AttachmentFile } from "./AttachmentBar";
 
 export default UserArea;

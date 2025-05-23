@@ -1,10 +1,10 @@
-import { Duration, Effect, Layer, Stream } from "effect";
+import { Effect, Stream } from "effect";
 import {
   WebSocketError as BaseWebSocketError,
   WebSocketMessage as BaseWebSocketMessage,
-  WebSocketService,
-  WebSocketServiceApi,
+  WebSocketService
 } from "../websocket/WebSocketService";
+import { AgentRuntimeConfigService } from "./config";
 
 // --- Enums and Interfaces for Agent Runtime ---
 
@@ -67,15 +67,10 @@ export interface AgentRuntimeState {
 }
 
 export interface AgentRuntimeServiceApi {
-  start: () => Effect.Effect<void, AgentRuntimeError>;
-  stop: () => Effect.Effect<void, AgentRuntimeError>;
-  sendMessage: (text: string) => Effect.Effect<void, AgentRuntimeError>;
-  getState: Stream.Stream<AgentRuntimeState, AgentRuntimeError, never>; // Error must be AgentRuntimeError
-}
-
-export interface AgentRuntimeConfig {
-  readonly agentId: string;
-  readonly baseWsUrl?: string;
+  readonly start: () => Effect.Effect<void, AgentRuntimeError>;
+  readonly stop: () => Effect.Effect<void, AgentRuntimeError>;
+  readonly sendMessage: (text: string) => Effect.Effect<void, AgentRuntimeError>;
+  readonly getState: Stream.Stream<AgentRuntimeState, AgentRuntimeError, never>;
 }
 
 // --- Service Implementation ---
@@ -83,136 +78,73 @@ export interface AgentRuntimeConfig {
 export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>()(
   "AgentRuntimeService",
   {
-    succeed: (
-      config: AgentRuntimeConfig,
-      ws: WebSocketServiceApi,
-    ): Effect.Effect<AgentRuntimeServiceApi, never, never> =>
-      Effect.gen(function* (_) {
-        const { agentId } = config;
+    effect: Effect.gen(function* () {
+      const ws = yield* WebSocketService;
+      const config = yield* AgentRuntimeConfigService;
+      const { agentId, baseWsUrl } = config;
+      const wsUrl = `${baseWsUrl || process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001"}/ws/${agentId}`;
 
-        const baseWsUrl =
-          config.baseWsUrl ||
-          process.env.NEXT_PUBLIC_WS_URL ||
-          "ws://localhost:3001";
-        const wsUrl = `${baseWsUrl}/ws/${agentId}`;
+      const mapError = (error: unknown): AgentRuntimeError => {
+        if (error instanceof AgentRuntimeError) return error;
+        if (error instanceof BaseWebSocketError) return new AgentRuntimeError(error.message, { code: error.code });
+        if (error instanceof Error) return new AgentRuntimeError(error.message);
+        if (typeof error === "string") return new AgentRuntimeError(error);
+        return new AgentRuntimeError("Unknown error");
+      };
 
-        // Refined mapError to always return AgentRuntimeError
-        const mapError = (
-          errorToMap: BaseWebSocketError | Error | unknown,
-        ): AgentRuntimeError => {
-          let message = "An unexpected AgentRuntime error occurred.";
-          let code: string | undefined = undefined;
-          const cause = errorToMap; // Preserve original error as cause
+      const createClientMessage = (activity: AgentActivity): BaseWebSocketMessage => ({
+        text: JSON.stringify(activity),
+        timestamp: new Date().toISOString(),
+      });
 
-          if (errorToMap instanceof AgentRuntimeError) {
-            // If it's already an AgentRuntimeError, we can choose to return it directly
-            // or re-wrap. Re-wrapping ensures a consistent creation path.
-            // For this case, let's re-wrap to be safe, though returning `errorToMap` is an optimization.
-            message = errorToMap.message;
-            code = errorToMap.code;
-          } else if (errorToMap instanceof BaseWebSocketError) {
-            message = errorToMap.message;
-            code = errorToMap.code;
-          } else if (errorToMap instanceof Error) {
-            message = errorToMap.message;
-          } else if (typeof errorToMap === "string") {
-            message = errorToMap;
-          }
-          return new AgentRuntimeError(message, { code, cause });
-        };
-
-        const createClientMessage = (
-          activity: AgentActivity,
-        ): BaseWebSocketMessage => {
-          return {
-            text: JSON.stringify(activity),
-            timestamp: new Date().toISOString(),
+      return {
+        start: () => ws.connect(wsUrl).pipe(Effect.mapError(mapError)),
+        stop: () => ws.disconnect().pipe(Effect.mapError(mapError)),
+        sendMessage: (text: string) => {
+          const activity: AgentActivity = {
+            type: ClientAgentActivityType.USER_MESSAGE,
+            timestamp: new Date().getTime(),
+            payload: { text },
           };
-        };
-
-        return {
-          start: (): Effect.Effect<void, AgentRuntimeError> =>
-            Effect.logInfo(`Connecting AgentRuntime to: ${wsUrl}`).pipe(
-              Effect.flatMap(() => ws.connect(wsUrl)),
-              Effect.mapError(mapError), // Ensures error is AgentRuntimeError
-            ),
-
-          stop: (): Effect.Effect<void, AgentRuntimeError> =>
-            ws.disconnect().pipe(
-              Effect.mapError(mapError), // Ensures error is AgentRuntimeError
-            ),
-
-          sendMessage: (
-            userInputText: string,
-          ): Effect.Effect<void, AgentRuntimeError> => {
-            const agentActivityPayload: AgentActivity = {
-              type: ClientAgentActivityType.USER_MESSAGE,
-              timestamp: new Date().getTime(),
-              payload: {
-                text: userInputText,
+          const msg = createClientMessage(activity);
+          return ws.send(msg).pipe(Effect.mapError(mapError));
+        },
+        getState: ws.receive().pipe(
+          Stream.mapEffect((baseMsg) =>
+            Effect.try({
+              try: () => {
+                const serverActivity = JSON.parse(baseMsg.text) as AgentActivity;
+                const payload = serverActivity.payload as ClientAgentActivityPayload | undefined;
+                let currentMessage: string | undefined = undefined;
+                let currentStatus: AgentRuntimeState["status"] = "idle";
+                if (serverActivity.type === ClientAgentActivityType.RESPONSE) {
+                  currentStatus = "idle";
+                  if (payload) {
+                    currentMessage = payload.message;
+                    if (serverActivity.id === "welcome-1") {
+                      currentStatus = "connected";
+                    }
+                  }
+                } else if (serverActivity.type === "AGENT_THINKING") {
+                  currentStatus = "thinking";
+                } else if (serverActivity.type === "AGENT_ERROR") {
+                  currentStatus = "error";
+                  currentMessage = payload?.message ?? "Unknown agent error";
+                }
+                return {
+                  id: agentId,
+                  status: currentStatus,
+                  message: currentMessage,
+                  errorMessage: currentStatus === "error" ? currentMessage : undefined,
+                } as AgentRuntimeState;
               },
-            };
-            const messageToSend = createClientMessage(agentActivityPayload);
-            return ws.send(messageToSend).pipe(
-              Effect.mapError(mapError), // Ensures error is AgentRuntimeError
-            );
-          },
-
-          getState: ws.receive().pipe(
-            // Stream<BaseWebSocketMessage, BaseWebSocketError, never>
-            Stream.mapEffect(
-              (
-                baseMessage: BaseWebSocketMessage,
-              ): Effect.Effect<AgentRuntimeState, AgentRuntimeError> =>
-                // Effect fails only with AgentRuntimeError
-                Effect.try({
-                  try: () => {
-                    const serverActivity = JSON.parse(
-                      baseMessage.text,
-                    ) as AgentActivity;
-                    const payload = serverActivity.payload as
-                      | ClientAgentActivityPayload
-                      | undefined;
-
-                    let currentMessage: string | undefined = undefined;
-                    let currentStatus: AgentRuntimeState["status"] = "idle";
-                    // ... (rest of parsing logic)
-                    if (
-                      serverActivity.type === ClientAgentActivityType.RESPONSE
-                    ) {
-                      currentStatus = "idle";
-                      if (payload) {
-                        currentMessage = payload.message;
-                        // ...
-                        if (serverActivity.id === "welcome-1") {
-                          currentStatus = "connected";
-                        }
-                      }
-                    } // ... other cases
-
-                    return {
-                      id: agentId,
-                      status: currentStatus,
-                      message: currentMessage,
-                      // ...
-                    } as AgentRuntimeState; // Explicit cast if needed, but should infer
-                  },
-                  catch: (parsingError: unknown) => {
-                    // This catch ensures that errors from 'try' (e.g., JSON.parse)
-                    // are converted to AgentRuntimeError.
-                    // The 'Effect.try' itself will then fail with this AgentRuntimeError.
-                    return mapError(
-                      new Error("Failed to parse message from server.", {
-                        cause: parsingError,
-                      }),
-                    );
-                  },
-                }),
-            ), // Resulting Stream: Stream<AgentRuntimeState, BaseWebSocketError | AgentRuntimeError, never>
-            Stream.mapError(mapError), // CRITICAL FIX: Maps (BaseWebSocketError | AgentRuntimeError) to AgentRuntimeError
-          ), // Final Stream: Stream<AgentRuntimeState, AgentRuntimeError, never>
-        };
-      }),
-    dependencies: [],
-  },
-) {}
+              catch: (e) => mapError(e)
+            })
+          ),
+          Stream.mapError(mapError)
+        )
+      };
+    }),
+    dependencies: [WebSocketService.Default, AgentRuntimeConfigService.Default]
+  }
+) { }

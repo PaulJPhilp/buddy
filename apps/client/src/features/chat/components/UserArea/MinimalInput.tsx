@@ -1,11 +1,11 @@
 import { Icon } from "@ui/components/Icon";
-import { Button } from "@ui/components/ui/button";
 import { Textarea } from "@ui/components/ui/textarea";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
-import { cn } from "@ui/lib/utils";
-import React, { useRef, useState, forwardRef } from "react";
+import React, { forwardRef } from "react";
 
 export interface MinimalInputProps {
+  text: string;
+  onTextChange: (newText: string) => void;
   onSendMessage: (text: string) => void;
   onAttachFiles?: () => void;
   disabled?: boolean;
@@ -23,6 +23,8 @@ export interface MinimalInputProps {
 const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
   (
     {
+      text,
+      onTextChange,
       onSendMessage,
       onAttachFiles,
       disabled,
@@ -38,14 +40,11 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     },
     ref,
   ) => {
-    const [text, setText] = useState("");
-
     const handleSubmit = () => {
       const trimmedText = text.trim();
       if (!trimmedText || disabled) return;
 
       onSendMessage(trimmedText);
-      setText("");
       if (ref && "current" in ref && ref.current) {
         ref.current.focus();
       }
@@ -62,14 +61,14 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     const defaultToolbarItems: ToolBarItem[] = [
       ...(onAttachFiles
         ? [
-            {
-              id: "attach",
-              icon: <Icon name="Paperclip" size={20} />,
-              action: onAttachFiles,
-              tooltip: "Attach files",
-              disabled: disabled,
-            } as ToolBarItem,
-          ]
+          {
+            id: "attach",
+            icon: <Icon name="Paperclip" size={20} />,
+            action: onAttachFiles,
+            tooltip: "Attach files",
+            disabled: disabled,
+          } as ToolBarItem,
+        ]
         : []),
       { id: "spacer", type: "spacer-expand" } as ToolBarItem,
       {
@@ -90,7 +89,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       <div className="relative w-full h-full">
         <Textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => onTextChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
             selectedAgentId

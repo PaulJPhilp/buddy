@@ -8,6 +8,7 @@ const businessAgents = [
     description: "Helps with data analysis and business insights",
     status: { mood: 8, energy: 7, health: 9 },
     capabilities: { canSpeak: true, canMove: false, canLearn: true },
+    agentWsUrl: "ws://localhost:8080/api/agent/socket",
   },
   {
     id: "consultant",
@@ -15,6 +16,7 @@ const businessAgents = [
     description: "Strategic business advice and planning",
     status: { mood: 7, energy: 8, health: 8 },
     capabilities: { canSpeak: true, canMove: true, canLearn: true },
+    agentWsUrl: "ws://localhost:8080/api/agent/socket",
   },
   {
     id: "finance",
@@ -22,6 +24,7 @@ const businessAgents = [
     description: "Financial planning and investment advice",
     status: { mood: 6, energy: 5, health: 8 },
     capabilities: { canSpeak: true, canMove: false, canLearn: false },
+    agentWsUrl: "ws://localhost:8080/api/agent/socket",
   },
 ];
 
@@ -106,6 +109,7 @@ const socialAgents = [
     description: "Friendly chat and social interaction",
     status: { mood: 9, energy: 8, health: 9 },
     capabilities: { canSpeak: true, canMove: true, canLearn: false },
+    agentWsUrl: "ws://localhost:8080/api/agent/socket",
   },
   {
     id: "planner",
@@ -113,6 +117,7 @@ const socialAgents = [
     description: "Helps plan social events and gatherings",
     status: { mood: 8, energy: 7, health: 8 },
     capabilities: { canSpeak: true, canMove: true, canLearn: true },
+    agentWsUrl: "ws://localhost:8080/api/agent/socket",
   },
   {
     id: "guide",
@@ -120,6 +125,7 @@ const socialAgents = [
     description: "Provides local recommendations and insights",
     status: { mood: 7, energy: 8, health: 7 },
     capabilities: { canSpeak: false, canMove: true, canLearn: true },
+    agentWsUrl: "ws://localhost:8080/api/agent/socket",
   },
 ];
 

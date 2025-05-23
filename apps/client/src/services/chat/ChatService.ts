@@ -240,4 +240,4 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
     return service;
   }),
   dependencies: [AgentRuntimeService.Default],
-}) {}
+}) { }
