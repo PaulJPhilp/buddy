@@ -1,13 +1,13 @@
 import { Icon } from "@ui/components/Icon";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
-import React, { forwardRef } from "react";
+import React, { forwardRef, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 
 export interface MinimalInputProps {
   text: string;
   onTextChange: (newText: string) => void;
   onSendMessage: (text: string) => void;
-  onAttachFiles?: () => void;
+  onFilesSelected?: (files: File[]) => void;
   disabled?: boolean;
   selectedAgentId?: string;
   agents?: any[];
@@ -28,7 +28,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       text,
       onTextChange,
       onSendMessage,
-      onAttachFiles,
+      onFilesSelected,
       disabled,
       selectedAgentId,
       agents = [],
@@ -44,6 +44,8 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     },
     ref,
   ) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const handleSubmit = () => {
       const trimmedText = text.trim();
       if (!trimmedText || disabled) return;
@@ -61,14 +63,27 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       }
     };
 
+    const handleTriggerFileInput = () => {
+      fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.files && onFilesSelected) {
+        onFilesSelected(Array.from(event.target.files));
+      }
+      if (event.target) {
+        event.target.value = "";
+      }
+    };
+
     // Default toolbar items
     const defaultToolbarItems: ToolBarItem[] = [
-      ...(onAttachFiles
+      ...(onFilesSelected
         ? [
           {
             id: "attach",
             icon: <Icon name="Paperclip" size={20} />,
-            action: onAttachFiles,
+            action: handleTriggerFileInput,
             tooltip: "Attach files",
             disabled: disabled,
           } as ToolBarItem,
@@ -122,6 +137,16 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
             ariaLabel="Message input toolbar"
           />
         </div>
+        {onFilesSelected && (
+          <input
+            type="file"
+            multiple
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            aria-label="File attachment input"
+          />
+        )}
       </div>
     );
   },

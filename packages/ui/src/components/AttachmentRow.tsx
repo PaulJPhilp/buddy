@@ -1,8 +1,8 @@
-import { File, FileImage, FileText, Paperclip, X } from "lucide-react";
+import { Icon } from "@ui/components/Icon"; // Assuming Icon component is available
 import React from "react";
 
 export interface AttachmentRowProps {
-  attachedFiles: Array<File>;
+  files: File[];
   onRemoveFile: (file: File) => void;
   className?: string;
 }
@@ -10,58 +10,59 @@ export interface AttachmentRowProps {
 /**
  * A component to display attached files with the ability to remove them.
  */
-export const AttachmentRow: React.FC<AttachmentRowProps> = ({
-  attachedFiles,
+const AttachmentRow: React.FC<AttachmentRowProps> = ({
+  files,
   onRemoveFile,
   className = "",
 }) => {
-  if (attachedFiles.length === 0) {
+  if (!files || files.length === 0) {
     return null;
   }
 
-  // Get appropriate icon component for file type
-  const getFileIcon = (file: File) => {
-    const fileType = file.type || "";
-    const iconSize = 14;
-
-    if (fileType.includes("image")) {
-      return <FileImage size={iconSize} />;
-    }
-    if (fileType.includes("pdf")) {
-      return <File size={iconSize} />;
-    }
-    if (fileType.includes("spreadsheet") || fileType.includes("excel")) {
-      return <FileText size={iconSize} />;
-    }
-    if (fileType.includes("word") || fileType.includes("document")) {
-      return <FileText size={iconSize} />;
-    }
-    return <Paperclip size={iconSize} />;
+  // Helper to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   return (
-    <div className={`flex flex-wrap gap-2 p-2 ${className}`}>
-      {attachedFiles.map((file, index) => (
+    <div
+      className={`flex flex-wrap gap-xs p-xs items-center bg-muted/30 rounded-sm overflow-x-auto ${className}`}
+      aria-label="Attached files"
+    >
+      {files.map((file, index) => (
         <div
-          key={`${file.name}-${index}`}
-          className="flex items-center bg-muted/20 hover:bg-muted/30 rounded-md px-2 py-1 text-xs border border-input transition-colors shadow-sm"
+          key={`${file.name}-${file.lastModified}-${index}`}
+          className="flex items-center gap-xs bg-background border border-border rounded-sm px-xs py-xxs text-xs whitespace-nowrap"
+          title={`${file.name} (${formatFileSize(file.size)})`}
         >
-          <span className="mr-2 text-muted-foreground" aria-hidden="true">
-            {getFileIcon(file)}
-          </span>
-          <span className="mr-2 truncate max-w-[150px]" title={file.name}>
+          <Icon
+            name="FileText"
+            size={14}
+            className="text-muted-foreground flex-shrink-0"
+          />
+          <span className="truncate max-w-[100px]" title={file.name}>
             {file.name}
+          </span>
+          <span className="text-muted-foreground text-xxs">
+            ({formatFileSize(file.size)})
           </span>
           <button
             type="button"
-            className="ml-1 text-muted-foreground hover:text-destructive hover:bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center transition-colors"
             onClick={() => onRemoveFile(file)}
+            className="ml-xs p-0.5 rounded hover:bg-destructive/20 text-destructive flex-shrink-0"
             aria-label={`Remove ${file.name}`}
+            title={`Remove ${file.name}`}
           >
-            <X size={10} />
+            <Icon name="X" size={12} />
           </button>
         </div>
       ))}
     </div>
   );
 };
+
+export default AttachmentRow;

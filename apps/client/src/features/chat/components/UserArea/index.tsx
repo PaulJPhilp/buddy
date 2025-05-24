@@ -1,10 +1,9 @@
 import { cn } from "@/lib/utils";
+import AttachmentRow from "@ui/components/AttachmentRow";
 import type { ToolBarItem } from "@ui/components/ui/toolbar";
 import React, { useState } from "react";
 import type { Agent } from "./AgentToolBar";
 import AgentToolBar from "./AgentToolBar";
-import type { AttachmentFile } from "./AttachmentBar";
-import AttachmentBar from "./AttachmentBar";
 import MinimalInput from "./MinimalInput";
 
 export interface UserAreaProps {
@@ -15,11 +14,13 @@ export interface UserAreaProps {
   /** Currently selected agent ID */
   selectedAgent: string;
   /** Callback when agent selection changes */
-  onSelectedAgentChange: (agentId: string) => void | Promise<void>; // Updated type
+  onSelectedAgentChange: (agentId: string) => void | Promise<void>;
   /** List of currently attached files */
-  currentAttachments: AttachmentFile[];
+  currentAttachments: File[];
   /** Callback when a file is removed */
-  onRemoveAttachment: (fileId: string) => void;
+  onRemoveAttachment: (fileToRemove: File) => void;
+  /** Callback when files are added */
+  onAddAttachments: (newFiles: File[]) => void;
   /** Whether the input is disabled */
   disabled?: boolean;
   /** Theme colors */
@@ -43,6 +44,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
       onSelectedAgentChange,
       currentAttachments = [],
       onRemoveAttachment,
+      onAddAttachments,
       minimalInputToolbarConfig,
       agentToolbarConfig,
       className,
@@ -54,30 +56,19 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     },
     ref,
   ) => {
-    const [stagedFiles, setStagedFiles] = useState<File[]>([]);
     const [inputText, setInputText] = useState("");
 
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
-      setStagedFiles((prevFiles) => [...prevFiles, ...files]);
+      if (onAddAttachments) {
+        onAddAttachments(files);
+      }
     };
-
-    const handleRemoveStagedFile = (fileNameToRemove: string) => {
-      setStagedFiles((prevFiles) => prevFiles.filter(file => file.name !== fileNameToRemove));
-    };
-
-    const stagedAttachmentFiles: AttachmentFile[] = stagedFiles.map(file => ({
-      id: file.name,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    }));
 
     const internalHandleSendMessage = () => {
-      if (!inputText.trim() && stagedFiles.length === 0) return;
-      onSendMessage(inputText, stagedFiles);
+      if (!inputText.trim() && currentAttachments.length === 0) return;
+      onSendMessage(inputText, currentAttachments);
       setInputText("");
-      setStagedFiles([]);
     };
 
     return (
@@ -88,10 +79,11 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
       >
         <div className="grid grid-rows-3 h-full gap-1">
           <div className="flex items-center">
-            {stagedAttachmentFiles.length > 0 && (
-              <AttachmentBar
-                attachments={stagedAttachmentFiles}
-                onRemoveAttachment={handleRemoveStagedFile}
+            {currentAttachments.length > 0 && (
+              <AttachmentRow
+                files={currentAttachments}
+                onRemoveFile={onRemoveAttachment}
+                className="w-full"
               />
             )}
           </div>
@@ -101,9 +93,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
               text={inputText}
               onTextChange={setInputText}
               onSendMessage={internalHandleSendMessage}
-              onAttachFiles={() =>
-                document.getElementById("file-input")?.click()
-              }
+              onFilesSelected={onAddAttachments}
               disabled={disabled}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
@@ -130,15 +120,6 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
             )}
           </div>
         </div>
-
-        <input
-          type="file"
-          id="file-input"
-          multiple
-          className="hidden"
-          onChange={handleFileInputChange}
-          aria-label="File input"
-        />
       </div>
     );
   },
@@ -147,6 +128,5 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
 UserArea.displayName = "UserArea";
 
 export type { Agent } from "./AgentToolBar";
-export type { AttachmentFile } from "./AttachmentBar";
 
 export default UserArea;

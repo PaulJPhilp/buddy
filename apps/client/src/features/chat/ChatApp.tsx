@@ -83,6 +83,51 @@ export default function ChatApp(props: ChatAppProps) {
   const [messagesRef] = useState(() => Effect.runSync(Ref.make<AppChatMessage[]>([])));
   const [displayMessages, setDisplayMessages] = useState<AppChatMessage[]>([]);
 
+  // New Refs and state for attachments and errors
+  const [attachedFilesRef] = useState(() => Effect.runSync(Ref.make<File[]>([])));
+  const [displayAttachedFiles, setDisplayAttachedFiles] = useState<File[]>([]);
+  const [errorRef] = useState(() => Effect.runSync(Ref.make<string | null>(null)));
+  const [displayError, setDisplayError] = useState<string | null>(null);
+
+  // NOTE: Manual sync for attachedFiles and error will be handled by update functions for now,
+  // due to previous build issues with reactive streams from Refs.
+
+  const handleFileAdd = useCallback(
+    (newFiles: File[]) => {
+      const effect = Effect.gen(function* () {
+        const currentFiles = yield* Ref.get(attachedFilesRef);
+        // Basic duplicate check by name for simplicity, can be made more robust
+        const filesToAdd = newFiles.filter(
+          (nf) => !currentFiles.some((cf) => cf.name === nf.name && cf.lastModified === nf.lastModified)
+        );
+        if (filesToAdd.length > 0) {
+          const updatedFiles = [...currentFiles, ...filesToAdd];
+          yield* Ref.set(attachedFilesRef, updatedFiles);
+          setDisplayAttachedFiles(updatedFiles); // Manual sync
+        }
+      });
+      Runtime.runFork(runtime)(effect); // Fork as it involves Ref access and state update
+    },
+    [runtime, attachedFilesRef]
+  );
+
+  const handleFileRemove = useCallback(
+    (fileToRemove: File) => {
+      const effect = Effect.gen(function* () {
+        const currentFiles = yield* Ref.get(attachedFilesRef);
+        const updatedFiles = currentFiles.filter(
+          (f) => !(f.name === fileToRemove.name && f.lastModified === fileToRemove.lastModified)
+        );
+        if (updatedFiles.length !== currentFiles.length) {
+          yield* Ref.set(attachedFilesRef, updatedFiles);
+          setDisplayAttachedFiles(updatedFiles); // Manual sync
+        }
+      });
+      Runtime.runFork(runtime)(effect);
+    },
+    [runtime, attachedFilesRef]
+  );
+
   const simulateAgentResponse = useCallback(
     (userText: string) =>
       Effect.gen(function* () {
@@ -112,7 +157,6 @@ export default function ChatApp(props: ChatAppProps) {
         isUser: true,
         timestamp: new Date(),
       };
-      // Update local Ref
       const updateEffect = Effect.gen(function* () {
         const currentMessages = yield* Ref.get(messagesRef);
         const newMessages = [...currentMessages, userMessage];
@@ -122,6 +166,10 @@ export default function ChatApp(props: ChatAppProps) {
       const newMessages = await Runtime.runPromise(runtime)(updateEffect);
       setDisplayMessages(newMessages);
 
+      // Placeholder: Clear attached files after submit (will be refined)
+      await Runtime.runPromise(runtime)(Ref.set(attachedFilesRef, []));
+      setDisplayAttachedFiles([]); // Manual sync
+
       // Call the original prop for external handling
       if (onSendMessageProp) {
         await onSendMessageProp(text, files);
@@ -129,13 +177,13 @@ export default function ChatApp(props: ChatAppProps) {
       // Fork the simulation effect so it doesn't block
       Runtime.runFork(runtime)(simulateAgentResponse(text));
     },
-    [runtime, messagesRef, onSendMessageProp, simulateAgentResponse],
+    [runtime, messagesRef, attachedFilesRef, onSendMessageProp, simulateAgentResponse],
   );
 
   const headerProps = {
     title: appNameProp || "Buddy Chat",
-    errorInfo: error
-      ? { message: error, severity: "error" as const }
+    errorInfo: displayError
+      ? { message: displayError, severity: "error" as const }
       : undefined,
     isSelected: isActive,
     statusInfo: undefined,
@@ -188,8 +236,9 @@ export default function ChatApp(props: ChatAppProps) {
           agents={agents}
           selectedAgent={selectedAgent}
           onSelectedAgentChange={onSelectedAgentChange}
-          currentAttachments={[]}
-          onRemoveAttachment={() => { }}
+          currentAttachments={displayAttachedFiles}
+          onRemoveAttachment={handleFileRemove}
+          onAddAttachments={handleFileAdd}
           disabled={isSending}
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}

@@ -65,6 +65,13 @@ Define visual principles, evaluate core integration libraries, then build the UI
     - [ ] `HeaderBar.tsx` implements `error` prop styling for visual error indication.
     - [ ] `ChatApp.tsx` manages `error` `Ref` (Effect state).
     - [ ] `ChatApp.tsx` manages `attachedFiles` `Ref` (Effect state).
+    - [x] Implement `AttachmentRow.tsx` to display `File` objects and allow removal (`onRemoveFileEffect`).
+    - [x] `UserArea.tsx` manages `attachedFiles` `Ref` (Effect state) (Note: interacts with ChatApp's Ref).
+    - [x] `MinimalInput.tsx` "Attach File" icon opens file dialog.
+    - [x] `MinimalInput.tsx` reports selected files to `UserArea.tsx`.
+    - [x] `HeaderBar.tsx` implements `error` prop styling for visual error indication.
+    - [x] `ChatApp.tsx` manages `error` `Ref` (Effect state).
+    - [x] `ChatApp.tsx` manages `attachedFiles` `Ref` (Effect state).
 
 - [ ] **Stage 7: WebSocket Connection & Basic Agent Communication**
     - [ ] Create `AgentConnection.ts` Effect-based service.
