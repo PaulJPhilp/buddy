@@ -1,9 +1,9 @@
-import { HelpCircle, Paperclip, Send, Settings, Smile } from "lucide-react";
+import { Icon, type IconName } from "@ui/components/Icon";
 import React from "react";
 
 export interface IconElementConfig {
   type: "iconCommand";
-  iconName: string;
+  iconName: IconName;
   label?: string;
   onClick?: () => void;
   tooltip?: string;
@@ -28,6 +28,7 @@ export interface UIBarProps {
   orientation?: "horizontal" | "vertical";
   className?: string;
   gap?: string;
+  iconSize?: number;
 }
 
 export const UIBar: React.FC<UIBarProps> = ({
@@ -35,6 +36,7 @@ export const UIBar: React.FC<UIBarProps> = ({
   orientation = "horizontal",
   className,
   gap = "space-x-1",
+  iconSize = 14,
 }) => {
   const layoutClasses =
     orientation === "horizontal"
@@ -61,19 +63,8 @@ export const UIBar: React.FC<UIBarProps> = ({
               title={element.tooltip}
               className={`p-1 rounded-md text-sm flex items-center space-x-1 ${element.isDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
             >
-              <span className="w-3.5 h-3.5 inline-flex items-center justify-center">
-                {element.iconName === "send" && <Send size={14} />}
-                {element.iconName === "emoji" && <Smile size={14} />}
-                {element.iconName === "attach" && <Paperclip size={14} />}
-                {element.iconName === "settings" && <Settings size={14} />}
-                {element.iconName === "help" && <HelpCircle size={14} />}
-                {!["send", "emoji", "attach", "settings", "help"].includes(
-                  element.iconName,
-                ) && (
-                  <span className="text-xs font-mono">
-                    {element.iconName.substring(0, 1).toUpperCase()}
-                  </span>
-                )}
+              <span className="w-auto h-auto inline-flex items-center justify-center">
+                <Icon name={element.iconName} size={iconSize} />
               </span>
               {element.label && (
                 <span className="align-middle">{element.label}</span>

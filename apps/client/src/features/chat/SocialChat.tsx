@@ -2,7 +2,6 @@
 
 import { Icon } from "@ui/components/Icon";
 import type { ToolBarItem } from "@ui/components/ui/toolbar";
-import React from "react";
 import { useSocialChatStore } from "../../stores/chatStores";
 import ChatApp from "./ChatApp";
 
@@ -48,7 +47,6 @@ export default function SocialChat({ isActive, onActivate }: SocialChatProps) {
       {...theme}
       isActive={isActive}
       onActivate={onActivate}
-      messages={messages}
       agents={agents}
       selectedAgent={selectedAgent}
       onSelectedAgentChange={setSelectedAgent}

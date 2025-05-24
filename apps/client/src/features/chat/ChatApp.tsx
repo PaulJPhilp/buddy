@@ -1,9 +1,14 @@
 "use client";
 
 import type { ChatState } from "@/services/chat/ChatServiceApi";
+import type { ChatMessage as AppChatMessage } from "@ui/components/MessageArea";
 import { type ToolBarItem } from "@ui/components/ui/toolbar";
+import { Effect, Ref, Runtime } from "effect";
+import { nanoid } from "nanoid";
 import { useTheme } from "next-themes";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+
+import type { MessageApi } from "@/services/chat/ChatServiceApi";
 import ChatArea from "./components/ChatArea";
 import { HeaderBar } from "./components/HeaderBar";
 import UserArea from "./components/UserArea";
@@ -34,7 +39,6 @@ export interface ChatAppProps {
   activeSecondaryColor?: string;
 
   // Messages
-  messages: ChatState["messages"];
   isTyping?: boolean;
   isSending?: boolean;
   error?: string | null;
@@ -65,24 +69,67 @@ export default function ChatApp(props: ChatAppProps) {
     messageToolbarConfig,
     agentToolbarConfig,
     minimalInputToolbarConfig,
-    messages,
     isTyping,
     isSending,
     error,
     agents,
     selectedAgent,
     onSelectedAgentChange,
-    onSendMessage,
+    onSendMessage: onSendMessageProp,
   } = props;
 
-  const handleSendMessage = useCallback(
+  // Effect Runtime and messages Ref
+  const [runtime] = useState(() => Runtime.defaultRuntime);
+  const [messagesRef] = useState(() => Effect.runSync(Ref.make<AppChatMessage[]>([])));
+  const [displayMessages, setDisplayMessages] = useState<AppChatMessage[]>([]);
+
+  const simulateAgentResponse = useCallback(
+    (userText: string) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep("1 seconds");
+        const agentMessage: AppChatMessage = {
+          id: nanoid(),
+          text: `Agent received: "${userText}"`, // Simple echo simulation
+          isUser: false,
+          timestamp: new Date(),
+        };
+        const currentMessages = yield* Ref.get(messagesRef);
+        const newMessages = [...currentMessages, agentMessage];
+        yield* Ref.set(messagesRef, newMessages);
+        yield* Effect.sync(() => setDisplayMessages(newMessages));
+      }),
+    [messagesRef],
+  );
+
+  const handleUserSubmit = useCallback(
     async (text: string, files?: File[]) => {
       if (!text.trim() && (!files || files.length === 0)) {
         return;
       }
-      await onSendMessage(text, files);
+      const userMessage: AppChatMessage = {
+        id: nanoid(),
+        text,
+        isUser: true,
+        timestamp: new Date(),
+      };
+      // Update local Ref
+      const updateEffect = Effect.gen(function* () {
+        const currentMessages = yield* Ref.get(messagesRef);
+        const newMessages = [...currentMessages, userMessage];
+        yield* Ref.set(messagesRef, newMessages);
+        return newMessages;
+      });
+      const newMessages = await Runtime.runPromise(runtime)(updateEffect);
+      setDisplayMessages(newMessages);
+
+      // Call the original prop for external handling
+      if (onSendMessageProp) {
+        await onSendMessageProp(text, files);
+      }
+      // Fork the simulation effect so it doesn't block
+      Runtime.runFork(runtime)(simulateAgentResponse(text));
     },
-    [onSendMessage],
+    [runtime, messagesRef, onSendMessageProp, simulateAgentResponse],
   );
 
   const headerProps = {
@@ -99,19 +146,34 @@ export default function ChatApp(props: ChatAppProps) {
 
   const { theme } = useTheme();
 
+  const mapAppMessagesToApiMessages = (
+    appMessages: AppChatMessage[],
+  ): MessageApi[] => {
+    return appMessages.map((msg) => ({
+      id: msg.id,
+      text: msg.text,
+      sender: msg.isUser ? ("user" as const) : ("assistant" as const),
+      timestamp: typeof msg.timestamp === 'number'
+        ? msg.timestamp
+        : msg.timestamp instanceof Date
+          ? msg.timestamp.getTime()
+          : Date.parse(msg.timestamp), // Fallback for string, ensure it's a valid date string
+      // status, attachments, metadata can be added if needed
+    }));
+  };
+
   return (
-    <div
+    <button
+      type="button"
       className={STYLE_CONSTANTS.container}
       onClick={onActivate}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onActivate?.()}
     >
       <div className={STYLE_CONSTANTS.innerContainer}>
         <HeaderBar {...headerProps} />
         <div className={STYLE_CONSTANTS.chatAreaWrapper}>
           <ChatArea
-            messages={messages}
+            messages={mapAppMessagesToApiMessages(displayMessages)}
             isTyping={isTyping}
             className="flex-1"
             primaryColor={primaryColor}
@@ -122,7 +184,7 @@ export default function ChatApp(props: ChatAppProps) {
           />
         </div>
         <UserArea
-          onSendMessage={handleSendMessage}
+          onSendMessage={handleUserSubmit}
           agents={agents}
           selectedAgent={selectedAgent}
           onSelectedAgentChange={onSelectedAgentChange}
@@ -137,6 +199,6 @@ export default function ChatApp(props: ChatAppProps) {
           minimalInputToolbarConfig={minimalInputToolbarConfig}
         />
       </div>
-    </div>
+    </button>
   );
 }

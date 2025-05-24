@@ -49,13 +49,13 @@ Define visual principles, evaluate core integration libraries, then build the UI
     - [x] `ChatApp.tsx` provides `onSubmitMessageEffect` to `UserArea.tsx`.
     - [x] Create `AttachmentRow.tsx` placeholder.
 
-- [ ] **Stage 5: Enhancing `MinimalInput` & `UIBar`, Introducing `MessageArea` Content**
-    - [ ] Implement expanding/collapsing text area in `MinimalInput.tsx`.
-    - [ ] `UIBar.tsx` adds support for `SelectorElementConfig`.
-    - [ ] `UIBar.tsx` renders actual icons (e.g., Lucide icons) based on `iconName`.
-    - [ ] `MessageArea.tsx` displays an array of `ChatMessage` objects.
-    - [ ] `ChatApp.tsx` manages `messages` `Ref` (Effect state).
-    - [ ] Simulate agent responses in `ChatApp.tsx` to populate `messages`.
+- [x] **Stage 5: Enhancing `MinimalInput` & `UIBar`, Introducing `MessageArea` Content**
+    - [x] Implement expanding/collapsing text area in `MinimalInput.tsx`.
+    - [x] `UIBar.tsx` adds support for `SelectorElementConfig`.
+    - [x] `UIBar.tsx` renders actual icons (e.g., Lucide icons) based on `iconName`.
+    - [x] `MessageArea.tsx` displays an array of `ChatMessage` objects.
+    - [x] `ChatApp.tsx` manages `messages` `Ref` (Effect state).
+    - [x] Simulate agent responses in `ChatApp.tsx` to populate `messages`.
 
 - [ ] **Stage 6: File Attachments & `HeaderBar` Error Display**
     - [ ] Implement `AttachmentRow.tsx` to display `File` objects and allow removal (`onRemoveFileEffect`).

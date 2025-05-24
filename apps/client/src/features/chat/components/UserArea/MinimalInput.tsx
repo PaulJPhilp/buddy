@@ -1,7 +1,7 @@
 import { Icon } from "@ui/components/Icon";
-import { Textarea } from "@ui/components/ui/textarea";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
 import React, { forwardRef } from "react";
+import TextareaAutosize from "react-textarea-autosize";
 
 export interface MinimalInputProps {
   text: string;
@@ -18,6 +18,8 @@ export interface MinimalInputProps {
   activePrimaryColor?: string;
   activeSecondaryColor?: string;
   toolbarConfig?: ToolBarItem[];
+  minRows?: number;
+  maxRows?: number;
 }
 
 const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
@@ -37,6 +39,8 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       activePrimaryColor,
       activeSecondaryColor,
       toolbarConfig,
+      minRows = 1,
+      maxRows = 5,
     },
     ref,
   ) => {
@@ -87,7 +91,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
 
     return (
       <div className="relative w-full h-full">
-        <Textarea
+        <TextareaAutosize
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -97,15 +101,14 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
               : placeholder
           }
           disabled={disabled}
-          className="w-full h-full resize-none bg-white text-sm rounded overflow-hidden pr-16 pl-2 leading-[22px] focus-visible:ring-[2px]"
-          style={
-            {
-              ["--tw-ring-color" as string]: primaryColor,
-            } as React.CSSProperties
-          }
-          primaryColor={primaryColor}
+          className="w-full h-full resize-none bg-white text-sm rounded overflow-auto pr-16 pl-2 leading-[22px] focus-visible:ring-[2px] transition-height duration-200 ease-in-out"
+          style={{
+            ["--tw-ring-color" as string]: primaryColor,
+          }}
           aria-label="Message input"
           ref={ref}
+          minRows={minRows}
+          maxRows={maxRows}
         />
         <div className="absolute right-2 top-0 h-full flex items-center pointer-events-none">
           <ToolBar

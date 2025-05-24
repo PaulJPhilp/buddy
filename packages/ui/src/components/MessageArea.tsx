@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+// import { Message } from "ai/react"; // Keep this commented or removed as per user's local change
 
 export interface ChatMessage {
   id: string;
@@ -43,14 +44,17 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
           No messages yet. Start a conversation.
         </div>
       ) : (
+        // TODO: Attempt to re-integrate Vercel AI SDK's Message component later.
+        // The import 'import { Message } from "ai/react";' was causing build issues:
+        // "Cannot find name 'Message'. Did you mean 'messages'?"
+        // despite 'ai' being a dependency of @buddy/ui and root, and transpilePackages being set.
         messages.map((message) => (
           <div
             key={message.id}
-            className={`p-xs rounded-sm max-w-[85%] ${
-              message.isUser
-                ? "bg-primary/10 ml-auto border border-primary/20"
-                : "bg-background border border-border"
-            }`}
+            className={`p-xs rounded-sm max-w-[85%] ${message.isUser
+              ? "bg-primary/10 ml-auto border border-primary/20" // Original user style
+              : "bg-background border border-border" // Original agent style
+              }`}
           >
             <p className="text-xs whitespace-pre-wrap break-words">
               {message.text}
@@ -61,7 +65,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                 : typeof message.timestamp === "number"
                   ? new Date(message.timestamp).toLocaleTimeString()
                   : typeof message.timestamp === "string" &&
-                      !Number.isNaN(Date.parse(message.timestamp))
+                    !Number.isNaN(Date.parse(message.timestamp))
                     ? new Date(message.timestamp).toLocaleTimeString()
                     : "Just now"}
             </p>
