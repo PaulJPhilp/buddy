@@ -1,0 +1,19 @@
+{
+  "name": "mock-agent-llm",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@types/ws": "^8.18.1",
+    "ai": "^4.3.16",
+    "dotenv": "^16.5.0",
+    "ws": "^8.18.2"
+  }
+}

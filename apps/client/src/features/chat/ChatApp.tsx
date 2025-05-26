@@ -211,11 +211,15 @@ export default function ChatApp(props: ChatAppProps) {
   };
 
   return (
-    <button
-      type="button"
+    <div
       className={STYLE_CONSTANTS.container}
       onClick={onActivate}
-      onKeyDown={(e) => e.key === "Enter" && onActivate?.()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === "Space") {
+          e.preventDefault();
+          onActivate?.();
+        }
+      }}
     >
       <div className={STYLE_CONSTANTS.innerContainer}>
         <HeaderBar {...headerProps} />
@@ -248,6 +252,6 @@ export default function ChatApp(props: ChatAppProps) {
           minimalInputToolbarConfig={minimalInputToolbarConfig}
         />
       </div>
-    </button>
+    </div>
   );
 }
