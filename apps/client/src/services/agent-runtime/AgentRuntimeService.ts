@@ -1,7 +1,10 @@
+import {
+  type WebSocketEnvelope,
+  createUserMessage
+} from "@buddy/protocol";
 import { Effect, Stream } from "effect";
 import {
   WebSocketError as BaseWebSocketError,
-  WebSocketMessage as BaseWebSocketMessage,
   WebSocketService
 } from "../websocket/WebSocketService";
 import { AgentRuntimeConfigService } from "./config";
@@ -82,7 +85,11 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
       const ws = yield* WebSocketService;
       const config = yield* AgentRuntimeConfigService;
       const { agentId, baseWsUrl } = config;
-      const wsUrl = `${baseWsUrl || process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001"}/ws/${agentId}`;
+      console.log("[AgentRuntimeService] Connecting with config:", { agentId, baseWsUrl });
+
+      // Construct WebSocket URL
+      const wsUrl = baseWsUrl || process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+      console.log("[AgentRuntimeService] Using WebSocket URL:", wsUrl);
 
       const mapError = (error: unknown): AgentRuntimeError => {
         if (error instanceof AgentRuntimeError) return error;
@@ -92,7 +99,7 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
         return new AgentRuntimeError("Unknown error");
       };
 
-      const createClientMessage = (activity: AgentActivity): BaseWebSocketMessage => ({
+      const createClientMessage = (activity: AgentActivity): WebSocketEnvelope => ({
         text: JSON.stringify(activity),
         timestamp: new Date().toISOString(),
       });
@@ -101,19 +108,14 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
         start: () => ws.connect(wsUrl).pipe(Effect.mapError(mapError)),
         stop: () => ws.disconnect().pipe(Effect.mapError(mapError)),
         sendMessage: (text: string) => {
-          const activity: AgentActivity = {
-            type: ClientAgentActivityType.USER_MESSAGE,
-            timestamp: new Date().getTime(),
-            payload: { text },
-          };
-          const msg = createClientMessage(activity);
-          return ws.send(msg).pipe(Effect.mapError(mapError));
+          const userMessage = createUserMessage(text);
+          return ws.send(userMessage).pipe(Effect.mapError(mapError));
         },
         getState: ws.receive().pipe(
           Stream.mapEffect((baseMsg) =>
             Effect.try({
               try: () => {
-                const serverActivity = JSON.parse(baseMsg.text) as AgentActivity;
+                const serverActivity = baseMsg as AgentActivity;
                 const payload = serverActivity.payload as ClientAgentActivityPayload | undefined;
                 let currentMessage: string | undefined = undefined;
                 let currentStatus: AgentRuntimeState["status"] = "idle";

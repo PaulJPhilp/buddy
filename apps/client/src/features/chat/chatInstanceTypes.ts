@@ -34,9 +34,15 @@ export interface AgentConfigApi {
 // Service implementation
 export class AgentConfig extends Effect.Service<AgentConfigData>()("AgentConfig", {
     effect: Effect.succeed({
-        agentId: "default-agent",
-        agentWsUrl: "ws://localhost:3001",
-        initialAgentName: "Default Agent"
+        agentId: "test-agent-001",
+        agentWsUrl: "ws://localhost:8080",
+        initialAgentName: "TestAgent"
     }),
     dependencies: []
-}) { } 
+}) { }
+
+export const defaultAgentConfig: AgentConfigData = {
+    agentId: "test-agent-001",
+    agentWsUrl: "ws://localhost:8080",
+    initialAgentName: "TestAgent",
+}; 

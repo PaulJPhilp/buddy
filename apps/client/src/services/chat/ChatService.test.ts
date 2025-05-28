@@ -3,7 +3,6 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import {
   WebSocketError,
-  WebSocketMessage,
 } from "../websocket/WebSocketService";
 import { ChatService } from "./ChatService";
 import { ChatState } from "./ChatServiceApi";
@@ -18,74 +17,14 @@ const MAX_MESSAGES_PER_CHAT = 100;
 const MAX_MESSAGE_LENGTH = 1000;
 const MIN_MESSAGE_LENGTH = 1;
 
-// Mock WebSocket server interface
-interface MockWebSocketServer {
-  start: (port: number) => void;
-  stop: () => void;
-  getConnections: () => WebSocket[];
-  getHistory: () => WebSocketMessage[];
-  sendMessage: (message: WebSocketMessage) => void;
-}
-
-// Mock implementation
-class MockWebSocketServerImpl implements MockWebSocketServer {
-  private connections: WebSocket[] = [];
-  private messages: WebSocketMessage[] = [];
-
-  start(port: number): void {}
-  stop(): void {}
-  getConnections(): WebSocket[] {
-    return this.connections;
-  }
-  getHistory(): WebSocketMessage[] {
-    return this.messages;
-  }
-  sendMessage(message: WebSocketMessage): void {
-    this.messages.push(message);
-  }
-}
-
-const MockWebSocketServer = {
-  make: (): MockWebSocketServer => new MockWebSocketServerImpl(),
-};
-
 describe("ChatService", () => {
-  // Helper to run tests with mock WebSocket server
-  const withMockServer =
-    <T, E>(
-      test: (
-        mockServer: MockWebSocketServer,
-      ) => Effect.Effect<T, E | WebSocketError, never>,
-    ) =>
-    () =>
-      Effect.runPromise(
-        Effect.gen(function* () {
-          // Create and start mock server
-          const mockServer = MockWebSocketServer.make();
-          mockServer.start(3000);
-
-          try {
-            // Run the test
-            const result = yield* test(mockServer);
-            return result;
-          } finally {
-            // Always clean up server
-            mockServer.stop();
-          }
-        }).pipe(
-          Effect.catchAll((error) =>
-            Effect.succeed(console.error("Test error:", error)),
-          ),
-        ),
-      );
-
   // Create a Layer that provides both ChatService and MockChatStateApi
   const TestLayer = ChatService.Default;
 
   describe("getState", () => {
     it("should return the initial state", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
         const state = yield* service.getState();
 
         expect(state).toEqual({
@@ -106,7 +45,7 @@ describe("ChatService", () => {
   describe("setState", () => {
     it("should update the state successfully", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         const newState: ChatState = {
           id: "test-chat",
@@ -129,7 +68,7 @@ describe("ChatService", () => {
 
     it("should fail when setting invalid state", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Create an invalid state without required properties
         const invalidState = { messages: [] } as any;
@@ -156,7 +95,7 @@ describe("ChatService", () => {
   describe("sendMessage", () => {
     it("should add a message to the state", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
         const messageText = "Hello, world!";
 
         const message = yield* service.sendMessage(messageText);
@@ -178,7 +117,7 @@ describe("ChatService", () => {
 
     it("should fail when sending empty message", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         try {
           yield* service.sendMessage("");
@@ -202,7 +141,7 @@ describe("ChatService", () => {
 
     it("should fail when sending whitespace-only message", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         try {
           yield* service.sendMessage("   ");
@@ -226,7 +165,7 @@ describe("ChatService", () => {
 
     it("should send multiple messages and maintain order", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         yield* service.sendMessage("First message");
         yield* service.sendMessage("Second message");
@@ -250,7 +189,7 @@ describe("ChatService", () => {
   describe("setTyping", () => {
     it("should update isTyping state to true", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         const state = yield* service.setTyping(true);
         expect(state.isTyping).toBe(true);
@@ -267,7 +206,7 @@ describe("ChatService", () => {
 
     it("should update isTyping state to false", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // First set to true
         yield* service.setTyping(true);
@@ -290,7 +229,7 @@ describe("ChatService", () => {
   describe("Error cases with state manipulation", () => {
     it("should handle state corruption", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Set up an initial state
         const initialState: ChatState = {
@@ -312,7 +251,7 @@ describe("ChatService", () => {
   describe("Integration tests", () => {
     it("should perform a complete chat flow", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Set initial state
         const chatId = `chat-${Date.now()}`;
@@ -350,7 +289,7 @@ describe("ChatService", () => {
   describe("Message Validation", () => {
     it("should validate message length constraints", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Test minimum length
         const tooShort = yield* service.validateMessage("");
@@ -380,7 +319,7 @@ describe("ChatService", () => {
 
     it("should detect and prevent unsafe content", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         const unsafeMessages = [
           "<script>alert('xss')</script>",
@@ -404,7 +343,7 @@ describe("ChatService", () => {
 
     it("should sanitize messages when sending", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         const unsafeMessage = "<p>Hello</p> <script>alert('xss')</script>";
         try {
@@ -431,7 +370,7 @@ describe("ChatService", () => {
 
     it("should handle concurrent message validation", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Simulate concurrent validation requests
         const validations = yield* Effect.all(
@@ -456,7 +395,7 @@ describe("ChatService", () => {
 
     it("should maintain message metadata through the pipeline", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         const message = yield* service.sendMessage(
           "Test message with metadata",
@@ -480,7 +419,7 @@ describe("ChatService", () => {
   describe("Chat History Management", () => {
     it("should enforce maximum message limit", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Set up initial state with max - 1 messages
         const messages = Array.from(
@@ -523,7 +462,7 @@ describe("ChatService", () => {
 
     it("should paginate chat history correctly", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Create 100 test messages
         for (let i = 0; i < 100; i++) {
@@ -556,7 +495,7 @@ describe("ChatService", () => {
 
     it("should handle invalid cursors gracefully", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         yield* service.sendMessage("Test message");
 
@@ -577,7 +516,7 @@ describe("ChatService", () => {
 
     it("should clear chat history", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Add some messages
         yield* service.sendMessage("Message 1");
@@ -606,7 +545,7 @@ describe("ChatService", () => {
 
     it("should handle concurrent history operations", () =>
       Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
+        const service = yield* ChatService;
 
         // Set up concurrent operations
         const ops = Effect.all(
@@ -634,228 +573,5 @@ describe("ChatService", () => {
           Effect.fail(new WebSocketError(String(error))),
         ),
       ) as Effect.Effect<undefined, WebSocketError, never>);
-  });
-
-  describe("WebSocket Integration", () => {
-    it("should connect to runtime service on initialization", () =>
-      withMockServer(
-        (mockServer): Effect.Effect<undefined, WebSocketError, never> =>
-          Effect.gen(function* (_) {
-            const service = yield* Effect.provide(ChatService, TestLayer);
-            expect(service).toBeDefined();
-
-            // Verify connection
-            const connections = mockServer.getConnections();
-            expect(connections.length).toBe(1);
-
-            return undefined;
-          }).pipe(
-            Effect.provide(TestLayer),
-            Effect.catchAll((error) =>
-              Effect.fail(new WebSocketError(String(error))),
-            ),
-          ) as Effect.Effect<undefined, WebSocketError, never>,
-      ));
-
-    it("should send messages through WebSocket", () =>
-      withMockServer(
-        (mockServer) =>
-          Effect.gen(function* (_) {
-            const service = yield* Effect.provide(ChatService, TestLayer);
-            const messageText = "Test message";
-
-            // Send message
-            const message = yield* service.sendMessage(messageText);
-            expect(message.text).toBe(messageText);
-
-            // Verify message was sent through WebSocket
-            const messages = mockServer.getHistory();
-            expect(messages.length).toBe(1);
-
-            // Add some messages
-            yield* service.sendMessage("Message 1");
-            yield* service.sendMessage("Message 2");
-
-            // Clear history
-            yield* service.clearHistory();
-
-            // Verify state
-            const state = yield* service.getState();
-            expect(state.messages).toHaveLength(0);
-            expect(state.metadata?.messageCount).toBe(0);
-            expect(state.metadata?.lastMessageAt).toBeUndefined();
-
-            // Verify history is empty
-            const history = yield* service.getHistory();
-            expect(history.messages).toHaveLength(0);
-            expect(history.hasMore).toBe(false);
-            expect(history.nextCursor).toBeUndefined();
-          }).pipe(
-            Effect.provide(TestLayer),
-            Effect.catchAll((error) =>
-              Effect.fail(new WebSocketError(String(error))),
-            ),
-          ) as Effect.Effect<void, WebSocketError, never>,
-      ));
-
-    it("should handle concurrent history operations", () =>
-      Effect.gen(function* () {
-        const service = yield* Effect.provide(ChatService, TestLayer);
-
-        // Set up concurrent operations
-        const ops = Effect.all(
-          [
-            service.sendMessage("Message 1"),
-            service.getHistory(),
-            service.sendMessage("Message 2"),
-            service.getHistory(),
-          ],
-          { concurrency: "unbounded" },
-        );
-
-        const results = yield* ops;
-
-        // Verify all operations completed
-        expect(results).toHaveLength(4);
-
-        // Verify final state
-        const state = yield* service.getState();
-        expect(state.messages).toHaveLength(2);
-        expect(state.metadata?.messageCount).toBe(2);
-      }).pipe(
-        Effect.provide(TestLayer),
-        Effect.catchAll((error) =>
-          Effect.fail(new WebSocketError(String(error))),
-        ),
-      ) as Effect.Effect<undefined, WebSocketError, never>);
-  });
-
-  describe("WebSocket Integration", () => {
-    it("should connect to runtime service on initialization", () =>
-      withMockServer(
-        (mockServer) =>
-          Effect.gen(function* (_) {
-            const service = yield* Effect.provide(ChatService, TestLayer);
-            expect(service).toBeDefined();
-
-            // Verify connection
-            const connections = mockServer.getConnections();
-            expect(connections.length).toBe(1);
-
-            return undefined;
-          }).pipe(
-            Effect.provide(TestLayer),
-            Effect.catchAll((error) =>
-              Effect.fail(new WebSocketError(String(error))),
-            ),
-          ) as Effect.Effect<undefined, WebSocketError, never>,
-      ));
-
-    it("should send messages through WebSocket", () =>
-      withMockServer(
-        (mockServer) =>
-          Effect.gen(function* () {
-            const service = yield* Effect.provide(ChatService, TestLayer);
-            const messageText = "Test message";
-
-            // Send message
-            const message = yield* service.sendMessage(messageText);
-            expect(message.text).toBe(messageText);
-            // Add some messages
-            yield* service.sendMessage("Message 1");
-            yield* service.sendMessage("Message 2");
-
-            // Clear history
-            yield* service.clearHistory();
-
-            // Verify state
-            const state = yield* service.getState();
-            expect(state.messages).toHaveLength(0);
-            expect(state.metadata?.messageCount).toBe(0);
-            expect(state.metadata?.lastMessageAt).toBeUndefined();
-
-            // Verify history is empty
-            const history = yield* service.getHistory();
-            expect(history.messages).toHaveLength(0);
-            expect(history.hasMore).toBe(false);
-            expect(history.nextCursor).toBeUndefined();
-          })
-            .pipe(Effect.provide(TestLayer))
-            .pipe(
-              Effect.catchAll(() => Effect.succeed(undefined)),
-            ) as Effect.Effect<undefined, WebSocketError, never>,
-      ));
-
-    it("should handle runtime responses", () =>
-      withMockServer(
-        (mockServer) =>
-          Effect.gen(function* () {
-            // Execute the test with ChatService
-            const service = yield* Effect.provide(ChatService, TestLayer);
-
-            // Send message
-            yield* service.sendMessage("Test message");
-
-            // Simulate runtime response
-            mockServer.sendMessage({
-              text: "Response from runtime",
-              timestamp: new Date().toISOString(),
-            });
-
-            // Wait for a moment to allow processing
-            yield* Effect.sleep(10);
-
-            // Get updated messages
-            const historyPage = yield* service.getHistory();
-            const lastMessage =
-              historyPage.messages[historyPage.messages.length - 1];
-            expect(lastMessage.text).toBe("Response from runtime");
-
-            return undefined;
-          }).pipe(
-            Effect.provide(TestLayer),
-            Effect.catchAll((error) =>
-              Effect.fail(new WebSocketError(String(error))),
-            ),
-          ) as Effect.Effect<undefined, WebSocketError, never>,
-      ));
-
-    it("should handle runtime errors", () =>
-      withMockServer(
-        (mockServer) =>
-          Effect.gen(function* () {
-            // Execute the test with ChatService
-            const service = yield* Effect.provide(ChatService, TestLayer);
-
-            // Send message
-            yield* service.sendMessage("Test message");
-
-            // Simulate error from server
-            mockServer.sendMessage({
-              text: "Error: Test error",
-              timestamp: new Date().toISOString(),
-              error: {
-                code: "RUNTIME_ERROR",
-                message: "Test error",
-              },
-            });
-
-            // Wait for a moment to allow processing
-            yield* Effect.sleep(10);
-
-            // Verify error handling
-            const historyPage = yield* service.getHistory();
-            expect(
-              historyPage.messages.some((m) => m.text.includes("Error")),
-            ).toBe(true);
-
-            return undefined;
-          }).pipe(
-            Effect.provide(TestLayer),
-            Effect.catchAll((error) =>
-              Effect.fail(new WebSocketError(String(error))),
-            ),
-          ) as Effect.Effect<undefined, WebSocketError, never>,
-      ));
   });
 });

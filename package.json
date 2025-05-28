@@ -6,7 +6,11 @@
   "main": "src/index.tsx",
   "module": "src/index.tsx",
   "packageManager": "bun@1.2.3",
-  "workspaces": ["apps/client", "packages/*"],
+  "workspaces": [
+    "apps/client",
+    "packages/*",
+    "mock-agent-llm"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -71,6 +75,7 @@
     "url": "^0.11.4",
     "usehooks-ts": "^3.1.1",
     "uuid": "^11.1.0",
+    "ws": "^8.18.2",
     "zod": "^3.24.2",
     "zustand": "^5.0.4"
   },

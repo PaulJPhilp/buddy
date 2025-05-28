@@ -1,8 +1,6 @@
-import { Effect, Ref, Stream } from "effect";
-import {
-  AgentRuntimeService,
-  type AgentRuntimeState,
-} from "../agent-runtime/AgentRuntimeService";
+import { createUserMessage } from "@buddy/protocol";
+import { Effect, Ref } from "effect";
+import { WebSocketService } from "../websocket/WebSocketService";
 import type {
   ChatState,
   ChatStateApi,
@@ -17,17 +15,24 @@ import {
 import { HistoryError, MessageCreationError } from "./ChatServiceErrors";
 import { sanitizeMessage, validateMessageText } from "./ChatServiceHelpers";
 
-type WebSocketMessage = {
-  type: "MESSAGE";
-  payload: string;
-};
+/**
+ * Extended ChatService API that includes handling incoming messages
+ */
+export interface ExtendedChatStateApi extends ChatStateApi {
+  /**
+   * Adds an incoming assistant message to the chat.
+   * @param text The message text from the assistant.
+   * @returns An Effect yielding the created MessageApi.
+   */
+  readonly addAssistantMessage: (text: string) => Effect.Effect<MessageApi>;
+}
 
 /**
- * Implementation of the ChatService using Effect.Service pattern.
+ * Implementation of the ChatService using Effect.Service pattern with WebSocket integration.
  */
-export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
+export class ChatService extends Effect.Service<ExtendedChatStateApi>()("ChatService", {
   effect: Effect.gen(function* () {
-    const runtime = yield* AgentRuntimeService;
+    const ws = yield* WebSocketService;
     const stateRef = yield* Ref.make<ChatState>({
       id: "default",
       messages: [],
@@ -67,36 +72,7 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
       }));
     };
 
-    const handleRuntimeState = (state: AgentRuntimeState) =>
-      Effect.gen(function* () {
-        const currentState = yield* Ref.get(stateRef);
-        if (state.message) {
-          const newMessage: MessageApi = {
-            id: `msg-${Date.now()}-${messageCounter++}`,
-            text: state.message,
-            sender: "assistant",
-            timestamp: Date.now(),
-          };
-          yield* Ref.set(stateRef, {
-            ...currentState,
-            isTyping: state.status === "thinking",
-            messages: [...currentState.messages, newMessage],
-          });
-        } else {
-          yield* Ref.set(stateRef, {
-            ...currentState,
-            isTyping: state.status === "thinking",
-          });
-        }
-      });
-
-    // Initialize runtime and subscribe to state updates
-    yield* runtime.start();
-    yield* Effect.forkDaemon(
-      Stream.runForEach(runtime.getState, handleRuntimeState),
-    );
-
-    const service: ChatStateApi = {
+    const service: ExtendedChatStateApi = {
       getState: () => Ref.get(stateRef),
       setState: (state: ChatState) =>
         Effect.gen(function* () {
@@ -140,13 +116,15 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
             },
           };
 
-          // Send message to runtime
-          yield* runtime.sendMessage(text);
+          // Send message to WebSocket
+          const protocolMessage = createUserMessage(text);
+          yield* ws.send(protocolMessage);
+          console.log("[ChatService] Message sent to WebSocket:", protocolMessage);
 
           const newState: ChatState = {
             ...currentState,
             messages: [...currentState.messages, userMessage],
-            isTyping: true,
+            isTyping: true, // Set typing to true while waiting for response
             metadata: {
               messageCount: currentState.messages.length + 1,
               lastMessageAt: Date.now(),
@@ -170,6 +148,37 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
             } as MessageApi);
           }),
         ),
+      addAssistantMessage: (text: string) =>
+        Effect.gen(function* () {
+          const currentState = yield* Ref.get(stateRef);
+
+          const assistantMessage: MessageApi = {
+            id: `msg-${Date.now()}-${messageCounter++}`,
+            text: sanitizeMessage(text),
+            sender: "assistant",
+            timestamp: Date.now(),
+            metadata: {
+              length: text.length,
+              validation: { isValid: true, errors: [] },
+              hasAttachments: false,
+            },
+          };
+
+          const newState: ChatState = {
+            ...currentState,
+            messages: [...currentState.messages, assistantMessage],
+            isTyping: false, // Clear typing when assistant responds
+            metadata: {
+              messageCount: currentState.messages.length + 1,
+              lastMessageAt: Date.now(),
+              totalAttachments: currentState.metadata?.totalAttachments || 0,
+            },
+          };
+          yield* Ref.set(stateRef, newState);
+
+          console.log("[ChatService] Added assistant message:", assistantMessage);
+          return assistantMessage;
+        }),
       setTyping: (isTyping: boolean) =>
         Effect.gen(function* () {
           const currentState = yield* Ref.get(stateRef);
@@ -239,5 +248,5 @@ export class ChatService extends Effect.Service<ChatStateApi>()("ChatService", {
 
     return service;
   }),
-  dependencies: [AgentRuntimeService.Default],
+  dependencies: [WebSocketService.Default],
 }) { }

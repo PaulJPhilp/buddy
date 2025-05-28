@@ -15,7 +15,7 @@ export const AgentRuntimeConfigService = Effect.Service<AgentRuntimeConfig>()(
     {
         effect: Effect.succeed({
             agentId: "123",
-            baseWsUrl: "ws://localhost:3001"
+            baseWsUrl: "ws://localhost:8080"
         })
     }
 ) 

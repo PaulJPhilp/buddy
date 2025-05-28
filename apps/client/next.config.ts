@@ -18,7 +18,7 @@ const config: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_WS_URL:
-      process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:12345/mock",
+      process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080",
   },
   async rewrites() {
     return [
@@ -28,6 +28,7 @@ const config: NextConfig = {
       },
     ];
   },
+  distDir: ".next",
 };
 
 export default config;

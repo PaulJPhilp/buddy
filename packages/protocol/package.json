@@ -1,0 +1,38 @@
+{
+  "name": "@buddy/protocol",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared communication protocol for Buddy chat application",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "websocket",
+    "protocol",
+    "chat",
+    "buddy"
+  ],
+  "author": "Buddy Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "nanoid": "^5.1.5"
+  }
+}

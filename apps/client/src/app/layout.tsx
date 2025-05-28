@@ -38,8 +38,7 @@ export default function RootLayout({
           footerActionLink: "text-primary hover:text-primary/90",
         },
       }}
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
+      signInFallbackRedirectUrl="/"
     >
       <html lang="en" suppressHydrationWarning>
         <head>

@@ -35,11 +35,9 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
     const appLayer = Layer.mergeAll(
       WebSocketService.Default,
       AgentRuntimeService.Default,
-      ChatService.Default,
+      ChatService.Default
     );
-    return Effect.scoped(Layer.toRuntime(appLayer)).pipe(
-      Effect.provide(appLayer)
-    );
+    return Effect.scoped(Layer.toRuntime(appLayer));
   }, []);
 
   useEffect(() => {
@@ -65,7 +63,7 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
               setRuntimeInstance(runtime as Runtime.Runtime<any>);
             })
           ),
-          Effect.catchAll((error) =>
+          Effect.catchAll((error: unknown) =>
             Effect.sync(() => {
               if (!mounted) return;
               setIsLoadingRuntime(false);

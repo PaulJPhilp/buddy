@@ -1,23 +1,15 @@
-import { Effect, Queue, Stream } from "effect";
+import {
+  ERROR_CODES,
+  type ProtocolMessage,
+  type UserMessage,
+  type WebSocketEnvelope,
+  createWebSocketEnvelope,
+  parseWebSocketMessage,
+  validateUserInput
+} from "@buddy/protocol";
+import { Effect, Queue, Ref, Schedule, Stream } from "effect";
 
-// Message types for WebSocket communication
-export interface WebSocketMessage {
-  type?: string;
-  text: string;
-  timestamp: string;
-  payload?: unknown;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
-export interface WebSocketErrorData {
-  code: string;
-  message: string;
-}
-
-export class WebSocketError extends Error implements WebSocketErrorData {
+export class WebSocketError extends Error {
   code: string;
   constructor(message: string, code = "GENERIC") {
     super(message);
@@ -31,133 +23,254 @@ export interface WebSocketServiceApi {
   readonly _tag: "WebSocketService";
   connect(url: string): Effect.Effect<void, WebSocketError>;
   disconnect(): Effect.Effect<void, WebSocketError>;
-  send(message: WebSocketMessage): Effect.Effect<void, WebSocketError>;
-  receive(): Stream.Stream<WebSocketMessage, WebSocketError, never>;
+  send(message: UserMessage): Effect.Effect<void, WebSocketError>;
+  receive(): Stream.Stream<ProtocolMessage, WebSocketError, never>;
 }
 
-/**
- * Create a WebSocket service instance
- */
-export const makeWebSocketService = Effect.gen(function* (_) {
-  const messageQueue = yield* Queue.unbounded<WebSocketMessage>();
-  let socket: WebSocket | null = null;
+// Global singleton instance
+let globalWebSocketService: WebSocketServiceApi | null = null;
 
-  const connect = (url: string): Effect.Effect<void, WebSocketError> =>
-    Effect.try({
-      try: () => {
-        if (socket) {
-          throw new Error("WebSocket already connected");
+// Create the service implementation
+const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never, never> =>
+  Effect.gen(function* () {
+    console.log("[WebSocketService] Initializing WebSocket service");
+    const messageQueue = yield* Queue.unbounded<ProtocolMessage>();
+    const socketRef = yield* Ref.make<WebSocket | null>(null);
+    const isConnectingRef = yield* Ref.make(false);
+
+    const waitForConnection = (ws: WebSocket): Effect.Effect<void, WebSocketError> =>
+      Effect.async<void, WebSocketError>((resume) => {
+        console.log("[WebSocketService] Waiting for connection, current state:", ws.readyState);
+
+        if (ws.readyState === WebSocket.OPEN) {
+          console.log("[WebSocketService] WebSocket already open");
+          resume(Effect.succeed(undefined));
+          return;
         }
+
+        const onOpen = () => {
+          console.log("[WebSocketService] WebSocket opened successfully");
+          ws.removeEventListener("open", onOpen);
+          ws.removeEventListener("error", onError);
+          resume(Effect.succeed(undefined));
+        };
+
+        const onError = (event: Event) => {
+          console.error("[WebSocketService] WebSocket error event:", {
+            readyState: ws.readyState,
+            url: ws.url,
+            protocol: ws.protocol,
+            type: event.type,
+            target: event.target === ws ? 'WebSocket' : 'Unknown',
+            timeStamp: event.timeStamp,
+            error: (event as any).error || 'No error details available',
+            message: (event as any).message || 'No message available',
+            code: (event as any).code || 'No code available'
+          });
+          ws.removeEventListener("open", onOpen);
+          ws.removeEventListener("error", onError);
+          resume(Effect.fail(new WebSocketError("Connection failed", "CONNECT_ERROR")));
+        };
+
+        ws.addEventListener("open", onOpen);
+        ws.addEventListener("error", onError);
+      });
+
+    const connect = (url: string): Effect.Effect<void, WebSocketError> =>
+      Effect.gen(function* () {
+        console.log("[WebSocketService] Attempting to connect to:", url);
+
+        const currentSocket = yield* Ref.get(socketRef);
+        if (currentSocket?.readyState === WebSocket.OPEN) {
+          console.log("[WebSocketService] Already connected");
+          return;
+        }
+
+        const isConnecting = yield* Ref.get(isConnectingRef);
+        if (isConnecting) {
+          console.log("[WebSocketService] Connection attempt already in progress, waiting...");
+          yield* Effect.sleep(100);
+          const socket = yield* Ref.get(socketRef);
+          if (socket?.readyState === WebSocket.OPEN) {
+            return;
+          }
+          throw new WebSocketError("Previous connection attempt failed");
+        }
+
+        yield* Ref.set(isConnectingRef, true);
+
         try {
-          socket = new WebSocket(url);
+          console.log("[WebSocketService] Creating new WebSocket instance");
+          const socket = new WebSocket(url);
+
+          socket.onclose = (event) => {
+            console.log("[WebSocketService] WebSocket closed:", event.code, event.reason);
+            Effect.runSync(Ref.set(socketRef, null));
+            Effect.runSync(Ref.set(isConnectingRef, false));
+          };
+
+          socket.onerror = (event) => {
+            console.error("[WebSocketService] WebSocket error event:", {
+              readyState: socket.readyState,
+              url: socket.url,
+              protocol: socket.protocol,
+              type: event.type,
+              target: event.target === socket ? 'WebSocket' : 'Unknown',
+              timeStamp: event.timeStamp,
+              error: (event as any).error || 'No error details available',
+              message: (event as any).message || 'No message available',
+              code: (event as any).code || 'No code available'
+            });
+          };
+
+          yield* waitForConnection(socket);
+          yield* Ref.set(socketRef, socket);
+          yield* Ref.set(isConnectingRef, false);
+
           socket.onmessage = (event) => {
+            console.log("[WebSocketService] Received message:", event.data);
             try {
-              // Handle different types of WebSocket data formats
               let text: string;
               if (typeof event.data === "string") {
                 text = event.data;
               } else if (event.data instanceof ArrayBuffer) {
                 text = new TextDecoder().decode(event.data);
-              } else if (event.data instanceof Blob) {
-                // Handle Blob data (need to read it asynchronously)
-                // For now, we'll just log it and skip
-                console.log("Received blob data, not handling yet");
-                return;
               } else {
-                // Unknown data format
-                console.error("Unknown WebSocket data format", event.data);
+                console.error("[WebSocketService] Unsupported WebSocket data format", event.data);
                 return;
               }
-              const data = JSON.parse(text);
-              if (messageQueue) {
-                Effect.runSync(Queue.offer(messageQueue, data));
+
+              const envelope: WebSocketEnvelope = {
+                text,
+                timestamp: new Date().toISOString()
+              };
+
+              const { message, validation } = parseWebSocketMessage(envelope);
+
+              if (!validation.isValid) {
+                console.error("[WebSocketService] Invalid message received:", validation.errors);
+                return;
+              }
+
+              if (message) {
+                Effect.runSync(Queue.offer(messageQueue, message));
               }
             } catch (e) {
-              console.error("Error parsing WebSocket message:", e);
+              console.error("[WebSocketService] Error handling WebSocket message:", e);
             }
           };
+
         } catch (error) {
+          console.error("[WebSocketService] Connection error:", error);
+          yield* Ref.set(isConnectingRef, false);
+          throw new WebSocketError("Failed to connect");
+        }
+      }).pipe(
+        Effect.retry(Schedule.recurs(3)),
+        Effect.tapError(error => Effect.sync(() => {
+          console.error("[WebSocketService] All connection attempts failed:", error);
+          Effect.runSync(Ref.set(isConnectingRef, false));
+        }))
+      );
+
+    const disconnect = (): Effect.Effect<void, WebSocketError> =>
+      Effect.gen(function* () {
+        console.log("[WebSocketService] Disconnecting WebSocket");
+        const socket = yield* Ref.get(socketRef);
+        if (socket) {
+          socket.close();
+          yield* Ref.set(socketRef, null);
+        }
+      });
+
+    const send = (message: UserMessage): Effect.Effect<void, WebSocketError> =>
+      Effect.gen(function* () {
+        console.log("[WebSocketService] Attempting to send message:", message);
+        const socket = yield* Ref.get(socketRef);
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          console.error("[WebSocketService] Cannot send - WebSocket not connected");
+          throw new WebSocketError("WebSocket not connected", ERROR_CODES.CONNECTION_LOST);
+        }
+        try {
+          const validation = validateUserInput(message.text);
+          if (!validation.isValid) {
+            throw new WebSocketError(
+              `Invalid message: ${validation.errors.join(', ')}`,
+              ERROR_CODES.INVALID_MESSAGE
+            );
+          }
+
+          const envelope = createWebSocketEnvelope(message);
+          socket.send(envelope.text);
+          console.log("[WebSocketService] Message sent:", envelope);
+        } catch (error) {
+          console.error("[WebSocketService] Send error:", error);
           throw new WebSocketError(
-            typeof error === "object" && error !== null && "message" in error
-              ? String(error.message)
-              : "Failed to connect",
-            "CONNECT_ERROR",
+            error instanceof Error ? error.message : "Failed to send message",
+            ERROR_CODES.INTERNAL_ERROR
           );
         }
-      },
-      catch: (error) =>
-        new WebSocketError(
-          typeof error === "object" && error !== null && "message" in error
-            ? String(error.message)
-            : "Failed to connect",
-          "CONNECT_ERROR",
+      });
+
+    const receive = (): Stream.Stream<ProtocolMessage, WebSocketError, never> => {
+      console.log("[WebSocketService] Setting up message stream");
+      return Stream.fromQueue(messageQueue).pipe(
+        Stream.mapError(
+          (error): WebSocketError => {
+            console.error("[WebSocketService] Stream error:", error);
+            return new WebSocketError(
+              (error as any)?.message ?? "Failed to receive message",
+              ERROR_CODES.INTERNAL_ERROR
+            );
+          },
         ),
-    });
+      );
+    };
 
-  const disconnect = (): Effect.Effect<void, WebSocketError> =>
-    Effect.try({
-      try: () => {
-        if (!socket) {
-          throw new Error("WebSocket not connected");
-        }
-        socket.close();
-        socket = null;
-      },
-      catch: (error) =>
-        new WebSocketError(
-          error instanceof Error ? error.message : "Failed to disconnect",
-          "DISCONNECT_ERROR",
-        ),
-    });
-
-  const send = (
-    message: WebSocketMessage,
-  ): Effect.Effect<void, WebSocketError> =>
-    Effect.try({
-      try: () => {
-        if (!socket) {
-          throw new Error("WebSocket not connected");
-        }
-        socket.send(JSON.stringify(message));
-      },
-      catch: (error) =>
-        new WebSocketError(
-          error instanceof Error ? error.message : "Failed to send message",
-          "SEND_ERROR",
-        ),
-    });
-
-  const receive = (): Stream.Stream<WebSocketMessage, WebSocketError, never> =>
-    Stream.fromQueue(messageQueue).pipe(
-      Stream.mapError(
-        (error: unknown): WebSocketError =>
-          new WebSocketError(
-            typeof error === "object" && error !== null && "message" in error
-              ? String((error as any).message)
-              : "Failed to receive message",
-            "RECEIVE_ERROR",
-          ),
-      ),
-    );
-
-  const service: WebSocketServiceApi = {
-    _tag: "WebSocketService",
-    connect,
-    disconnect,
-    send,
-    receive,
-  };
-  return service;
-});
+    return {
+      _tag: "WebSocketService",
+      connect,
+      disconnect,
+      send,
+      receive,
+    };
+  });
 
 /**
  * WebSocket service class implementing the Effect.Service pattern
- * This class also serves as the Tag for WebSocketServiceApi.
  */
 export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
   "WebSocketService",
   {
-    effect: makeWebSocketService,
-    dependencies: [],
+    effect: Effect.gen(function* () {
+      // Return the global singleton if it exists, otherwise create it
+      if (globalWebSocketService) {
+        console.log("[WebSocketService] Returning existing global instance");
+        return globalWebSocketService;
+      }
+
+      console.log("[WebSocketService] Creating new global instance");
+      const service = yield* createWebSocketServiceImpl();
+      globalWebSocketService = service;
+      return service;
+    }),
+    dependencies: []
   }
 ) { }
+
+// Helper function to get the global service directly
+export const getGlobalWebSocketService = (): Effect.Effect<WebSocketServiceApi, never, never> =>
+  Effect.gen(function* () {
+    if (globalWebSocketService) {
+      return globalWebSocketService;
+    }
+
+    const service = yield* createWebSocketServiceImpl();
+    globalWebSocketService = service;
+    return service;
+  });
+
+// Reset function for testing
+export const resetGlobalWebSocketService = (): void => {
+  globalWebSocketService = null;
+};
