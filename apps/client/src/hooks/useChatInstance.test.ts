@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { Duration, Effect, Layer, Stream, TestClock } from "effect";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { WebSocketService, type WebSocketServiceApi } from "@/services/websocket/WebSocketService";
 import type { AgentConfigData, AgentEvent, Message } from "../features/chat/chatInstanceTypes";
@@ -17,7 +17,7 @@ const testChatId = "test-chat-id-123";
 
 describe("useChatInstance", () => {
     beforeEach(() => {
-        vi.useFakeTimers();
+        // Setup for each test
     });
 
     // Create a mock WebSocket service implementation

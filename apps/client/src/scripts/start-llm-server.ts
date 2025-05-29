@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
-import { spawn } from "child_process";
-import { join } from "path";
+import { spawn } from "node:child_process";
+import { join } from "node:path";
 
 console.log("Starting mock-agent-llm server...");
 
 // Get the path to the mock-agent-llm directory
-const mockServerPath = join(process.cwd(), "../../../mock-agent-llm");
+const mockServerPath = join(process.cwd(), "../../mock-agent-llm");
 
 // Start the server using npm run start (Node.js runtime)
 const serverProcess = spawn("npm", ["run", "start"], {

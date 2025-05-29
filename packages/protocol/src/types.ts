@@ -17,6 +17,7 @@ export interface UserMessage extends BaseMessage {
         readonly userId?: string;
         readonly sessionId?: string;
         readonly attachments?: readonly string[];
+        readonly chatId?: string;
     };
 }
 
@@ -63,6 +64,7 @@ export interface LLMStreamMessage extends BaseMessage {
         readonly model?: string;
         readonly chunkIndex?: number;
         readonly totalChunks?: number;
+        readonly chatId?: string;
     };
 }
 

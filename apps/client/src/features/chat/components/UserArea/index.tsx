@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import AttachmentRow from "@ui/components/AttachmentRow";
 import type { ToolBarItem } from "@ui/components/ui/toolbar";
@@ -23,11 +25,6 @@ export interface UserAreaProps {
   onAddAttachments: (newFiles: File[]) => void;
   /** Whether the input is disabled */
   disabled?: boolean;
-  /** Theme colors */
-  primaryColor?: string;
-  secondaryColor?: string;
-  activePrimaryColor?: string;
-  activeSecondaryColor?: string;
   /** Optional toolbar configurations */
   agentToolbarConfig?: (agent: Agent) => ToolBarItem[];
   minimalInputToolbarConfig?: ToolBarItem[];
@@ -49,10 +46,6 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
       agentToolbarConfig,
       className,
       disabled,
-      primaryColor,
-      secondaryColor,
-      activePrimaryColor,
-      activeSecondaryColor,
     },
     ref,
   ) => {
@@ -74,10 +67,9 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     return (
       <div
         ref={ref}
-        className={cn("flex flex-col h-[5rem] p-1", className)}
-        style={{ backgroundColor: secondaryColor }}
+        className={cn("flex flex-col p-1 bg-chat-user-area text-chat-user-area-foreground", className)}
       >
-        <div className="grid grid-rows-3 h-full gap-1">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center">
             {currentAttachments.length > 0 && (
               <AttachmentRow
@@ -95,10 +87,6 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
               onSendMessage={internalHandleSendMessage}
               onFilesSelected={onAddAttachments}
               disabled={disabled}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-              activePrimaryColor={activePrimaryColor}
-              activeSecondaryColor={activeSecondaryColor}
               toolbarConfig={minimalInputToolbarConfig}
               selectedAgentId={selectedAgent}
               agents={agents}
@@ -112,10 +100,6 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
                 selectedAgentId={selectedAgent}
                 onSelectAgent={onSelectedAgentChange}
                 toolbarConfig={agentToolbarConfig}
-                primaryColor={primaryColor}
-                secondaryColor={secondaryColor}
-                activePrimaryColor={activePrimaryColor}
-                activeSecondaryColor={activeSecondaryColor}
               />
             )}
           </div>

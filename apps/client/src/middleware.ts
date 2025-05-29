@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/trpc(.*)",
   "/_next(.*)",
   "/(assets|images|favicon.ico)(.*)",
+  "/theme-test(.*)",
+  "/test-chat-instance(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

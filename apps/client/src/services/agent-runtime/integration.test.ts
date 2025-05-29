@@ -21,7 +21,7 @@ describe("WebSocket Stack Integration", () => {
     Effect.runPromise(
       effect.pipe(
         Effect.provide(TestLayer),
-      ),
+      ) as Effect.Effect<T, E, never>,
     );
 
   it("should send a message and return the correct result", async () => {

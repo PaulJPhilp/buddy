@@ -1,3 +1,5 @@
+"use client";
+
 import { Icon } from "@ui/components/Icon";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
 import React, { forwardRef, useRef } from "react";
@@ -13,10 +15,6 @@ export interface MinimalInputProps {
   agents?: any[];
   placeholder?: string;
   className?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  activePrimaryColor?: string;
-  activeSecondaryColor?: string;
   toolbarConfig?: ToolBarItem[];
   minRows?: number;
   maxRows?: number;
@@ -34,10 +32,6 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       agents = [],
       placeholder = "Select an agent...",
       className,
-      primaryColor,
-      secondaryColor,
-      activePrimaryColor,
-      activeSecondaryColor,
       toolbarConfig,
       minRows = 1,
       maxRows = 5,
@@ -51,7 +45,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       if (!trimmedText || disabled) return;
 
       onSendMessage(trimmedText);
-      if (ref && "current" in ref && ref.current) {
+      if (ref && typeof ref !== 'function' && ref.current) {
         ref.current.focus();
       }
     };
@@ -105,7 +99,13 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       : defaultToolbarItems;
 
     return (
-      <div className="relative w-full h-full">
+      <div 
+        className="flex items-center w-full border rounded-md p-1 focus-within:ring-2 focus-within:ring-[hsl(var(--chat-ring-actual-hsl-components))] transition-all duration-150 ease-in-out"
+        style={{
+          borderColor: 'var(--chat-border-color)',
+          borderWidth: 'var(--chat-border-thickness)',
+        }}
+      >
         <TextareaAutosize
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
@@ -116,24 +116,21 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
               : placeholder
           }
           disabled={disabled}
-          className="w-full h-full resize-none bg-white text-sm rounded overflow-auto pr-16 pl-2 leading-[22px] focus-visible:ring-[2px] transition-height duration-200 ease-in-out"
+          className="flex-grow resize-none text-sm rounded overflow-auto pl-2 leading-[22px] transition-height duration-200 ease-in-out bg-transparent focus:outline-none"
           style={{
-            ["--tw-ring-color" as string]: primaryColor,
+            color: 'var(--chat-color-text)',
+            // backgroundColor: 'var(--chat-color-background)', // Let parent div background show through
           }}
           aria-label="Message input"
           ref={ref}
-          minRows={minRows}
+          minRows={3}
           maxRows={maxRows}
         />
-        <div className="absolute right-2 top-0 h-full flex items-center pointer-events-none">
+        <div className="flex items-center">
           <ToolBar
             commands={toolbarItems}
             variant="tiny"
-            className="justify-end h-14 text-[0.5rem] -space-x-2 pointer-events-auto [&_button]:p-0 [&_button]:mx-1 [&_svg.lucide]:!h-4 [&_svg.lucide]:!w-4"
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
-            activePrimaryColor={activePrimaryColor}
-            activeSecondaryColor={activeSecondaryColor}
+            className="justify-end h-8 text-[0.5rem] -space-x-2 pointer-events-auto [&_button]:p-0 [&_button]:mx-1 [&_svg.lucide]:!h-4 [&_svg.lucide]:!w-4"
             ariaLabel="Message input toolbar"
           />
         </div>

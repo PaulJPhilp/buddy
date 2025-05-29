@@ -2,6 +2,7 @@
 
 import BusinessChat from "@/features/chat/BusinessChat";
 import SocialChat from "@/features/chat/SocialChat";
+import type { ChatAppTheme } from "@/features/chat/themes/themeTypes";
 import { AgentRuntimeService } from "@/services/agent-runtime/AgentRuntimeService";
 import { ChatService } from "@/services/chat/ChatService";
 import { WebSocketService } from "@/services/websocket/WebSocketService";
@@ -17,10 +18,10 @@ export const RuntimeContext = React.createContext<Runtime.Runtime<any> | null>(
 
 interface ChatContainerProps {
   chatType: "business" | "social";
+  theme?: Partial<ChatAppTheme> | string;
 }
 
-export default function ChatContainer({ chatType }: ChatContainerProps) {
-  const [activeChat, setActiveChat] = useState<"business" | "social">(chatType);
+export default function ChatContainer({ chatType, theme }: ChatContainerProps) {
   const { session } = useSession();
   const userId = session?.user?.id ?? "default_user_id";
   const sessionId = session?.id ?? "default_session_id";
@@ -31,14 +32,17 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(true);
 
   const effectToBuildAppRuntime = useMemo(() => {
-    // Compose the default layers for all required services
+    console.log(`[ChatContainer] Building runtime for ${chatType} chat`);
+
+    // Create a simple runtime with all required services
     const appLayer = Layer.mergeAll(
       WebSocketService.Default,
       AgentRuntimeService.Default,
       ChatService.Default
     );
+
     return Effect.scoped(Layer.toRuntime(appLayer));
-  }, []);
+  }, [chatType]);
 
   useEffect(() => {
     let mounted = true;
@@ -46,7 +50,7 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
     setRuntimeError(null);
     setRuntimeInstance(null);
 
-    console.log("ChatContainer: Attempting to build runtime. Dependencies:", {
+    console.log(`ChatContainer (${chatType}): Attempting to build runtime. Dependencies:`, {
       chatType,
       userId,
       sessionId,
@@ -59,7 +63,7 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
             Effect.sync(() => {
               if (!mounted) return;
               setIsLoadingRuntime(false);
-              Effect.runSync(Effect.log("ChatContainer: Runtime successfully created."));
+              Effect.runSync(Effect.log(`ChatContainer (${chatType}): Runtime successfully created.`));
               setRuntimeInstance(runtime as Runtime.Runtime<any>);
             })
           ),
@@ -72,7 +76,7 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
               );
               Effect.runSync(
                 Effect.logError(
-                  `ChatContainer: Failed to create runtime. Cause: ${prettyErrorString}`
+                  `ChatContainer (${chatType}): Failed to create runtime. Cause: ${prettyErrorString}`
                 )
               );
               setRuntimeError(prettyErrorString);
@@ -84,57 +88,42 @@ export default function ChatContainer({ chatType }: ChatContainerProps) {
 
     return () => {
       mounted = false;
-      console.log("ChatContainer: Cleanup - interrupting runtime build fiber.");
+      console.log(`ChatContainer (${chatType}): Cleanup - interrupting runtime build fiber.`);
       Effect.runFork(Fiber.interrupt(fiber));
     };
   }, [effectToBuildAppRuntime, chatType, userId, sessionId]);
 
   if (isLoadingRuntime) {
+    const themeColor = chatType === "business" ? "blue" : "green";
     return (
       <div className="h-full w-full flex items-center justify-center">
-        Initializing Chat Runtime...
-      </div>
-    );
-  }
-
-  if (runtimeError || !runtimeInstance) {
-    return (
-      <div className="h-full w-full flex flex-col items-center justify-center text-red-600 p-4">
-        <h2 className="text-xl font-semibold mb-2">
-          Error Initializing Chat Runtime
-        </h2>
-        <p className="mb-1">
-          We encountered a problem setting up the chat services.
-        </p>
-        {runtimeError && (
-          <pre className="text-xs whitespace-pre-wrap bg-red-100 p-2 rounded border border-red-300 w-full max-w-2xl overflow-auto">
-            {typeof runtimeError === "string"
-              ? runtimeError
-              : JSON.stringify(runtimeError, null, 2)}
-          </pre>
-        )}
-        {!runtimeInstance && !runtimeError && (
-          <p>Runtime instance is unexpectedly null.</p>
-        )}
+        <div className="text-center">
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 border-${themeColor}-600 mx-auto mb-4`} />
+          <div className="text-lg font-semibold mb-2">
+            Initializing {chatType === "business" ? "Business" : "Social"} Chat
+          </div>
+          <div className={`text-sm text-${themeColor}-600`}>Setting up runtime...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <RuntimeContext.Provider value={runtimeInstance}>
-      <div className="flex h-full w-full p-4 gap-4">
-        <div className="flex-1 h-full rounded-lg shadow-lg overflow-hidden">
+      <div className="h-full w-full">
+        {chatType === "business" ? (
           <BusinessChat
-            isActive={activeChat === "business"}
-            onActivate={() => setActiveChat("business")}
+            isActive={true}
+            onActivate={() => { }}
+            theme={theme}
           />
-        </div>
-        <div className="flex-1 h-full rounded-lg shadow-lg overflow-hidden">
+        ) : (
           <SocialChat
-            isActive={activeChat === "social"}
-            onActivate={() => setActiveChat("social")}
+            isActive={true}
+            onActivate={() => { }}
+            theme={theme}
           />
-        </div>
+        )}
       </div>
     </RuntimeContext.Provider>
   );

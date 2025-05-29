@@ -7,7 +7,7 @@ import {
   parseWebSocketMessage,
   validateUserInput
 } from "@buddy/protocol";
-import { Effect, Queue, Ref, Schedule, Stream } from "effect";
+import { Effect, Queue, Ref, Stream } from "effect";
 
 export class WebSocketError extends Error {
   code: string;
@@ -27,9 +27,6 @@ export interface WebSocketServiceApi {
   receive(): Stream.Stream<ProtocolMessage, WebSocketError, never>;
 }
 
-// Global singleton instance
-let globalWebSocketService: WebSocketServiceApi | null = null;
-
 // Create the service implementation
 const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never, never> =>
   Effect.gen(function* () {
@@ -40,14 +37,8 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
 
     const waitForConnection = (ws: WebSocket): Effect.Effect<void, WebSocketError> =>
       Effect.async<void, WebSocketError>((resume) => {
-        console.log("[WebSocketService] Waiting for connection, current state:", ws.readyState);
-
-        if (ws.readyState === WebSocket.OPEN) {
-          console.log("[WebSocketService] WebSocket already open");
-          resume(Effect.succeed(undefined));
-          return;
-        }
-
+        console.log("[WebSocketService] Waiting for WebSocket connection...");
+        
         const onOpen = () => {
           console.log("[WebSocketService] WebSocket opened successfully");
           ws.removeEventListener("open", onOpen);
@@ -74,7 +65,16 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
 
         ws.addEventListener("open", onOpen);
         ws.addEventListener("error", onError);
-      });
+      }).pipe(
+        Effect.timeout("10 seconds"),
+        Effect.mapError((error) => {
+          if (error && typeof error === 'object' && '_tag' in error && error._tag === "TimeoutException") {
+            console.error("[WebSocketService] Connection timeout after 10 seconds");
+            return new WebSocketError("Connection timeout", "TIMEOUT");
+          }
+          return error instanceof WebSocketError ? error : new WebSocketError("Connection failed during timeout mapping", "CONNECT_ERROR");
+        })
+      );
 
     const connect = (url: string): Effect.Effect<void, WebSocketError> =>
       Effect.gen(function* () {
@@ -89,22 +89,28 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
         const isConnecting = yield* Ref.get(isConnectingRef);
         if (isConnecting) {
           console.log("[WebSocketService] Connection attempt already in progress, waiting...");
-          yield* Effect.sleep(100);
+          yield* Effect.sleep("1 second");
           const socket = yield* Ref.get(socketRef);
           if (socket?.readyState === WebSocket.OPEN) {
             return;
           }
-          throw new WebSocketError("Previous connection attempt failed");
+          throw new WebSocketError("Previous connection attempt failed", "CONNECT_ERROR");
         }
 
         yield* Ref.set(isConnectingRef, true);
 
         try {
-          console.log("[WebSocketService] Creating new WebSocket instance");
+          console.log("[WebSocketService] Creating new WebSocket instance for URL:", url);
           const socket = new WebSocket(url);
+          
+          console.log("[WebSocketService] WebSocket created, initial state:", socket.readyState);
 
           socket.onclose = (event) => {
-            console.log("[WebSocketService] WebSocket closed:", event.code, event.reason);
+            console.log("[WebSocketService] WebSocket closed:", {
+              code: event.code,
+              reason: event.reason,
+              wasClean: event.wasClean
+            });
             Effect.runSync(Ref.set(socketRef, null));
             Effect.runSync(Ref.set(isConnectingRef, false));
           };
@@ -123,7 +129,10 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
             });
           };
 
+          console.log("[WebSocketService] Waiting for connection to establish...");
           yield* waitForConnection(socket);
+          console.log("[WebSocketService] Connection established successfully");
+          
           yield* Ref.set(socketRef, socket);
           yield* Ref.set(isConnectingRef, false);
 
@@ -163,12 +172,11 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
         } catch (error) {
           console.error("[WebSocketService] Connection error:", error);
           yield* Ref.set(isConnectingRef, false);
-          throw new WebSocketError("Failed to connect");
+          throw new WebSocketError(`Failed to connect: ${error}`, "CONNECT_ERROR");
         }
       }).pipe(
-        Effect.retry(Schedule.recurs(3)),
         Effect.tapError(error => Effect.sync(() => {
-          console.error("[WebSocketService] All connection attempts failed:", error);
+          console.error("[WebSocketService] Connection failed:", error);
           Effect.runSync(Ref.set(isConnectingRef, false));
         }))
       );
@@ -242,35 +250,11 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
 export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
   "WebSocketService",
   {
-    effect: Effect.gen(function* () {
-      // Return the global singleton if it exists, otherwise create it
-      if (globalWebSocketService) {
-        console.log("[WebSocketService] Returning existing global instance");
-        return globalWebSocketService;
-      }
-
-      console.log("[WebSocketService] Creating new global instance");
+    scoped: Effect.gen(function* () {
+      console.log("[WebSocketService] Creating new instance");
       const service = yield* createWebSocketServiceImpl();
-      globalWebSocketService = service;
       return service;
     }),
-    dependencies: []
+    dependencies: [],
   }
-) { }
-
-// Helper function to get the global service directly
-export const getGlobalWebSocketService = (): Effect.Effect<WebSocketServiceApi, never, never> =>
-  Effect.gen(function* () {
-    if (globalWebSocketService) {
-      return globalWebSocketService;
-    }
-
-    const service = yield* createWebSocketServiceImpl();
-    globalWebSocketService = service;
-    return service;
-  });
-
-// Reset function for testing
-export const resetGlobalWebSocketService = (): void => {
-  globalWebSocketService = null;
-};
+) {}

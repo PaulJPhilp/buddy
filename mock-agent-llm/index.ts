@@ -33,33 +33,35 @@ if (!GOOGLE_GENERATIVE_AI_API_KEY) {
 const conversationHistory = new WeakMap<WebSocket, Array<{ role: 'user' | 'assistant', content: string }>>();
 
 // Define the callLLM function
-async function callLLM(inputText: string, ws: WebSocket) {
-  console.log(`[LLM] Calling LLM with input: "${inputText}"`);
+async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
+  console.log(`[LLM] Calling LLM with input: "${inputText}" for chatId: ${chatId || 'default'}`);
 
-  // Check if WebSocket is still open before proceeding
-  if (ws.readyState !== WebSocket.OPEN) {
-    console.warn('[LLM] WebSocket is not open, skipping LLM call');
-    return;
+  // Get or create conversation history for this WebSocket connection
+  let history = conversationHistory.get(ws);
+  if (!history) {
+    history = [];
+    conversationHistory.set(ws, history);
   }
-
-  // Get or initialize conversation history for this connection
-  if (!conversationHistory.has(ws)) {
-    conversationHistory.set(ws, []);
-  }
-  const history = conversationHistory.get(ws) || [];
 
   // Add user message to history
-  history.push({ role: 'user', content: inputText });
+  history.push({
+    role: 'user',
+    content: inputText
+  });
+
+  // Send acknowledgment
+  const ackMessage = createAckMessage('PROCESSING', {
+    message: 'Processing your message...'
+  });
+  const ackEnvelope = createWebSocketEnvelope(ackMessage);
+  ws.send(ackEnvelope.text);
+  console.log('[LLM] Sent ACK message');
 
   // Send thinking state
-  try {
-    const thinkingMessage = createThinkingMessage(true);
-    const thinkingEnvelope = createWebSocketEnvelope(thinkingMessage);
-    ws.send(thinkingEnvelope.text);
-    console.log('[LLM] Sent thinking state:', thinkingMessage);
-  } catch (error) {
-    console.error('[LLM] Error sending thinking state:', error);
-  }
+  const thinkingMessage = createThinkingMessage(true);
+  const thinkingEnvelope = createWebSocketEnvelope(thinkingMessage);
+  ws.send(thinkingEnvelope.text);
+  console.log('[LLM] Sent thinking state on');
 
   try {
     const result = await streamText({
@@ -100,78 +102,53 @@ async function callLLM(inputText: string, ws: WebSocket) {
       // Accumulate content
       fullContent += delta;
 
-      // Send stream chunk
+      // Send stream chunk with chatId
       const streamMessage = createLLMStreamMessage(delta, false, {
         streamId,
         metadata: {
           model: 'gemini-1.5-flash-latest',
-          chunkIndex: chunkIndex++
-        }
+          chunkIndex: chunkIndex++,
+          chatId: chatId // Include chatId for routing
+        } as any // Temporary fix for type issue
       });
       const streamEnvelope = createWebSocketEnvelope(streamMessage);
       ws.send(streamEnvelope.text);
-      console.log(`[LLM] Sent stream chunk ${chunkIndex}: "${delta}"`);
+      console.log(`[LLM] Sent stream chunk ${chunkIndex} for chatId ${chatId || 'default'}: "${delta}"`);
     }
 
-    // Send final completion message
-    if (ws.readyState === WebSocket.OPEN) {
-      const finalMessage = createLLMStreamMessage('', true, {
-        streamId,
-        metadata: {
-          model: 'gemini-1.5-flash-latest',
-          chunkIndex: chunkIndex,
-          totalChunks: chunkIndex
-        }
-      });
-      const finalEnvelope = createWebSocketEnvelope(finalMessage);
-      ws.send(finalEnvelope.text);
-      console.log('[LLM] Sent stream completion');
-    }
+    // Send completion message with chatId
+    const completionMessage = createLLMStreamMessage('', true, {
+      streamId,
+      metadata: {
+        model: 'gemini-1.5-flash-latest',
+        chunkIndex: chunkIndex,
+        chatId: chatId // Include chatId for routing
+      } as any // Temporary fix for type issue
+    });
+    const completionEnvelope = createWebSocketEnvelope(completionMessage);
+    ws.send(completionEnvelope.text);
+    console.log(`[LLM] Sent completion message for chatId ${chatId || 'default'}`);
 
-    // Get final result for logging
-    const { usage, finishReason, toolCalls, toolResults } = await result;
+    // Add assistant response to history
+    history.push({
+      role: 'assistant',
+      content: fullContent
+    });
 
-    console.log('[LLM] Stream completed');
-    console.log('[LLM] Full content:', fullContent);
+    console.log(`[LLM] Completed response for chatId ${chatId || 'default'}. Full content: "${fullContent}"`);
 
-    // Add assistant response to conversation history
-    history.push({ role: 'assistant', content: fullContent });
-    console.log(`[LLM] Updated conversation history. Total messages: ${history.length}`);
-
-    console.log('[LLM] API Usage:', usage);
-    console.log('[LLM] Finish Reason:', finishReason);
-    if (toolCalls) console.log('[LLM] Tool Calls:', toolCalls);
-    if (toolResults) console.log('[LLM] Tool Results:', toolResults);
-
-  } catch (error: any) {
-    console.error('[LLM] Error calling LLM:');
-    console.error('[LLM] Error Message:', error.message);
-    if (error.stack) {
-      console.error('[LLM] Error Stack:', error.stack);
-    }
-    if (error.cause) {
-      console.error('[LLM] Error Cause:', error.cause);
-    }
-    if (error.response?.data) {
-      console.error('[LLM] Detailed API Error Response:', error.response.data);
-    }
-
-    // Send thinking state off
-    if (ws.readyState === WebSocket.OPEN) {
-      const thinkingOffMessage = createThinkingMessage(false);
-      const thinkingOffEnvelope = createWebSocketEnvelope(thinkingOffMessage);
-      ws.send(thinkingOffEnvelope.text);
-    }
+  } catch (error) {
+    console.error('[LLM] Error during streaming:', error);
 
     // Send error message
-    if (ws.readyState === WebSocket.OPEN) {
-      const errorMessage = createErrorMessage('LLM_ERROR', `LLM call failed: ${error.message}`);
-      const errorEnvelope = createWebSocketEnvelope(errorMessage);
-      ws.send(errorEnvelope.text);
-      console.log('[LLM] Sent error:', errorMessage);
-    } else {
-      console.warn('[LLM] WebSocket closed before sending error response');
-    }
+    const errorMessage = createErrorMessage('LLM_ERROR', 'Failed to generate response');
+    const errorEnvelope = createWebSocketEnvelope(errorMessage);
+    ws.send(errorEnvelope.text);
+
+    // Send thinking state off
+    const thinkingOffMessage = createThinkingMessage(false);
+    const thinkingOffEnvelope = createWebSocketEnvelope(thinkingOffMessage);
+    ws.send(thinkingOffEnvelope.text);
   }
 }
 
@@ -245,7 +222,9 @@ try {
         if (protocolMessage.type === 'USER_MESSAGE') {
           const userMessage = protocolMessage as UserMessage;
           if (userMessage.text && userMessage.text.trim() !== '') {
-            await callLLM(userMessage.text, ws);
+            const chatId = (userMessage.metadata as any)?.chatId;
+            console.log(`[Server] Processing message for chatId: ${chatId || 'default'}`);
+            await callLLM(userMessage.text, ws, chatId);
           } else {
             console.log('[Server] User message has no text content:', userMessage);
             const errorMessage = createErrorMessage('VALIDATION_ERROR', 'Message must contain text');

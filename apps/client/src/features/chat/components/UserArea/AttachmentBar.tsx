@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@ui/components/ui/button";
 import { cn } from "@ui/lib/utils";
 import { FileIcon, X } from "lucide-react";

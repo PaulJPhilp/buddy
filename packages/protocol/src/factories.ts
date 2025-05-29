@@ -39,6 +39,7 @@ export function createUserMessage(
             userId?: string;
             sessionId?: string;
             attachments?: readonly string[];
+            chatId?: string;
         };
     }
 ): UserMessage {
@@ -142,6 +143,7 @@ export function createLLMStreamMessage(
             model?: string;
             chunkIndex?: number;
             totalChunks?: number;
+            chatId?: string;
         };
     }
 ): LLMStreamMessage {

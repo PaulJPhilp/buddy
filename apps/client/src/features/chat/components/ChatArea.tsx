@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChatState } from "@/services/chat/ChatServiceApi";
+import type { ChatInstanceHookState } from "@/features/chat/types";
 import { ChatBubble } from "@ui/components/chat/ChatBubble";
 import { Button } from "@ui/components/ui/button";
 import { Skeleton } from "@ui/components/ui/skeleton";
@@ -11,12 +11,10 @@ import { Icon } from "@ui/components/Icon";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ChatAreaProps {
-  messages: ChatState["messages"];
+  messages: ChatInstanceHookState["messages"];
   isTyping?: boolean;
   isLoadingHistory?: boolean;
   className?: string;
-  userBubbleColor?: string;
-  userTextColor?: string;
   onLoadMoreMessages?: () => void;
   onMessageFeedback?: (
     messageId: string,
@@ -25,12 +23,8 @@ export interface ChatAreaProps {
   onMessageCopy?: (messageId: string) => void;
   onMessageRead?: (messageId: string) => void;
   assistantMessageToolbarConfig?: (
-    message: ChatState["messages"][0],
+    message: ChatInstanceHookState["messages"][0],
   ) => ToolBarItem[];
-  primaryColor?: string;
-  secondaryColor?: string;
-  activePrimaryColor?: string;
-  activeSecondaryColor?: string;
 }
 
 const ChatArea: React.FC<ChatAreaProps> = ({
@@ -38,25 +32,16 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   isTyping,
   isLoadingHistory,
   className,
-  userBubbleColor,
-  userTextColor,
   onLoadMoreMessages,
   onMessageFeedback,
   onMessageCopy,
   onMessageRead,
   assistantMessageToolbarConfig,
-  primaryColor,
-  secondaryColor,
-  activePrimaryColor,
-  activeSecondaryColor,
 }) => {
-  // State for scroll-to-bottom button visibility
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
-
   const scrollableAreaRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom handler
   const scrollToBottom = useCallback(() => {
     if (scrollableAreaRef.current) {
       scrollableAreaRef.current.scrollTo({
@@ -66,29 +51,23 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     }
   }, []);
 
-  // Handle scroll events
   const handleScroll = useCallback(() => {
     if (!scrollableAreaRef.current) return;
-
     const { scrollTop, scrollHeight, clientHeight } = scrollableAreaRef.current;
     const scrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
     setIsNearBottom(scrolledToBottom);
     setShowScrollButton(!scrolledToBottom);
-
-    // Check if we're near the top and should load more messages
     if (scrollTop < 100 && onLoadMoreMessages && !isLoadingHistory) {
       onLoadMoreMessages();
     }
   }, [onLoadMoreMessages, isLoadingHistory]);
 
-  // Auto-scroll to bottom for new messages if we're already near the bottom
   useEffect(() => {
     if (scrollableAreaRef.current && isNearBottom) {
       scrollToBottom();
     }
   }, [isNearBottom, scrollToBottom]);
 
-  // Add scroll event listener
   useEffect(() => {
     const scrollArea = scrollableAreaRef.current;
     if (scrollArea) {
@@ -104,105 +83,58 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       <div
         ref={scrollableAreaRef}
         className={cn(
-          "flex-1 overflow-y-auto p-4 space-y-4",
+          "flex-1 overflow-y-auto p-4 space-y-4 bg-chat-background text-chat-foreground",
           isLoadingHistory && "opacity-80",
-          className,
+          className
         )}
         role="log"
         aria-live="polite"
       >
-        {/* Loading History Indicator */}
         {isLoadingHistory && (
           <div className="flex flex-col space-y-2 mb-4">
-            <Skeleton className="h-12 w-3/4" />
-            <Skeleton className="h-12 w-2/3 ml-auto" />
-            <Skeleton className="h-12 w-3/4" />
+            <Skeleton className="h-12 w-3/4 bg-chat-secondary" />
+            <Skeleton className="h-12 w-2/3 ml-auto bg-chat-secondary" />
+            <Skeleton className="h-12 w-3/4 bg-chat-secondary" />
           </div>
         )}
 
         {messages.map((msg) => {
-          // Generate toolbar items for assistant messages
-          const toolbarItems =
-            msg.sender === "assistant"
-              ? assistantMessageToolbarConfig?.(msg) || [
-                  {
-                    id: `thumbs-up-${msg.id}`,
-                    icon: <Icon name="ThumbsUp" size={6} aria-hidden="true" />,
-                    action: () => onMessageFeedback?.(msg.id, "thumbsUp"),
-                    tooltip: "Helpful",
-                    intent: "primary",
-                  },
-                  {
-                    id: `thumbs-down-${msg.id}`,
-                    icon: (
-                      <Icon name="ThumbsDown" size={6} aria-hidden="true" />
-                    ),
-                    action: () => onMessageFeedback?.(msg.id, "thumbsDown"),
-                    tooltip: "Not Helpful",
-                    intent: "secondary",
-                  },
-                  { id: `spacer-${msg.id}`, type: "spacer-expand" },
-                  {
-                    id: `copy-${msg.id}`,
-                    icon: <Icon name="Copy" size={6} aria-hidden="true" />,
-                    action: () => onMessageCopy?.(msg.id),
-                    tooltip: "Copy to Clipboard",
-                  },
-                  {
-                    id: `read-${msg.id}`,
-                    icon: <Icon name="Volume2" size={6} aria-hidden="true" />,
-                    action: () => onMessageRead?.(msg.id),
-                    tooltip: "Read Aloud",
-                  },
-                ]
-              : [];
+          const toolbarItems = msg.role === "assistant"
+            ? assistantMessageToolbarConfig?.(msg) || [
+              { id: `thumbs-up-${msg.id}`, icon: <Icon name="ThumbsUp" size={6} />, action: () => onMessageFeedback?.(msg.id, "thumbsUp"), tooltip: "Helpful", intent: "primary" },
+              { id: `thumbs-down-${msg.id}`, icon: <Icon name="ThumbsDown" size={6} />, action: () => onMessageFeedback?.(msg.id, "thumbsDown"), tooltip: "Not Helpful", intent: "secondary" },
+              { id: `spacer-${msg.id}`, type: "spacer-expand" },
+              { id: `copy-${msg.id}`, icon: <Icon name="Copy" size={6} />, action: () => onMessageCopy?.(msg.id), tooltip: "Copy" },
+              { id: `read-${msg.id}`, icon: <Icon name="Volume2" size={6} />, action: () => onMessageRead?.(msg.id), tooltip: "Read" },
+            ]
+            : [];
 
           return (
             <div
               key={msg.id}
-              className={cn(
-                "group relative w-full flex",
-                msg.sender === "user" ? "justify-end" : "justify-start",
-              )}
+              className={cn("group relative w-full flex", msg.role === "user" ? "justify-end" : "justify-start")}
             >
               <div className="relative max-w-[95%] flex items-center">
                 <div className="relative flex-1">
                   <ChatBubble
                     content={msg.text}
-                    role={msg.sender}
-                    userBubbleColor={
-                      msg.sender === "user" ? userBubbleColor : undefined
-                    }
-                    userTextColor={
-                      msg.sender === "user" ? userTextColor : undefined
-                    }
-                    primaryColor={primaryColor}
-                    secondaryColor={secondaryColor}
+                    role={msg.role}
                   />
-                  {msg.sender === "assistant" && toolbarItems.length > 0 && (
+                  {msg.role === "assistant" && toolbarItems.length > 0 && (
                     <div className="absolute left-0 bottom-0 translate-y-full pt-1.5 w-full">
                       <ToolBar
                         commands={toolbarItems}
                         variant="tiny"
-                        className="w-full h-3 justify-start bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75"
-                        primaryColor={primaryColor}
-                        secondaryColor={secondaryColor}
-                        activePrimaryColor={activePrimaryColor}
-                        activeSecondaryColor={activeSecondaryColor}
+                        className="w-full h-3 justify-start backdrop-blur supports-[backdrop-filter]:bg-opacity-75"
                       />
                     </div>
                   )}
                 </div>
                 {msg.timestamp && (
                   <div
-                    className={cn(
-                      "flex items-center",
-                      msg.sender === "user"
-                        ? "order-first pr-2"
-                        : "order-last pl-2",
-                    )}
+                    className={cn("flex items-center", msg.role === "user" ? "order-first pr-2" : "order-last pl-2")}
                   >
-                    <span className="text-[0.4rem] text-muted-foreground whitespace-nowrap">
+                    <span className="text-[0.4rem] text-muted-foreground whitespace-nowrap opacity-70">
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
@@ -213,7 +145,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         })}
         {isTyping && (
           <div className="flex justify-start">
-            <div className="px-3 py-2 text-sm rounded-lg bg-muted text-muted-foreground">
+            <div className="text-sm bg-chat-bubble-agent text-chat-bubble-agent-foreground px-3 py-2 rounded-xl">
               <div className="flex items-center space-x-2">
                 <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" />
                 <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -224,12 +156,10 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         )}
       </div>
 
-      {/* Scroll to Bottom Button */}
       {showScrollButton && (
         <Button
           size="icon"
-          variant="secondary"
-          className="absolute bottom-4 right-4 rounded-full shadow-lg opacity-90 hover:opacity-100"
+          className="absolute bottom-4 right-4 rounded-full shadow-lg opacity-90 hover:opacity-100 bg-chat-secondary text-chat-secondary hover:bg-chat-secondary/80"
           onClick={scrollToBottom}
         >
           <Icon name="ArrowDown" size={16} aria-hidden="true" />

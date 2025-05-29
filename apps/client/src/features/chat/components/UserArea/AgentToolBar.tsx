@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Select,
   SelectContent,
@@ -38,10 +40,6 @@ export interface AgentToolBarProps {
   onSelectAgent: (agentId: string) => void | Promise<void>; // Updated type
   toolbarConfig?: (agent: Agent) => ToolBarItem[];
   className?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  activePrimaryColor?: string;
-  activeSecondaryColor?: string;
 }
 
 const AgentToolBar: React.FC<AgentToolBarProps> = ({
@@ -50,10 +48,6 @@ const AgentToolBar: React.FC<AgentToolBarProps> = ({
   onSelectAgent,
   toolbarConfig,
   className,
-  primaryColor,
-  secondaryColor,
-  activePrimaryColor,
-  activeSecondaryColor,
 }) => {
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
 
@@ -61,54 +55,57 @@ const AgentToolBar: React.FC<AgentToolBarProps> = ({
     selectedAgent && toolbarConfig ? toolbarConfig(selectedAgent) : [];
 
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-2 p-1 rounded-md",
-        className,
-      )}
-    >
-      <Select value={selectedAgentId ?? ""} onValueChange={onSelectAgent}>
-        <SelectTrigger
-          className="w-[60px] h-4 bg-white rounded text-[0.5rem] leading-none py-0 px-1 text-center overflow-hidden whitespace-nowrap"
-          aria-label="Select agent"
-          data-testid="agent-select"
-        >
-          <SelectValue
-            placeholder="Select agent"
-            className="text-[0.5rem] leading-none text-center whitespace-nowrap"
+    // <>
+    //   <div style={{ backgroundColor: 'red', color: 'white', padding: '10px', fontSize: '20px', border: '5px solid yellow' }}>
+    //     AGENT TOOLBAR TEST MARKER
+    //   </div>
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 p-2 rounded-md",
+          className,
+        )}
+      >
+        <Select value={selectedAgentId ?? ""} onValueChange={onSelectAgent}>
+          <SelectTrigger
+            className="w-auto min-w-[60px] rounded text-[0.5rem] leading-none px-2 py-1 text-center overflow-hidden whitespace-nowrap focus:ring-1 focus:ring-ring"
+            aria-label="Select agent"
+            data-testid="agent-select"
           >
-            {selectedAgentId
-              ? agents.find((a) => a.id === selectedAgentId)?.name
-              : "Select agent"}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent className="text-[0.5rem] leading-none bg-white min-w-[60px]">
-          {agents.map((agent) => (
-            <SelectItem
-              key={agent.id}
-              value={agent.id}
-              className="text-[0.5rem] leading-none py-0.5 bg-white hover:bg-gray-50 whitespace-nowrap"
-              data-testid={`agent-option-${agent.id}`}
+            <SelectValue
+              placeholder="Select agent"
+              className="text-[0.5rem] leading-none text-center whitespace-nowrap"
             >
-              {agent.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+              {selectedAgentId
+                ? agents.find((a) => a.id === selectedAgentId)?.name
+                : "Select agent"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent 
+            className="text-[0.5rem] leading-none min-w-[60px]"
+          >
+            {agents.map((agent) => (
+              <SelectItem
+                key={agent.id}
+                value={agent.id}
+                className="text-[0.5rem] leading-none py-0.5 hover:bg-accent hover:text-accent-foreground whitespace-nowrap flex items-center"
+                data-testid={`agent-option-${agent.id}`}
+              >
+                {agent.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {selectedAgent && toolbarItems.length > 0 && (
-        <ToolBar
-          commands={toolbarItems}
-          variant="compact"
-          className=""
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-          activePrimaryColor={activePrimaryColor}
-          activeSecondaryColor={activeSecondaryColor}
-          ariaLabel="Agent control toolbar"
-        />
-      )}
-    </div>
+        {selectedAgent && toolbarItems.length > 0 && (
+          <ToolBar
+            commands={toolbarItems}
+            variant="compact"
+            className=""
+            ariaLabel="Agent control toolbar"
+          />
+        )}
+      </div>
+    // </>
   );
 };
 
