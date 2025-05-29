@@ -1,212 +1,279 @@
 "use client";
 
+import { type ThemeColors, useTheme } from "@/contexts/ThemeContext";
 import { ChatApp } from "@/features/chat/ChatApp";
-import { useState } from "react";
+import { useRef } from "react";
 
 const mockAgentConfig = {
   agentId: "test-agent",
   agentWsUrl: "ws://localhost:0/fake-test",
-  initialAgentName: "Theme Test Agent",
+  initialAgentName: "Theme Builder Agent",
 };
 
-export default function ThemeTestPage() {
-  const [currentTheme, setCurrentTheme] = useState("default");
-  const [clickCount, setClickCount] = useState(0);
-
-  console.log("ThemeTestPage rendering, currentTheme:", currentTheme);
-
-  const handleThemeClick = (themeName: string) => {
-    console.log("Theme button clicked:", themeName);
-    setCurrentTheme(themeName);
-    setClickCount(prev => prev + 1);
-  };
-
-  // Pass theme directly - let ChatApp handle the logic
-  const actualTheme = currentTheme;
-  const debugTheme = currentTheme;
+function ColorPicker({
+  label,
+  value,
+  onChange,
+  variable,
+}: {
+  label: string;
+  value: string;
+  onChange: (color: string) => void;
+  variable: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="min-h-screen p-8 pb-16" data-chat-theme={actualTheme}>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold mb-4">ChatApp Theme Test</h1>
+    <div className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+      <div
+        className="w-8 h-8 rounded border-2 border-gray-300 cursor-pointer shadow-sm"
+        style={{ backgroundColor: value }}
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        title={`Click to change ${label}`}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm">{label}</div>
+        <div className="text-xs text-gray-500 font-mono">{variable}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-0 h-0 invisible"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-20 px-2 py-1 text-xs font-mono border border-gray-300 rounded"
+          placeholder="#000000"
+        />
+      </div>
+    </div>
+  );
+}
 
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded">
-          <p className="text-green-800">✅ ChatApp with Theme Switching!</p>
-          <p className="text-sm text-green-600 mt-1">
-            Current theme: <strong>{currentTheme}</strong> | Clicks: {clickCount}
-          </p>
-          <p className="text-xs text-green-500 mt-1">
-            Debug - actualTheme: {JSON.stringify(actualTheme)} | debugTheme: {debugTheme}
-          </p>
-        </div>
-
-        {/* DEBUGGING SECTION - Should show immediate theme changes */}
-        <div className="mb-4 p-4 border-2 border-yellow-400 bg-yellow-50 rounded-lg">
-          <h3 className="text-yellow-800 font-bold text-lg">🔍 Theme Debug Information</h3>
-          <div className="mt-2 text-sm">
-            <p><strong>React State:</strong> currentTheme = "{currentTheme}"</p>
-            <p><strong>Click Count:</strong> {clickCount} (should increment on button clicks)</p>
-            <p><strong>data-chat-theme:</strong> "{actualTheme}"</p>
-          </div>
-
-          {/* This should change colors immediately based on theme */}
+function ComponentPreview({ colors }: { colors: ThemeColors }) {
+  return (
+    <div className="space-y-4">
+      {/* Message Bubbles Preview */}
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold">Message Bubbles</h4>
+        <div className="space-y-2">
           <div
-            className="mt-3 p-3 border-2 rounded"
+            className="max-w-xs ml-auto p-3 rounded-lg text-sm"
             style={{
-              backgroundColor: 'var(--color-chat-background)',
-              color: 'var(--color-chat-foreground)',
-              borderColor: 'var(--color-chat-border)'
+              backgroundColor: colors.bubbleUser,
+              color: colors.background,
             }}
           >
-            <strong>🎨 Live CSS Variable Test:</strong>
-            <br />
-            If theme switching works, this box should change colors when you click theme buttons!
-            <br />
-            <span className="text-xs">
-              Theme: {currentTheme} | BG: var(--color-chat-background) | Color: var(--color-chat-foreground)
-            </span>
+            User message bubble - how does this look?
+          </div>
+          <div
+            className="max-w-xs p-3 rounded-lg text-sm"
+            style={{
+              backgroundColor: colors.bubbleAgent,
+              color: colors.foreground,
+              border: `1px solid ${colors.border}`,
+            }}
+          >
+            Agent response bubble with longer text to see how it wraps
+          </div>
+        </div>
+      </div>
+
+      {/* Header Preview */}
+      <div>
+        <h4 className="text-sm font-semibold mb-2">Header Bar</h4>
+        <div
+          className="p-3 rounded-lg text-sm font-medium"
+          style={{
+            backgroundColor: colors.headerBg,
+            color: colors.headerText,
+          }}
+        >
+          Chat Header - Theme Builder Agent
+        </div>
+      </div>
+
+      {/* Input Area Preview */}
+      <div>
+        <h4 className="text-sm font-semibold mb-2">Input Area</h4>
+        <div
+          className="p-3 rounded-lg border"
+          style={{
+            backgroundColor: colors.userArea,
+            borderColor: colors.border,
+          }}
+        >
+          <div
+            className="p-2 rounded border text-sm"
+            style={{
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              color: colors.foreground,
+            }}
+          >
+            Type your message here...
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ThemeBuilderPage() {
+  const {
+    currentTheme,
+    isCustomMode,
+    customColors,
+    defaultThemes,
+    updateCustomColor,
+    getActualTheme,
+    getCustomStyle,
+  } = useTheme();
+
+  const actualTheme = getActualTheme();
+  const customStyle = getCustomStyle();
+
+  return (
+    <div
+      className="min-h-screen max-w-7xl mx-auto p-6 space-y-6"
+      style={customStyle as React.CSSProperties}
+      data-chat-theme={actualTheme}
+    >
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900">🎨 ChatApp Theme Builder</h1>
+        <p className="text-gray-600 mt-2">Design and test custom themes for your chat interface</p>
+        <p className="text-sm text-gray-500 mt-1">Use the sidebar to switch between themes and manage theme tools</p>
+      </div>
+
+      {/* Layout: Color Editor + Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Color Editor */}
+        {isCustomMode && (
+          <div className="bg-white p-6 rounded-xl shadow-lg border">
+            <h2 className="text-xl font-semibold mb-4">🎨 Color Editor</h2>
+            <div className="space-y-3">
+              <ColorPicker
+                label="Background"
+                value={customColors.background}
+                onChange={(value) => updateCustomColor("background", value)}
+                variable="--color-chat-background"
+              />
+              <ColorPicker
+                label="Text Color"
+                value={customColors.foreground}
+                onChange={(value) => updateCustomColor("foreground", value)}
+                variable="--color-chat-foreground"
+              />
+              <ColorPicker
+                label="Primary Color"
+                value={customColors.primary}
+                onChange={(value) => updateCustomColor("primary", value)}
+                variable="--color-chat-primary"
+              />
+              <ColorPicker
+                label="Secondary Background"
+                value={customColors.secondary}
+                onChange={(value) => updateCustomColor("secondary", value)}
+                variable="--color-chat-secondary"
+              />
+              <ColorPicker
+                label="Border Color"
+                value={customColors.border}
+                onChange={(value) => updateCustomColor("border", value)}
+                variable="--color-chat-border"
+              />
+              <ColorPicker
+                label="User Area Background"
+                value={customColors.userArea}
+                onChange={(value) => updateCustomColor("userArea", value)}
+                variable="--color-chat-user-area"
+              />
+              <ColorPicker
+                label="User Message Bubble"
+                value={customColors.bubbleUser}
+                onChange={(value) => updateCustomColor("bubbleUser", value)}
+                variable="--color-chat-bubble-user"
+              />
+              <ColorPicker
+                label="Agent Message Bubble"
+                value={customColors.bubbleAgent}
+                onChange={(value) => updateCustomColor("bubbleAgent", value)}
+                variable="--color-chat-bubble-agent"
+              />
+              <ColorPicker
+                label="Header Background"
+                value={customColors.headerBg}
+                onChange={(value) => updateCustomColor("headerBg", value)}
+                variable="--color-chat-header-bg"
+              />
+              <ColorPicker
+                label="Header Text"
+                value={customColors.headerText}
+                onChange={(value) => updateCustomColor("headerText", value)}
+                variable="--color-chat-header-text"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Component Preview */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border">
+          <h2 className="text-xl font-semibold mb-4">🔍 Component Preview</h2>
+          <ComponentPreview colors={isCustomMode ? customColors : defaultThemes[currentTheme]} />
+        </div>
+      </div>
+
+      {/* Live ChatApp Preview */}
+      <div className="bg-white p-6 rounded-xl shadow-lg border">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">💬 Live ChatApp Preview</h2>
+          <div className="text-sm text-gray-600">
+            Current Theme: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{actualTheme}</span>
           </div>
         </div>
 
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-          <h2 className="text-lg font-semibold mb-2">Theme Switcher</h2>
-          <div className="flex gap-2 mb-3">
-            <button
-              type="button"
-              className={`px-4 py-2 rounded border transition-colors ${currentTheme === "default"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
-                }`}
-              onClick={() => handleThemeClick("default")}
-            >
-              Default Theme
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 rounded border transition-colors ${currentTheme === "spike-dark"
-                ? "bg-purple-600 text-white border-purple-600"
-                : "bg-white text-purple-600 border-purple-600 hover:bg-purple-50"
-                }`}
-              onClick={() => handleThemeClick("spike-dark")}
-            >
-              Spike Dark
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 rounded border transition-colors ${currentTheme === "minimal-test"
-                ? "bg-green-600 text-white border-green-600"
-                : "bg-white text-green-600 border-green-600 hover:bg-green-50"
-                }`}
-              onClick={() => handleThemeClick("minimal-test")}
-            >
-              Minimal Test
-            </button>
-          </div>
-          <p className="text-sm text-blue-600">
-            Switch themes and watch the ChatApp change appearance instantly!
-          </p>
-        </div>
-
-        <div className="mb-4 p-4 bg-chat-secondary text-chat-foreground border border-chat-border rounded">
-          <h3 className="font-semibold mb-2">What to Look For</h3>
-          <div className="text-sm space-y-1">
-            <p>• <strong>Chat Background</strong>: Main chat area background color</p>
-            <p>• <strong>User Input Area</strong>: Bottom input section styling</p>
-            <p>• <strong>Message Bubbles</strong>: User vs agent message colors</p>
-            <p>• <strong>Header</strong>: Top header bar appearance</p>
-            <p>• <strong>Overall Vibe</strong>: Light vs dark vs bright green!</p>
-          </div>
-        </div>
-
-        {/* Main ChatApp Component */}
-        <div className="h-[400px] border border-gray-300 rounded-lg overflow-hidden shadow-lg relative">
+        <div className="h-[500px] border border-gray-300 rounded-lg overflow-hidden shadow-lg">
           <ChatApp
-            chatId="theme-test-chat"
+            chatId="theme-builder-preview"
             agentConfig={mockAgentConfig}
             theme={actualTheme}
             className="h-full"
           />
         </div>
+      </div>
 
-        {/* Simple test section to verify rendering below ChatApp */}
-        <div className="p-4 bg-red-100 border-2 border-red-500 rounded-lg">
-          <h2 className="text-red-800 font-bold text-xl">🚨 TEST SECTION - Should be visible when scrolling</h2>
-          <p className="text-red-700">If you can see this red box, then content IS rendering below the ChatApp!</p>
-          <p className="text-sm text-red-600">Current theme: {actualTheme}</p>
-        </div>
-
-        <div className="mt-4 p-4 bg-chat-background text-chat-foreground border border-chat-border rounded">
-          <h3 className="font-semibold mb-2">Live Theme Variables</h3>
-          <div className="mb-2 text-xs text-gray-500">
-            Debug: data-chat-theme = "{actualTheme}"
+      {/* Debug Information */}
+      <div className="bg-gray-50 p-4 rounded-lg border">
+        <h3 className="text-lg font-semibold mb-2">🐛 Debug Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <strong>Current Theme:</strong> {actualTheme}
           </div>
-
-          {/* Direct CSS Variable Tests */}
-          <div className="mb-4 p-3 border-2 border-dashed border-chat-border">
-            <h4 className="text-sm font-semibold mb-2">🧪 Direct CSS Variable Tests</h4>
-            <div
-              className="mb-2 p-2 border rounded"
-              style={{
-                backgroundColor: 'var(--color-chat-background)',
-                color: 'var(--color-chat-foreground)',
-                borderColor: 'var(--color-chat-border)'
-              }}
-            >
-              <strong>CSS Variables Test:</strong> Background should change with theme!
-              <br />
-              <span className="text-xs opacity-75">
-                bg: var(--color-chat-background) | color: var(--color-chat-foreground)
-              </span>
-            </div>
-
-            <div
-              className="mb-2 p-2 border rounded"
-              style={{
-                backgroundColor: 'var(--color-chat-secondary)',
-                color: 'var(--color-chat-foreground)',
-                borderColor: 'var(--color-chat-primary)'
-              }}
-            >
-              <strong>Secondary Color Test:</strong> This uses secondary color
-              <br />
-              <span className="text-xs opacity-75">
-                bg: var(--color-chat-secondary) | border: var(--color-chat-primary)
-              </span>
-            </div>
+          <div>
+            <strong>Custom Mode:</strong> {isCustomMode ? "Yes" : "No"}
           </div>
-
-          <div className="mb-2 text-xs font-mono">
-            Current bg-chat-background color:
-            <span
-              style={{
-                backgroundColor: 'var(--color-chat-background)',
-                padding: '2px 4px',
-                marginLeft: '4px',
-                border: '1px solid #333'
-              }}
-            >
-              sample
-            </span>
+          <div className="md:col-span-2">
+            <strong>Applied Colors:</strong>
+            <pre className="mt-1 text-xs bg-white p-2 rounded border overflow-x-auto">
+              {JSON.stringify(isCustomMode ? customColors : defaultThemes[currentTheme], null, 2)}
+            </pre>
           </div>
-
-          <div className="mb-2 p-2 border border-chat-border rounded bg-chat-background text-chat-foreground">
-            <strong>CSS Classes Test:</strong> This should change with theme!
-          </div>
-
-          {/* Color Squares - Using CSS classes */}
-          <div className="flex gap-2 mb-2">
-            <div className="w-6 h-6 bg-chat-background border border-gray-400 rounded" title="Chat Background" />
-            <div className="w-6 h-6 bg-chat-primary rounded" title="Chat Primary" />
-            <div className="w-6 h-6 bg-chat-secondary rounded" title="Chat Secondary" />
-            <div className="w-6 h-6 bg-chat-user-area border border-gray-400 rounded" title="User Area" />
-            <div className="w-6 h-6 bg-chat-bubble-user rounded" title="User Bubble" />
-            <div className="w-6 h-6 bg-chat-bubble-agent rounded" title="Agent Bubble" />
-          </div>
-          <p className="text-sm opacity-75">
-            This box and squares use theme CSS classes - they change with the selected theme!
-          </p>
         </div>
       </div>
     </div>
   );
-} 
+}

@@ -5,8 +5,10 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 
 import { AppShell } from "@/components/app-shell/AppShell";
-import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ErrorBoundary } from "@ui/components/ui/error-boundary";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 
 import "./globals.css";
 
@@ -40,7 +42,7 @@ export default function RootLayout({
       }}
       signInFallbackRedirectUrl="/"
     >
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
         <head>
           <Script id="theme-color" strategy="beforeInteractive">
             {`
@@ -62,12 +64,7 @@ export default function RootLayout({
         </head>
         <body className="antialiased">
           <ErrorBoundary>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+            <ThemeProvider>
               <Toaster position="top-center" />
               <AppShell>{children}</AppShell>
               <Analytics />

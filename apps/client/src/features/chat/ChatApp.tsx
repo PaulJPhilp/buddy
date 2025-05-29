@@ -109,44 +109,53 @@ export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppP
 
     return (
         <div
-            className={`flex flex-col h-full max-w-4xl mx-auto p-4 bg-chat-background text-chat-foreground ${className}`}
+            className={`flex flex-col h-full bg-chat-background text-chat-foreground ${className}`}
             data-chat-theme={dataChatTheme}
             suppressHydrationWarning={true}
         >
-            <div className="flex items-center justify-between">
-                <HeaderBar title={chatState.agentName} />
+            {/* Header - Full width at the top */}
+            <HeaderBar title={chatState.agentName} />
+
+            {/* Main content area - flex-1 to take remaining space */}
+            <div className="flex flex-col flex-1">
+                {/* Error display and chat area with constraints */}
+                <div className="flex flex-col flex-1 max-w-4xl mx-auto p-4 w-full">
+                    {(runtimeError || chatState.error) && (
+                        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg mb-4">
+                            <h3 className="text-sm font-medium text-destructive">Error</h3>
+                            <p className="text-sm text-destructive/90 mt-1">
+                                Error: {String(runtimeError || chatState.error)}
+                            </p>
+                        </div>
+                    )}
+
+                    <ChatArea
+                        messages={chatState.messages}
+                        isTyping={chatState.isTyping}
+                    />
+                </div>
+
+                {/* User Area - Full width, no constraints */}
+                <UserArea
+                    onSendMessage={handleSendMessage}
+                    agents={mockAgentsForTesting}
+                    selectedAgent={selectedAgentId}
+                    onSelectedAgentChange={setSelectedAgentId}
+                    currentAttachments={[]}
+                    onRemoveAttachment={() => { }}
+                    onAddAttachments={() => { }}
+                    disabled={chatState.status !== "connected"}
+                />
+
+                {/* Debug panel with constraints if needed */}
+                {showDebug && (
+                    <div className="max-w-4xl mx-auto p-4 w-full">
+                        <div className="p-2 bg-muted border border-border rounded text-xs text-muted-foreground overflow-x-auto max-h-48">
+                            <pre>{JSON.stringify({ chatState, runtimeError }, null, 2)}</pre>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {(runtimeError || chatState.error) && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg m-4">
-                    <h3 className="text-sm font-medium text-destructive">Error</h3>
-                    <p className="text-sm text-destructive/90 mt-1">
-                        Error: {String(runtimeError || chatState.error)}
-                    </p>
-                </div>
-            )}
-
-            <ChatArea
-                messages={chatState.messages}
-                isTyping={chatState.isTyping}
-            />
-
-            <UserArea
-                onSendMessage={handleSendMessage}
-                agents={mockAgentsForTesting}
-                selectedAgent={selectedAgentId}
-                onSelectedAgentChange={setSelectedAgentId}
-                currentAttachments={[]}
-                onRemoveAttachment={() => { }}
-                onAddAttachments={() => { }}
-                disabled={chatState.status !== "connected"}
-            />
-
-            {showDebug && (
-                <div className="mt-4 p-2 bg-muted border border-border rounded text-xs text-muted-foreground overflow-x-auto max-h-48">
-                    <pre>{JSON.stringify({ chatState, runtimeError }, null, 2)}</pre>
-                </div>
-            )}
 
             <button
                 type="button"

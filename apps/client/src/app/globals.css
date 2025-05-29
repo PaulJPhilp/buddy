@@ -28,8 +28,8 @@
   --color-chat-user-area: #f8fafc;
   --color-chat-user-area-foreground: #0f172a;
 
-  --color-chat-header: #1e40af;
-  --color-chat-header-foreground: #ffffff;
+  --color-chat-header-bg: #1e40af;
+  --color-chat-header-text: #ffffff;
 }
 
 /* ===== THEME OVERRIDES ===== */
@@ -51,8 +51,8 @@
   --color-chat-user-area: #f8fafc !important;
   --color-chat-user-area-foreground: #0f172a !important;
 
-  --color-chat-header: #1e40af !important;
-  --color-chat-header-foreground: #ffffff !important;
+  --color-chat-header-bg: #1e40af !important;
+  --color-chat-header-text: #ffffff !important;
 }
 
 /* Spike Dark Theme */
@@ -72,8 +72,8 @@
   --color-chat-user-area: #0f172a !important;
   --color-chat-user-area-foreground: #f1f5f9 !important;
 
-  --color-chat-header: #3b82f6 !important;
-  --color-chat-header-foreground: #ffffff !important;
+  --color-chat-header-bg: #3b82f6 !important;
+  --color-chat-header-text: #ffffff !important;
 }
 
 /* Minimal Test Theme */
@@ -93,8 +93,8 @@
   --color-chat-user-area: #15803d !important;
   --color-chat-user-area-foreground: #ffffff !important;
 
-  --color-chat-header: #1e40af !important;
-  --color-chat-header-foreground: #ffffff !important;
+  --color-chat-header-bg: #1e40af !important;
+  --color-chat-header-text: #ffffff !important;
 }
 
 /* ===== CHAT THEME CSS CLASSES ===== */

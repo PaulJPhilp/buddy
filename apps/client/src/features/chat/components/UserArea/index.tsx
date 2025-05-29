@@ -67,41 +67,53 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     return (
       <div
         ref={ref}
-        className={cn("flex flex-col p-1 bg-chat-user-area text-chat-user-area-foreground", className)}
+        className={cn("w-full bg-chat-user-area text-chat-user-area-foreground", className)}
       >
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center">
-            {currentAttachments.length > 0 && (
+        <div className="max-w-4xl mx-auto p-0.5 w-full">
+          {/* 3-Row Layout: AttachmentToolbar, MinimalInput, AgentToolbar */}
+          <div className="flex flex-col h-16 space-y-2">
+
+            {/* Row 1: AttachmentToolbar */}
+            <div className="flex-1 flex items-center min-h-0">
               <AttachmentRow
                 files={currentAttachments}
                 onRemoveFile={onRemoveAttachment}
-                className="w-full"
+                className="w-full h-full flex items-center"
               />
-            )}
-          </div>
+            </div>
 
-          <div className="flex items-center">
-            <MinimalInput
-              text={inputText}
-              onTextChange={setInputText}
-              onSendMessage={internalHandleSendMessage}
-              onFilesSelected={onAddAttachments}
-              disabled={disabled}
-              toolbarConfig={minimalInputToolbarConfig}
-              selectedAgentId={selectedAgent}
-              agents={agents}
-            />
-          </div>
-
-          <div className="flex items-center">
-            {agents.length > 0 && (
-              <AgentToolBar
-                agents={agents}
+            {/* Row 2: MinimalInput */}
+            <div className="flex-1 flex items-center min-h-0">
+              <MinimalInput
+                text={inputText}
+                onTextChange={setInputText}
+                onSendMessage={internalHandleSendMessage}
+                onFilesSelected={onAddAttachments}
+                disabled={disabled}
+                toolbarConfig={minimalInputToolbarConfig}
                 selectedAgentId={selectedAgent}
-                onSelectAgent={onSelectedAgentChange}
-                toolbarConfig={agentToolbarConfig}
+                agents={agents}
+                className="w-full h-full"
               />
-            )}
+            </div>
+
+            {/* Row 3: AgentToolbar */}
+            <div className="flex-1 flex items-center min-h-0">
+              {agents.length > 0 ? (
+                <AgentToolBar
+                  agents={agents}
+                  selectedAgentId={selectedAgent}
+                  onSelectAgent={onSelectedAgentChange}
+                  toolbarConfig={agentToolbarConfig}
+                  className="w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[7px]">
+                  No agents available
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { Icon } from "@ui/components/Icon";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
 import React, { forwardRef, useRef } from "react";
@@ -99,8 +100,11 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       : defaultToolbarItems;
 
     return (
-      <div 
-        className="flex items-center w-full border rounded-md p-1 focus-within:ring-2 focus-within:ring-[hsl(var(--chat-ring-actual-hsl-components))] transition-all duration-150 ease-in-out"
+      <div
+        className={cn(
+          "flex items-center w-full border rounded-md p-1 focus-within:ring-2 focus-within:ring-[hsl(var(--chat-ring-actual-hsl-components))] transition-all duration-150 ease-in-out bg-white",
+          className
+        )}
         style={{
           borderColor: 'var(--chat-border-color)',
           borderWidth: 'var(--chat-border-thickness)',
@@ -116,21 +120,23 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
               : placeholder
           }
           disabled={disabled}
-          className="flex-grow resize-none text-sm rounded overflow-auto pl-2 leading-[22px] transition-height duration-200 ease-in-out bg-transparent focus:outline-none"
+          className="flex-grow resize-none text-[7px] rounded overflow-auto pl-2 leading-[18px] transition-height duration-200 ease-in-out bg-transparent focus:outline-none min-h-[24px] max-h-[24px] h-[24px] flex items-center"
           style={{
             color: 'var(--chat-color-text)',
+            paddingTop: '3px',
+            paddingBottom: '3px',
             // backgroundColor: 'var(--chat-color-background)', // Let parent div background show through
           }}
           aria-label="Message input"
           ref={ref}
-          minRows={3}
-          maxRows={maxRows}
+          minRows={1}
+          maxRows={1}
         />
-        <div className="flex items-center">
+        <div className="flex items-center justify-center h-full">
           <ToolBar
             commands={toolbarItems}
             variant="tiny"
-            className="justify-end h-8 text-[0.5rem] -space-x-2 pointer-events-auto [&_button]:p-0 [&_button]:mx-1 [&_svg.lucide]:!h-4 [&_svg.lucide]:!w-4"
+            className="justify-start h-6 text-[4px] -space-x-1 pointer-events-auto [&_button]:p-0 [&_button]:mx-0.5 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-6 [&_svg.lucide]:!h-1.5 [&_svg.lucide]:!w-1.5"
             ariaLabel="Message input toolbar"
           />
         </div>

@@ -7,7 +7,7 @@ import {
   CollapsibleTrigger,
 } from "@ui/components/ui/collapsible";
 import { cn } from "@ui/lib/utils";
-import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import React, { useState } from "react";
 
 export interface ErrorInfo {
@@ -68,8 +68,8 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
 
     const tokenPercentage = statusInfo?.tokens
       ? (statusInfo.tokens.used /
-          (statusInfo.tokens.used + statusInfo.tokens.remaining)) *
-        100
+        (statusInfo.tokens.used + statusInfo.tokens.remaining)) *
+      100
       : 0;
 
     const costPercentage = statusInfo?.cost
@@ -78,17 +78,17 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
 
     // Dynamic styles based on CSS Variables and isSelected state
     const headerStyle: React.CSSProperties = {
-      borderColor: isSelected ? 'var(--chat-color-accent)' : 'var(--chat-border-color)', // Use accent for selected border
-      backgroundColor: isSelected ? 'var(--chat-color-secondary)' : 'var(--chat-header-bg)', // Lighter bg when selected
-      color: 'var(--chat-header-text)', // Base text color from theme
+      borderColor: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-border)', // Use primary for selected border
+      backgroundColor: isSelected ? 'var(--color-chat-secondary)' : 'var(--color-chat-header-bg)', // Lighter bg when selected
+      color: 'var(--color-chat-header-text)', // Base text color from theme
     };
 
     const titleStyle: React.CSSProperties = {
-      color: isSelected ? 'var(--chat-color-accent)' : 'var(--chat-header-text)', // Accent color for title when selected
+      color: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-header-text)', // Primary color for title when selected
     };
-    
+
     const progressBarFillStyle: React.CSSProperties = {
-        backgroundColor: 'var(--chat-color-primary)', // Progress bars use primary color
+      backgroundColor: 'var(--color-chat-primary)', // Progress bars use primary color
     };
 
     return (
@@ -96,13 +96,18 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
         ref={ref}
         open={isStatusOpen}
         onOpenChange={handleStatusToggle}
-        className={cn("w-full border-b transition-colors", className)}
+        className={cn("w-full transition-colors", className)}
         style={headerStyle} // Apply dynamic styles
       >
         <div className="flex items-center justify-between px-1 py-0.5 text-[0.5rem] h-4">
           <div className="flex items-center gap-1">
+            <MessageCircle
+              className="h-3 w-3 p-0.5"
+              style={{ color: 'var(--color-chat-header-text)' }}
+              aria-hidden="true"
+            />
             <h2
-              className="text-lg font-medium"
+              className="text-sm font-medium"
               style={titleStyle} // Apply dynamic title style
             >
               {title}
@@ -126,7 +131,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
 
           {statusInfo && (
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-2 w-2 p-0.5" style={{ color: 'var(--chat-header-text)'}}>
+              <Button variant="ghost" size="icon" className="h-2 w-2 p-0.5" style={{ color: 'var(--color-chat-header-text)' }}>
                 {isStatusOpen ? (
                   <ChevronUp className="h-1.5 w-1.5" aria-hidden="true" />
                 ) : (
@@ -137,7 +142,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
           )}
         </div>
 
-        <CollapsibleContent className="px-1.5 py-0.5 space-y-0.5 text-[10px]" style={{ backgroundColor: 'var(--chat-color-background)', color: 'var(--chat-color-text)'}}>
+        <CollapsibleContent className="px-1.5 py-0.5 space-y-0.5 text-[10px]" style={{ backgroundColor: 'var(--color-chat-background)', color: 'var(--color-chat-foreground)' }}>
           {statusInfo?.tokens && (
             <div className="space-y-0.5">
               <div className="flex justify-between text-[10px]">
@@ -145,7 +150,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                 <span>{statusInfo.tokens.used.toLocaleString()}</span>
               </div>
               {/* Progress bar bg-muted can be replaced by a CSS var if needed */}
-              <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"> 
+              <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full transition-all"
                   style={{ width: `${tokenPercentage}%`, ...progressBarFillStyle }}
@@ -180,11 +185,11 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                 className={cn(
                   "px-1 py-0.5 rounded-full text-[10px] font-medium",
                   {
-                    "bg-[var(--chat-color-primary)]/10 text-[var(--chat-color-primary)]":
+                    "bg-[var(--color-chat-primary)]/10 text-[var(--color-chat-primary)]":
                       statusInfo.agentStatus.state === "idle",
                     "bg-yellow-500/10 text-yellow-600": // Keep standard for warning state
                       statusInfo.agentStatus.state === "thinking",
-                     "bg-gray-500/20 text-gray-700 dark:text-gray-300": // Muted state
+                    "bg-gray-500/20 text-gray-700 dark:text-gray-300": // Muted state
                       statusInfo.agentStatus.state === "paused",
                     "bg-red-500/10 text-red-600": // Keep standard for error state
                       statusInfo.agentStatus.state === "error",

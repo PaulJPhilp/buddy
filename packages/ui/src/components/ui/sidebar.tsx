@@ -49,16 +49,6 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         }}
         {...props}
       >
-        <div className="flex items-center p-4">
-          <div
-            className={cn(
-              "flex items-center overflow-hidden",
-              isCollapsedInternal && "opacity-0",
-            )}
-          >
-            {!isCollapsedInternal && children}
-          </div>
-        </div>
         <div
           className={cn(
             "flex-1 overflow-hidden hover:overflow-y-auto",
@@ -135,3 +125,4 @@ SidebarSection.displayName = "SidebarSection";
 
 export { Sidebar, SidebarItem, SidebarSection };
 export type { SidebarItemProps, SidebarProps, SidebarSectionProps };
+
