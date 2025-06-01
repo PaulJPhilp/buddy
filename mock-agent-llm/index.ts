@@ -30,7 +30,43 @@ if (!GOOGLE_GENERATIVE_AI_API_KEY) {
 // const genAI = new GoogleGenerativeAI(GOOGLE_GENERATIVE_AI_API_KEY);
 
 // Store conversation history per WebSocket connection
-const conversationHistory = new WeakMap<WebSocket, Array<{ role: 'user' | 'assistant', content: string }>>();
+const conversationHistory = new WeakMap<WebSocket, Array<{ role: 'user' | 'assistant' | 'system', content: string }>>();
+
+// System prompt for rich MDX responses
+const SYSTEM_PROMPT = `You are an intelligent assistant that responds using rich Markdown formatting. 
+
+**FORMATTING GUIDELINES:**
+- Use **bold** and *italic* text for emphasis
+- Create ## Headers and ### Sub-headers to organize information
+- Use \`inline code\` for technical terms and \`\`\`code blocks\`\`\` for multi-line code
+- Create bulleted lists with - or numbered lists with 1. 2. 3.
+- Use > blockquotes for important notes or quotes
+- Add horizontal rules (---) to separate major sections
+- Use tables when displaying structured data
+- Include links [like this](https://example.com) when relevant
+
+**CONTENT STYLE:**
+- Be comprehensive and detailed in your responses
+- Break down complex topics into clear sections
+- Use examples and analogies to illustrate points
+- Include practical tips and actionable advice
+- Vary your formatting to make responses visually engaging
+
+**EXAMPLES OF RICH FORMATTING:**
+When discussing concepts, use headers and lists:
+## Main Topic
+### Key Points
+- **Important point** with *emphasis*
+- Another point with \`technical terms\`
+
+> **Note:** Always prioritize clarity and readability
+
+For code or technical content, use proper code blocks:
+\`\`\`javascript
+const example = "formatted code";
+\`\`\`
+
+Always respond with well-structured, visually appealing markdown that showcases various formatting elements.`;
 
 // Define the callLLM function
 async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
@@ -39,7 +75,12 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
   // Get or create conversation history for this WebSocket connection
   let history = conversationHistory.get(ws);
   if (!history) {
-    history = [];
+    history = [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT
+      }
+    ];
     conversationHistory.set(ws, history);
   }
 
@@ -67,9 +108,11 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
     const result = await streamText({
       model: google('models/gemini-1.5-flash-latest'),
       messages: history.map(msg => ({
-        role: msg.role,
+        role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content
       })),
+      temperature: 0.7, // Add some creativity for richer responses
+      maxTokens: 2000,  // Allow for longer, more detailed responses
     });
 
     console.log('[LLM] Starting stream processing');

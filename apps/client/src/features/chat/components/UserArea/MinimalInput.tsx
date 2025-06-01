@@ -43,11 +43,30 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
 
     const handleSubmit = () => {
       const trimmedText = text.trim();
-      if (!trimmedText || disabled) return;
+      console.log('[MinimalInput] handleSubmit called:', {
+        originalText: text,
+        trimmedText,
+        disabled,
+        textLength: text.length,
+        trimmedLength: trimmedText.length
+      });
 
+      if (!trimmedText || disabled) {
+        console.log('[MinimalInput] Submit blocked:', {
+          emptyText: !trimmedText,
+          disabled,
+          reason: !trimmedText ? 'empty text' : 'input disabled'
+        });
+        return;
+      }
+
+      console.log('[MinimalInput] Calling onSendMessage with text:', trimmedText);
       onSendMessage(trimmedText);
+      console.log('[MinimalInput] onSendMessage called successfully');
+
       if (ref && typeof ref !== 'function' && ref.current) {
         ref.current.focus();
+        console.log('[MinimalInput] Input refocused after send');
       }
     };
 
@@ -102,7 +121,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     return (
       <div
         className={cn(
-          "flex items-center w-full border rounded-md p-1 focus-within:ring-2 focus-within:ring-[hsl(var(--chat-ring-actual-hsl-components))] transition-all duration-150 ease-in-out bg-white",
+          "flex items-center w-full border rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-[hsl(var(--chat-ring-actual-hsl-components))] transition-all duration-150 ease-in-out bg-white",
           className
         )}
         style={{
@@ -136,7 +155,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
           <ToolBar
             commands={toolbarItems}
             variant="tiny"
-            className="justify-start h-6 text-[4px] -space-x-1 pointer-events-auto [&_button]:p-0 [&_button]:mx-0.5 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-6 [&_svg.lucide]:!h-1.5 [&_svg.lucide]:!w-1.5"
+            className="justify-start h-6 text-[4px] pointer-events-auto [&_button]:p-0 [&_button]:mx-1 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-6 [&_svg.lucide]:!h-3 [&_svg.lucide]:!w-3"
             ariaLabel="Message input toolbar"
           />
         </div>

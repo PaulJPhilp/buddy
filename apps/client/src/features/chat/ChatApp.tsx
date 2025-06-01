@@ -2,7 +2,7 @@
 
 import { useChatInstance } from "@/hooks/useChatInstance";
 import { Bug } from "lucide-react";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import ChatArea from "./components/ChatArea";
 import { HeaderBar } from "./components/HeaderBar";
 import UserArea from "./components/UserArea";
@@ -17,57 +17,60 @@ interface ChatAppProps {
 }
 
 export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppProps) {
+    console.log('[ChatApp] Rendering with:', { chatId, agentConfig: agentConfig.agentId, className, theme });
+
     const { chatState, runtimeError, dispatchAction } = useChatInstance(
         chatId,
         agentConfig
     );
 
-    const mockAgentsForTesting = [
-        {
-            id: "agent1",
-            name: "Test Agent 1",
-            description: "Description for Agent 1",
-            status: { mood: 80, energy: 90, health: 95 },
-            capabilities: { canSpeak: true, canMove: false, canLearn: true },
-            avatar: "/avatars/agent1.png"
-        },
-        {
-            id: "agent2",
-            name: "Test Agent 2",
-            description: "Description for Agent 2",
-            status: { mood: 70, energy: 85, health: 90 },
-            capabilities: { canSpeak: true, canMove: true, canLearn: true },
-            avatar: "/avatars/agent2.png"
-        },
-    ];
+    console.log('[ChatApp] Chat state:', {
+        status: chatState.status,
+        messagesCount: chatState.messages.length,
+        agentName: chatState.agentName,
+        isTyping: chatState.isTyping
+    });
 
-    const [inputText, setInputText] = useState("");
+    // Use the agents from the agentConfig instead of mocks
+    const agents = agentConfig.agents || [];
+
     const [showDebug, setShowDebug] = useState(false);
     const [selectedAgentId, setSelectedAgentId] = useState<string>(
-        mockAgentsForTesting.length > 0 ? mockAgentsForTesting[0].id : ""
+        agents.length > 0 ? agents[0].id : ""
     );
 
-    const handleSendMessage = useCallback(() => {
-        if (!inputText.trim()) return;
+    const handleSendMessage = useCallback((text: string, files?: File[]) => {
+        console.log('[ChatApp] handleSendMessage called:', {
+            text,
+            textLength: text.length,
+            trimmedLength: text.trim().length,
+            filesCount: files?.length || 0,
+            hasFiles: !!files && files.length > 0,
+            chatId,
+            agentId: agentConfig.agentId
+        });
+
+        if (!text.trim()) {
+            console.log('[ChatApp] Send blocked: empty text after trim');
+            return;
+        }
 
         const action: ChatInstanceAction = {
             _tag: "sendMessage",
-            text: inputText.trim(),
+            text: text.trim(),
+            attachments: files?.map(file => ({
+                id: crypto.randomUUID(),
+                name: file.name,
+                size: file.size,
+                type: file.type
+            }))
         };
 
+        console.log('[ChatApp] Created action:', action);
+        console.log('[ChatApp] Dispatching sendMessage action to useChatInstance');
         dispatchAction(action);
-        setInputText("");
-    }, [inputText, dispatchAction]);
-
-    const handleKeyPress = useCallback(
-        (e: React.KeyboardEvent) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-            }
-        },
-        [handleSendMessage]
-    );
+        console.log('[ChatApp] Action dispatched successfully');
+    }, [dispatchAction, chatId, agentConfig.agentId]);
 
     const getStatusColor = (status: typeof chatState.status) => {
         switch (status) {
@@ -107,49 +110,57 @@ export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppP
     // Determine data attribute for theme - always pass string themes
     const dataChatTheme = typeof theme === 'string' ? theme : undefined;
 
+    console.log('[ChatApp] About to render with theme:', dataChatTheme);
+
     return (
         <div
             className={`flex flex-col h-full bg-chat-background text-chat-foreground ${className}`}
             data-chat-theme={dataChatTheme}
             suppressHydrationWarning={true}
         >
-            {/* Header - Full width at the top */}
+            {/* Header - Fixed at top */}
             <HeaderBar title={chatState.agentName} />
 
-            {/* Main content area - flex-1 to take remaining space */}
-            <div className="flex flex-col flex-1">
-                {/* Error display and chat area with constraints */}
-                <div className="flex flex-col flex-1 max-w-4xl mx-auto p-4 w-full">
-                    {(runtimeError || chatState.error) && (
-                        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg mb-4">
-                            <h3 className="text-sm font-medium text-destructive">Error</h3>
-                            <p className="text-sm text-destructive/90 mt-1">
-                                Error: {String(runtimeError || chatState.error)}
-                            </p>
-                        </div>
-                    )}
+            {/* Main content area - Takes remaining space with flex-1 and min-h-0 */}
+            <div className="flex flex-col flex-1 min-h-0">
+                {/* Chat content - Takes remaining space with overflow */}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="flex flex-col h-full max-w-4xl mx-auto p-4 w-full">
+                        {(runtimeError || chatState.error) && (
+                            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg mb-4 flex-shrink-0">
+                                <h3 className="text-sm font-medium text-destructive">Error</h3>
+                                <p className="text-sm text-destructive/90 mt-1">
+                                    Error: {String(runtimeError || chatState.error)}
+                                </p>
+                            </div>
+                        )}
 
-                    <ChatArea
-                        messages={chatState.messages}
-                        isTyping={chatState.isTyping}
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <ChatArea
+                                messages={chatState.messages}
+                                isTyping={chatState.isTyping}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* User Area - Fixed at bottom */}
+                <div className="flex-shrink-0">
+                    <UserArea
+                        onSendMessage={handleSendMessage}
+                        agents={agents}
+                        selectedAgent={selectedAgentId}
+                        onSelectedAgentChange={setSelectedAgentId}
+                        currentAttachments={[]}
+                        onRemoveAttachment={() => { }}
+                        onAddAttachments={() => { }}
+                        disabled={false} // Temporarily enable for debugging
                     />
                 </div>
 
-                {/* User Area - Full width, no constraints */}
-                <UserArea
-                    onSendMessage={handleSendMessage}
-                    agents={mockAgentsForTesting}
-                    selectedAgent={selectedAgentId}
-                    onSelectedAgentChange={setSelectedAgentId}
-                    currentAttachments={[]}
-                    onRemoveAttachment={() => { }}
-                    onAddAttachments={() => { }}
-                    disabled={chatState.status !== "connected"}
-                />
-
-                {/* Debug panel with constraints if needed */}
+                {/* Debug panel - Fixed position if shown */}
                 {showDebug && (
-                    <div className="max-w-4xl mx-auto p-4 w-full">
+                    <div className="flex-shrink-0 max-w-4xl mx-auto p-4 w-full">
                         <div className="p-2 bg-muted border border-border rounded text-xs text-muted-foreground overflow-x-auto max-h-48">
                             <pre>{JSON.stringify({ chatState, runtimeError }, null, 2)}</pre>
                         </div>

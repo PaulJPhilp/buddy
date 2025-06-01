@@ -4,9 +4,19 @@ import { ChatApp } from "@/features/chat/ChatApp";
 import { useState } from "react";
 
 const mockAgentConfig = {
-  agentId: "test-agent",
-  agentWsUrl: "ws://localhost:0/fake-test",
-  initialAgentName: "Test Agent",
+  agentId: "debug-agent",
+  agentWsUrl: "ws://localhost:8080",
+  initialAgentName: "Debug Test Agent",
+  agents: [
+    {
+      id: "debug-agent",
+      name: "Debug Agent",
+      description: "A helpful agent for debugging",
+      status: { mood: 80, energy: 90, health: 100 },
+      capabilities: { canSpeak: true, canMove: false, canLearn: true },
+      type: "assistant"
+    }
+  ]
 };
 
 export function ThemeTestComponent() {

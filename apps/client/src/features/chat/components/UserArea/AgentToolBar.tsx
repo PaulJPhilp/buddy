@@ -61,7 +61,7 @@ const AgentToolBar: React.FC<AgentToolBarProps> = ({
     //   </div>
     <div
       className={cn(
-        "flex items-center justify-start gap-2 p-1 rounded-md h-full w-full",
+        "flex items-center justify-start gap-2 py-1 pr-1 rounded-md h-full w-full",
         className,
       )}
     >

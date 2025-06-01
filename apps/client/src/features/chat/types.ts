@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { Agent } from "./components/UserArea";
 
 export interface DisplayFile {
   id: string;
@@ -129,4 +130,5 @@ export interface ChatAgentConfig {
   agentId: string;
   agentWsUrl: string;
   initialAgentName: string;
+  agents?: Agent[]; // Optional array of available agents
 }

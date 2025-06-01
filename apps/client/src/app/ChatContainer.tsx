@@ -23,38 +23,63 @@ interface ChatContainerProps {
 
 export default function ChatContainer({ chatType, theme }: ChatContainerProps) {
   const { session } = useSession();
-  const userId = session?.user?.id ?? "default_user_id";
-  const sessionId = session?.id ?? "default_session_id";
 
+  console.log('[ChatContainer] Rendering with:', { chatType, theme, sessionExists: !!session });
+
+  // All hooks at the top level
   const [runtimeInstance, setRuntimeInstance] =
     useState<Runtime.Runtime<any> | null>(null);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(true);
 
+  // Memoize session data to prevent unnecessary re-renders
+  const sessionData = useMemo(() => ({
+    userId: session?.user?.id ?? "default_user_id",
+    sessionId: session?.id ?? "default_session_id"
+  }), [session?.user?.id, session?.id]);
+
+  // Memoize runtime layer to prevent unnecessary re-renders
+  const appLayer = useMemo(() => Layer.mergeAll(
+    WebSocketService.Default,
+    AgentRuntimeService.Default,
+    ChatService.Default
+  ), []);
+
+  // Create runtime effect only once
   const effectToBuildAppRuntime = useMemo(() => {
-    console.log(`[ChatContainer] Building runtime for ${chatType} chat`);
-
-    // Create a simple runtime with all required services
-    const appLayer = Layer.mergeAll(
-      WebSocketService.Default,
-      AgentRuntimeService.Default,
-      ChatService.Default
-    );
-
     return Effect.scoped(Layer.toRuntime(appLayer));
+  }, [appLayer]);
+
+  const contextValue = useMemo(() => runtimeInstance, [runtimeInstance]);
+
+  const ChatComponent = useMemo(() => {
+    const component = chatType === "business" ? BusinessChat : SocialChat;
+    console.log('[ChatContainer] Selected ChatComponent:', { chatType, componentName: component.name });
+    return component;
   }, [chatType]);
 
+  // Memoize the onActivate callback to prevent unnecessary re-renders
+  const onActivateCallback = useMemo(() => () => { }, []);
+
+  const renderedChat = useMemo(() => {
+    console.log('[ChatContainer] Creating renderedChat with theme:', theme);
+    return (
+      <ChatComponent
+        isActive={true}
+        onActivate={onActivateCallback}
+        theme={theme}
+      />
+    );
+  }, [ChatComponent, onActivateCallback, theme]);
+
+  // Initialize runtime only if we don't have one
   useEffect(() => {
+    if (runtimeInstance) return;
+
+    console.log('[ChatContainer] Initializing runtime...');
     let mounted = true;
     setIsLoadingRuntime(true);
     setRuntimeError(null);
-    setRuntimeInstance(null);
-
-    console.log(`ChatContainer (${chatType}): Attempting to build runtime. Dependencies:`, {
-      chatType,
-      userId,
-      sessionId,
-    });
 
     const fiber = Effect.runFork(
       effectToBuildAppRuntime
@@ -62,22 +87,18 @@ export default function ChatContainer({ chatType, theme }: ChatContainerProps) {
           Effect.tap((runtime) =>
             Effect.sync(() => {
               if (!mounted) return;
+              console.log('[ChatContainer] Runtime initialized successfully');
               setIsLoadingRuntime(false);
-              Effect.runSync(Effect.log(`ChatContainer (${chatType}): Runtime successfully created.`));
               setRuntimeInstance(runtime as Runtime.Runtime<any>);
             })
           ),
           Effect.catchAll((error: unknown) =>
             Effect.sync(() => {
               if (!mounted) return;
+              console.error('[ChatContainer] Runtime initialization failed:', error);
               setIsLoadingRuntime(false);
               const prettyErrorString = String(
                 error instanceof Error ? error.message : JSON.stringify(error)
-              );
-              Effect.runSync(
-                Effect.logError(
-                  `ChatContainer (${chatType}): Failed to create runtime. Cause: ${prettyErrorString}`
-                )
               );
               setRuntimeError(prettyErrorString);
             })
@@ -88,13 +109,13 @@ export default function ChatContainer({ chatType, theme }: ChatContainerProps) {
 
     return () => {
       mounted = false;
-      console.log(`ChatContainer (${chatType}): Cleanup - interrupting runtime build fiber.`);
       Effect.runFork(Fiber.interrupt(fiber));
     };
-  }, [effectToBuildAppRuntime, chatType, userId, sessionId]);
+  }, [effectToBuildAppRuntime, runtimeInstance]);
 
   if (isLoadingRuntime) {
     const themeColor = chatType === "business" ? "blue" : "green";
+    console.log('[ChatContainer] Showing loading state with theme color:', themeColor);
     return (
       <div className="h-full w-full flex items-center justify-center">
         <div className="text-center">
@@ -108,22 +129,23 @@ export default function ChatContainer({ chatType, theme }: ChatContainerProps) {
     );
   }
 
+  if (runtimeError) {
+    console.error('[ChatContainer] Runtime error occurred:', runtimeError);
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <div className="text-lg font-semibold mb-2">Error</div>
+          <div className="text-sm">{runtimeError}</div>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('[ChatContainer] Rendering chat component');
   return (
-    <RuntimeContext.Provider value={runtimeInstance}>
+    <RuntimeContext.Provider value={contextValue}>
       <div className="h-full w-full">
-        {chatType === "business" ? (
-          <BusinessChat
-            isActive={true}
-            onActivate={() => { }}
-            theme={theme}
-          />
-        ) : (
-          <SocialChat
-            isActive={true}
-            onActivate={() => { }}
-            theme={theme}
-          />
-        )}
+        {renderedChat}
       </div>
     </RuntimeContext.Provider>
   );

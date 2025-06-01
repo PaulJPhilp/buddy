@@ -59,31 +59,51 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     };
 
     const internalHandleSendMessage = () => {
-      if (!inputText.trim() && currentAttachments.length === 0) return;
+      console.log('[UserArea] internalHandleSendMessage called:', {
+        inputText,
+        inputTextLength: inputText.length,
+        trimmedLength: inputText.trim().length,
+        attachmentsCount: currentAttachments.length,
+        hasAttachments: currentAttachments.length > 0
+      });
+
+      if (!inputText.trim() && currentAttachments.length === 0) {
+        console.log('[UserArea] Send blocked: no text and no attachments');
+        return;
+      }
+
+      console.log('[UserArea] Calling onSendMessage with:', {
+        text: inputText,
+        attachments: currentAttachments.map(f => ({ name: f.name, size: f.size, type: f.type }))
+      });
+
       onSendMessage(inputText, currentAttachments);
+      console.log('[UserArea] onSendMessage called, clearing input text');
       setInputText("");
     };
 
     return (
       <div
         ref={ref}
-        className={cn("w-full bg-chat-user-area text-chat-user-area-foreground", className)}
+        className={cn("w-full bg-chat-user-area text-chat-user-area-foreground border-t border-chat-border", className)}
       >
-        <div className="max-w-4xl mx-auto p-0.5 w-full">
+        <div className="w-full max-w-4xl mx-auto px-4 py-3">
           {/* 3-Row Layout: AttachmentToolbar, MinimalInput, AgentToolbar */}
-          <div className="flex flex-col h-16 space-y-2">
+          <div className="flex flex-col space-y-2 w-full">
 
             {/* Row 1: AttachmentToolbar */}
-            <div className="flex-1 flex items-center min-h-0">
-              <AttachmentRow
-                files={currentAttachments}
-                onRemoveFile={onRemoveAttachment}
-                className="w-full h-full flex items-center"
-              />
-            </div>
+            {currentAttachments.length > 0 && (
+              <div className="w-full flex items-center min-h-[32px]">
+                <AttachmentRow
+                  files={currentAttachments}
+                  onRemoveFile={onRemoveAttachment}
+                  className="w-full flex items-center"
+                />
+              </div>
+            )}
 
             {/* Row 2: MinimalInput */}
-            <div className="flex-1 flex items-center min-h-0">
+            <div className="w-full flex items-center min-h-[40px]">
               <MinimalInput
                 text={inputText}
                 onTextChange={setInputText}
@@ -93,26 +113,22 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
                 toolbarConfig={minimalInputToolbarConfig}
                 selectedAgentId={selectedAgent}
                 agents={agents}
-                className="w-full h-full"
+                className="w-full"
               />
             </div>
 
             {/* Row 3: AgentToolbar */}
-            <div className="flex-1 flex items-center min-h-0">
-              {agents.length > 0 ? (
+            {agents.length > 0 && (
+              <div className="w-full flex items-center min-h-[32px]">
                 <AgentToolBar
                   agents={agents}
                   selectedAgentId={selectedAgent}
                   onSelectAgent={onSelectedAgentChange}
                   toolbarConfig={agentToolbarConfig}
-                  className="w-full h-full"
+                  className="w-full"
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[7px]">
-                  No agents available
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
         </div>

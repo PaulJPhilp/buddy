@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
 import { ChatApp } from "./ChatApp";
 import type { ChatAppTheme } from "./themes/themeTypes";
 import type { ChatAgentConfig } from "./types";
@@ -13,8 +13,18 @@ interface BusinessChatProps {
 
 const agentConfig: ChatAgentConfig = {
   agentId: "business-agent",
-  agentWsUrl: "ws://localhost:0/fake-business",
+  agentWsUrl: "ws://localhost:8080",
   initialAgentName: "Business Assistant",
+  agents: [
+    {
+      id: "business-agent",
+      name: "Business Assistant",
+      description: "A professional business assistant",
+      status: { mood: 80, energy: 90, health: 95 },
+      capabilities: { canSpeak: true, canMove: false, canLearn: true },
+      avatar: "/avatars/business.png"
+    }
+  ]
 };
 
 export default function BusinessChat({
@@ -22,26 +32,16 @@ export default function BusinessChat({
   onActivate,
   theme,
 }: BusinessChatProps) {
-  const [chatId, setChatId] = useState("");
+  console.log('[BusinessChat] Rendering with props:', { isActive, theme, onActivate: !!onActivate });
 
-  // Generate chat ID on client side to prevent hydration mismatch
-  useEffect(() => {
-    const timestamp = Date.now();
-    setChatId(`business-chat-${timestamp}`);
+  // Generate chatId only once per component instance
+  const chatId = React.useMemo(() => {
+    const id = `business-chat-${Date.now()}`;
+    console.log('[BusinessChat] Generated chatId:', id);
+    return id;
   }, []);
 
-  // Don't render until we have client-side ID
-  if (!chatId) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-4 w-48" />
-          <div className="h-4 bg-gray-200 rounded mb-4 w-32" />
-          <div className="h-96 bg-gray-200 rounded w-full" />
-        </div>
-      </div>
-    );
-  }
+  console.log('[BusinessChat] Using agentConfig:', agentConfig);
 
   return (
     <ChatApp

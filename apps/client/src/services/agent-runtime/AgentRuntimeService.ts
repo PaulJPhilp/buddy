@@ -1,7 +1,7 @@
 import {
   createUserMessage
 } from "@buddy/protocol";
-import { Effect, Stream } from "effect";
+import { Effect, Stream, Context } from "effect";
 import {
   WebSocketError as BaseWebSocketError,
   WebSocketService
@@ -225,12 +225,21 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
        */
       const sendMessage = (text: string) =>
         Effect.gen(function* () {
+          console.log(`[AgentRuntimeService] Sending message to LLM for chatId: ${config.chatId}`, {
+            text,
+            agentId: config.agentId,
+            wsUrl
+          });
+
           const userMessage = createUserMessage(text, {
             metadata: {
               chatId: config.chatId, // Include chatId for message routing
             } as any // Temporary fix for type issue
           });
+
           yield* ws.send(userMessage);
+
+          console.log(`[AgentRuntimeService] Message sent successfully to LLM for chatId: ${config.chatId}`);
         }).pipe(Effect.mapError(mapError));
 
       /**
@@ -241,6 +250,14 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
        */
       const getState = () =>
         ws.receive().pipe(
+          Stream.tap((message) =>
+            Effect.sync(() => {
+              console.log(`[AgentRuntimeService] Received message from LLM for chatId: ${config.chatId}`, {
+                type: message.type,
+                agentId: config.agentId
+              });
+            })
+          ),
           Stream.map((protocolMessage) => {
             // Convert protocol messages to runtime state
             // This is a simplified mapping - you may want to expand this based on your needs
@@ -250,7 +267,8 @@ export class AgentRuntimeService extends Effect.Service<AgentRuntimeServiceApi>(
               message: "Runtime active",
             } as AgentRuntimeState;
           }),
-          Stream.mapError(mapError)
+          Stream.mapError(mapError),
+          Stream.provideContext(Context.empty())
         );
 
       return {

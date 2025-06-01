@@ -117,8 +117,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
               <div className="relative max-w-[95%] flex items-center">
                 <div className="relative flex-1">
                   <ChatBubble
-                    content={msg.text}
+                    message={msg as any}
+                    isCurrentUser={msg.role === "user"}
                     role={msg.role}
+                    enableMdxProcessing={true}
+                    showDebugInfo={false} // Set to true to re-enable debug output
                   />
                   {msg.role === "assistant" && toolbarItems.length > 0 && (
                     <div className="absolute left-0 bottom-0 translate-y-full pt-1.5 w-full">

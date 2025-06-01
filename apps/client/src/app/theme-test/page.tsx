@@ -6,8 +6,26 @@ import { useRef } from "react";
 
 const mockAgentConfig = {
   agentId: "test-agent",
-  agentWsUrl: "ws://localhost:0/fake-test",
+  agentWsUrl: "ws://localhost:8080",
   initialAgentName: "Theme Builder Agent",
+  agents: [
+    {
+      id: "test-agent",
+      name: "Theme Builder",
+      description: "A helpful agent for testing themes",
+      status: { mood: 80, energy: 90, health: 100 },
+      capabilities: { canSpeak: true, canMove: false, canLearn: true },
+      type: "assistant"
+    },
+    {
+      id: "creative-agent",
+      name: "Creative Assistant",
+      description: "Helps with creative tasks",
+      status: { mood: 95, energy: 85, health: 100 },
+      capabilities: { canSpeak: true, canMove: false, canLearn: true },
+      type: "creative"
+    }
+  ]
 };
 
 function ColorPicker({

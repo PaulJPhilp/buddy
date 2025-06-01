@@ -1,0 +1,573 @@
+import { Effect, Fiber, Option, Queue, Stream } from "effect";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type WebSocketError, WebSocketService } from "@/services/websocket/WebSocketService";
+import type { UserMessage } from "@buddy/protocol";
+import type {
+    AgentEvent,
+    ChatAgentConfig,
+    ChatInstanceAction,
+    ChatInstanceHookState,
+    Message,
+    FileAttachment,
+    ChatState
+} from "../features/chat/types";
+
+type WebSocketMessage = {
+    type: "USER_MESSAGE";
+    id: string;
+    timestamp: string;
+    text: string;
+    attachments?: FileAttachment[];
+};
+
+type ChatInstanceReturn = {
+    chatState: ChatInstanceHookState;
+    runtimeError: string | undefined;
+    dispatch: (action: ChatInstanceAction) => void;
+};
+
+type OutgoingQueue = Queue.Queue<ChatInstanceAction>;
+type IncomingQueue = Queue.Queue<AgentEvent>;
+
+type WebSocketMessage = {
+    type: "USER_MESSAGE";
+    id: string;
+    timestamp: string;
+    text: string;
+    chatId: string;
+    messages: Message[];
+    status: ChatState;
+    error?: string;
+    dispatch: (action: ChatInstanceAction) => void;
+}
+
+export function useChatInstance(providedAgentConfig: ChatAgentConfig): ChatInstanceReturn {
+    // Initialize WebSocket service
+    const wsService = useMemo(() => new WebSocketService(), []);
+
+    // Initialize state
+    const [chatState, setChatState] = useState<ChatInstanceHookState>({
+        messages: [],
+        status: "connecting",
+        error: undefined,
+        chatId: providedAgentConfig.id || `chat-${Date.now()}`,
+        agentName: providedAgentConfig.name || "AI Assistant"
+    });
+
+    // Create message queues
+    const outgoingMessageQueue = useMemo(() => Queue.unbounded<ChatInstanceAction>(), []);
+    const incomingMessageQueue = useMemo(() => Queue.unbounded<AgentEvent>(), []);
+
+    // Track runtime error
+    const [runtimeError, setRuntimeError] = useState<string | undefined>();
+        messages: [],
+        status: "connecting",
+        error: ""
+    });
+
+    // Use provided chat ID or generate a new one
+    const chatId = useMemo(() => {
+        return providedAgentConfig.chatId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }, [providedAgentConfig.chatId]);
+    // Initialize WebSocket service
+    const wsService = useMemo(() => new WebSocketService(), []);
+
+    // Initialize state
+    const [state, setState] = useState<ChatInstanceHookState>({
+        messages: [],
+        status: "connecting",
+        error: null
+    });
+    // Initialize WebSocket service
+    const wsService = useMemo(() => new WebSocketService(), []);
+    const chatId = useMemo(() => providedAgentConfig.chatId, [providedAgentConfig.chatId]);
+    // Use provided chat ID or generate a new one
+    const chatId = useMemo(() => {
+        return providedAgentConfig.id || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }, [providedAgentConfig.id]);
+
+    // Initialize chat state
+    const [chatState, setChatState] = useState<ChatInstanceHookState>({
+        chatId,
+        messages: [],
+        status: "initializing",
+        error: undefined,
+        isTyping: false,
+        agentName: "Agent"
+    });
+
+    const [runtimeError, setRuntimeError] = useState<unknown>(null);
+    const activeFiberRef = useRef<ReturnType<typeof Effect.runFork> | null>(null);
+    const isMounted = useRef(true);
+
+    // Status update helper
+    const updateStatus = useCallback((status: ChatInstanceHookState["status"]) => {
+        if (!isMounted.current) return;
+        setChatState((prev) => ({ ...prev, status }));
+    }, []);
+
+    // Agent event handler
+    const handleAgentEvent = useCallback((event: AgentEvent) => {
+        if (!isMounted.current) return;
+        console.log(`[useChatInstance] Processing agent event for chatId: ${chatId}`, event);
+        
+        switch (event.type) {
+            case "newMessage":
+                setChatState((prev) => ({
+                    ...prev,
+                    messages: [...prev.messages, event.payload]
+                }));
+                break;
+            case "statusUpdate":
+                setChatState((prev) => ({
+                    ...prev,
+                    status: event.status,
+                    agentName: event.agentName || prev.agentName
+                }));
+                break;
+            case "error":
+                setChatState((prev) => ({
+                    ...prev,
+                    error: event.message
+                }));
+                break;
+            case "agentTyping":
+                setChatState((prev) => ({
+                    ...prev,
+                    isTyping: event.isTyping
+                }));
+                break;
+        }
+    }, [chatId]);
+
+    // Initialize dispatch function
+    const [dispatch, setDispatch] = useState<(action: ChatInstanceAction) => Effect.Effect<void, never, never>>(() => {
+        return () => Effect.succeed(undefined);
+    });
+
+    // WebSocket connection and message handling
+    useEffect(() => {
+        const program = Effect.gen(function* (_) {
+            // Create message queue and WebSocket service
+            const outgoingMessageQueue = yield* _(Queue.unbounded<ChatInstanceAction>());
+            const wsService = yield* _(WebSocketService.make());
+
+            // Connect to WebSocket
+            const wsUrl = `${providedAgentConfig.agentWsUrl}?chatId=${chatId}&agentId=${providedAgentConfig.agentId}`;
+            yield* _(Effect.sync(() => updateStatus("connecting")));
+            yield* _(Effect.sync(() => console.log(`WebSocketManager: Starting for chatId: ${chatId}`)));
+            yield* _(Effect.sync(() => console.log(`WebSocketManager: Connecting to ${wsUrl}`)));
+            yield* _(wsService.connect(wsUrl));
+            yield* _(Effect.sync(() => console.log("WebSocketManager: Connected")));
+            yield* _(Effect.sync(() => updateStatus("connected")));
+
+            // Set up message dispatch
+            const dispatchToQueue = (action: ChatInstanceAction): Effect.Effect<void, never, never> =>
+                Queue.offer(outgoingMessageQueue, action).pipe(
+                    Effect.tap(() => Effect.sync(() => {
+                        console.log(`[useChatInstance] Action queued for chatId: ${chatId}`, action);
+                    })),
+                    Effect.catchAll((error) => Effect.sync(() => {
+                        console.error(`[useChatInstance] Failed to queue action for chatId: ${chatId}`, error);
+                    }))
+                );
+
+            setDispatch(() => dispatchToQueue);
+
+            // Process outgoing messages
+            const processOutgoing = Effect.gen(function* (_) {
+                const outgoing = yield* _(Stream.fromQueue(outgoingMessageQueue));
+                yield* _(Stream.runForEach(
+                    outgoing,
+                    (action: ChatInstanceAction) => Effect.sync(() => {
+                        if (action._tag !== "sendMessage") return Effect.succeed(undefined);
+                        const wsMessage: WebSocketMessage = {
+                            type: "USER_MESSAGE",
+                            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            timestamp: new Date().toISOString(),
+                            text: action.text,
+                            attachments: action.attachments
+                        };
+                        return Effect.tryPromise(() => wsService.send(wsMessage));
+                    })
+                ));
+                return Effect.succeed(undefined);
+            });
+
+            // Process incoming messages
+            const processIncoming = Effect.gen(function* (_) {
+                const incoming = yield* _(Effect.tryPromise(() => wsService.receive()));
+                yield* _(Stream.runForEach(
+                    incoming,
+                    (event: unknown) => Effect.sync(() => {
+                        const agentEvent = event as AgentEvent;
+                        console.log(`[useChatInstance] Received event for chatId: ${chatState.chatId}`, agentEvent);
+                        handleAgentEvent(agentEvent);
+                        return Effect.succeed(undefined);
+                    })
+                ));
+                return Effect.succeed(undefined);
+            });
+
+            // Start message processing
+            const outgoingFiber = yield* _(Effect.fork(processOutgoing));
+            const incomingFiber = yield* _(Effect.fork(processIncoming));
+
+            // Wait for completion or error
+            yield* _(Effect.never);
+
+            // This code is unreachable but TypeScript needs it
+            return Effect.succeed(undefined);
+        });
+
+        // Run the program
+        activeFiberRef.current = Effect.runFork(program);
+
+        // Cleanup on unmount
+        return () => {
+            isMounted.current = false;
+            if (activeFiberRef.current) {
+                Effect.runFork(Fiber.interrupt(activeFiberRef.current));
+                activeFiberRef.current = null;
+            }
+        };
+    }, [chatId, providedAgentConfig, handleAgentEvent]);
+
+/**
+ * **The Heart of the Buddy Chat System**
+ * 
+ * `useChatInstance` is the core hook that manages the entire lifecycle of a chat session.
+ * It bridges React's component lifecycle with Effect.ts's functional programming patterns
+ * to provide a robust, real-time chat experience with automatic reconnection and error handling.
+ * 
+ * ## Architecture Overview
+ * 
+ * This hook implements a sophisticated state management system that:
+ * 
+ * 1. **Manages WebSocket Connections**: Establishes and maintains persistent connections to chat agents
+ * 2. **Handles Message Flow**: Processes bidirectional message streams between client and agent
+ * 3. **Provides Resilience**: Implements automatic reconnection with exponential backoff
+ * 4. **Bridges Paradigms**: Connects React's imperative state updates with Effect's functional streams
+ * 5. **Ensures Type Safety**: Maintains strict typing throughout the entire message pipeline
+ * 
+ * ## Key Components
+ * 
+ * ### State Management
+ * - **React State**: Manages UI-visible chat state (messages, status, typing indicators)
+ * - **Effect Queues**: Handles action dispatching and message processing
+ * - **Error Boundaries**: Isolates and recovers from connection failures
+ * 
+ * ### Message Pipeline
+ * - **Outgoing Stream**: Processes user actions → WebSocket messages
+ * - **Incoming Stream**: Processes WebSocket messages → UI state updates
+ * - **Event Parsing**: Transforms raw WebSocket data into typed AgentEvents
+ * 
+ * ### Connection Management
+ * - **Automatic Connection**: Establishes WebSocket connection on mount
+ * - **Retry Logic**: Implements exponential backoff with jitter
+ * - **Graceful Cleanup**: Properly closes connections and cancels streams on unmount
+ * 
+ * ## Usage Patterns
+ * 
+ * ```typescript
+ * // Basic usage in a chat component
+ * const { chatState, runtimeError, dispatchAction } = useChatInstance(
+ *   "chat-123",
+ *   {
+ *     agentId: "business-agent",
+ *     agentWsUrl: "ws://localhost:8080",
+ *     initialAgentName: "Business Assistant"
+ *   }
+ * );
+ * 
+ * // Send a message
+ * dispatchAction({
+ *   _tag: "sendMessage",
+ *   text: "Hello, world!",
+ *   attachments: []
+ * });
+ * 
+ * // Monitor connection status
+ * if (chatState.status === "connecting") {
+ *   return <LoadingSpinner />;
+ * }
+ * ```
+ * 
+ * ## State Lifecycle
+ * 
+ * 1. **initializing** → Hook is setting up Effect runtime
+ * 2. **connecting** → Establishing WebSocket connection
+ * 3. **connected** → Active chat session, ready for messages
+ * 4. **reconnecting** → Temporary connection loss, attempting recovery
+ * 5. **error** → Permanent failure, manual intervention required
+ * 6. **disconnected** → Clean shutdown or unmount
+ * 
+ * ## Error Handling Strategy
+ * 
+ * The hook implements a multi-layered error handling approach:
+ * - **Stream-level**: Catches and logs individual message failures
+ * - **Connection-level**: Implements retry logic for connection failures
+ * - **Runtime-level**: Provides fallback error state for critical failures
+ * 
+ * @param chatId - Unique identifier for this chat session. Used for connection routing and state isolation.
+ * @param agentConfigData - Configuration object containing agent connection details and initial settings.
+ * 
+ * @returns Object containing:
+ * - `chatState`: Current chat state including messages, status, and metadata
+ * - `runtimeError`: Any critical errors that occurred during Effect runtime execution
+ * - `dispatchAction`: Function to send actions (messages, typing indicators, etc.) to the agent
+ * 
+ * @example
+ * ```typescript
+ * // Multiple chat instances can run simultaneously
+ * const businessChat = useChatInstance("business-chat", businessConfig);
+ * const socialChat = useChatInstance("social-chat", socialConfig);
+ * 
+ * // Each maintains independent state and connections
+ * businessChat.dispatchAction({ _tag: "sendMessage", text: "Business query" });
+ * socialChat.dispatchAction({ _tag: "sendMessage", text: "Social message" });
+ * ```
+ * 
+ * @see {@link ChatInstanceHookState} for state structure details
+ * @see {@link ChatInstanceAction} for available actions
+ * @see {@link AgentEvent} for incoming event types
+ */
+    export function useChatInstance(
+        chatId: string,
+        agentConfigData: ChatAgentConfig,
+    ): {
+        chatState: ChatInstanceHookState;
+        runtimeError: unknown | null;
+        dispatchAction: (action: ChatInstanceAction) => void;
+    } {
+        const activeFiberRef = useRef<Fiber.RuntimeFiber<void, never> | null>(null);
+        const isMounted = useRef(true);
+
+        /**
+         * Primary React state containing all UI-visible chat information.
+         * This state is updated by the Effect runtime through imperative setState calls.
+         */
+        const [chatState, setChatState] = useState<ChatInstanceHookState>(() => ({
+            chatId,
+            messages: [],
+            status: "initializing",
+            agentName: agentConfigData.initialAgentName,
+            isTyping: false,
+        }));
+
+        /**
+         * Tracks critical errors that occur during Effect runtime execution.
+         * These are typically connection failures that couldn't be recovered through retry logic.
+         */
+        const [runtimeError, setRuntimeError] = useState<unknown | null>(null);
+
+        /**
+         * Action dispatcher function that allows React components to send actions to the Effect runtime.
+         * Initially set to a no-op function until the Effect runtime is fully initialized.
+         */
+        const [dispatch, setDispatch] = useState<(action: ChatInstanceAction) => Effect.Effect<void, never, never>>(() =>
+            (action: ChatInstanceAction): Effect.Effect<void, never, never> => Effect.sync(() => {
+                console.warn(
+                    `[useChatInstance] Dispatch called before initialization for chatId: ${chatId}`,
+                    action
+                );
+            })
+        );
+
+        /**
+         * Main Effect that orchestrates the entire chat instance lifecycle.
+         * This useEffect manages:
+         * - Effect runtime initialization
+         * - WebSocket connection establishment
+         * - Message stream processing
+         * - Error handling and recovery
+         * - Cleanup on unmount
+         */
+        // Memoize the essential parts of the config to prevent unnecessary re-renders
+        const memoizedConfig = React.useMemo(() => ({
+            agentId: agentConfigData.agentId,
+            agentWsUrl: agentConfigData.agentWsUrl
+        }), [agentConfigData.agentId, agentConfigData.agentWsUrl]);
+
+        useEffect(() => {
+            isMounted.current = true;
+
+            // Clean up any existing fiber
+            if (activeFiberRef.current) {
+                console.log(`Interrupting existing fiber for ${chatId}`);
+                Effect.runFork(Fiber.interrupt(activeFiberRef.current));
+                activeFiberRef.current = null;
+            }
+
+            /**
+             * Main Effect program that manages the chat session.
+             * This includes WebSocket connection, message processing, and error handling.
+             */
+            const program = Effect.gen(function* () {
+                // Guard against unmounted component
+                if (!isMounted.current) {
+                    console.log(`Chat instance ${chatId} unmounted before initialization`);
+                    return;
+                }
+
+                yield* Effect.logInfo(
+                    `Effect program starting for ${chatId}, Agent: ${agentConfigData.agentId}`,
+                );
+                setRuntimeError(null);
+
+            // Set up the dispatch function that React components will use to send actions.
+            // Actions are queued and processed asynchronously by the Effect runtime.
+            const dispatchToQueue = (action: ChatInstanceAction): Effect.Effect<void, never, never> =>
+                Queue.offer(outgoingMessageQueue, action).pipe(
+                    Effect.tap(() => Effect.sync(() => {
+                        console.log(`[useChatInstance] Action queued for chatId: ${chatId}`, action);
+                    })),
+                    Effect.catchAll((error) => Effect.sync(() => {
+                        console.error(`[useChatInstance] Failed to queue action for chatId: ${chatId}`, error);
+                    }))
+                );
+
+            // Initialize dispatch immediately to prevent race conditions
+            setDispatch(() => dispatchToQueue);
+
+            // Ensure dispatch is ready before proceeding
+            yield* _(Effect.sync(() => {
+                console.log(`[useChatInstance] Dispatch function initialized for chatId: ${chatId}`);
+            }));
+            
+                // Ensure dispatch is ready before proceeding
+                yield* Effect.sync(() => {
+                    console.log(`[useChatInstance] Dispatch function initialized for chatId: ${chatId}`);
+                });
+                    ),
+                    Stream.tap((action) => Effect.sync(() => {
+                        console.log(`[useChatInstance] Processing message for chatId: ${chatId}`, {
+                            text: action.text,
+                            timestamp: new Date().toISOString()
+                        });
+                    })),
+                    Stream.map((action) => {
+                        const timestamp = new Date().toISOString();
+                        const id = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                        
+                        const newMessage: Message = {
+                            id,
+                            role: "user",
+                            text: action.text,
+                            timestamp: Date.now()
+                        };
+                        
+                        setChatState((prev) => ({
+                            ...prev,
+                            messages: [...prev.messages, newMessage]
+                        }));
+                        
+                        const wsMessage: WebSocketMessage = {
+                            type: "USER_MESSAGE",
+                            id,
+                            timestamp,
+                            text: JSON.stringify({
+                                type: "userMessage",
+                                message: {
+                                    text: action.text,
+                                    attachments: action.attachments || []
+                                }
+                            })
+                        };
+                        
+                        return wsMessage;
+                    }),
+                    Stream.tap((message) => Effect.sync(() => {
+                        console.log(`[useChatInstance] Sending message for chatId: ${chatId}`, message);
+                    })),
+                    Stream.runForEach((message) => wsService.send(message))
+                ));
+            });
+
+            const processIncoming = Effect.gen(function* (_) {
+                const incoming = yield* _(wsService.receive());
+                yield* _(Stream.runForEach(
+                    incoming,
+                    (event) => Effect.sync(() => {
+                        const agentEvent = event as AgentEvent;
+                        console.log(`[useChatInstance] Received event for chatId: ${chatId}`, agentEvent);
+                        handleAgentEvent(agentEvent);
+                        return Effect.succeed(undefined);
+                    })
+                ));
+            });
+
+            const outgoingFiber = yield* _(Effect.fork(processOutgoing));
+            const incomingFiber = yield* _(Effect.fork(processIncoming));
+                                        currentError = Option.none();
+                                        break;
+                        ),
+                    ),
+                ),
+                );
+
+                // Log completion of the WebSocket manager
+                yield* Effect.logInfo(
+                    `Effect program for ${chatId} finished webSocketManager attempt.`,
+                );
+
+                /**
+                 * Final status update - connection closed gracefully.
+                 */
+                yield* updateStatus("disconnected", "Connection closed.");
+            }).pipe(
+                /**
+                 * Top-level error handler for critical failures that couldn't be recovered.
+                 * This ensures the React component always has a valid error state to display.
+                 */
+                Effect.catchAll((error: WebSocketError) => {
+                    console.error(
+                        `Critical error in chat instance ${chatId} Effect program:`,
+                        error.message,
+                        error
+                    );
+                    setRuntimeError(error.message);
+                    setChatState((prev) => ({
+                        ...prev,
+                        status: "error",
+                        error: error.message,
+                    }));
+                    return Effect.void;
+                }),
+            );
+
+            /**
+             * Fork the main Effect program as a fiber.
+             * This allows the React component to continue rendering while the
+             * Effect runtime manages the chat session in the background.
+             */
+            activeFiberRef.current = Effect.runFork(program as Effect.Effect<void, never, never>);
+            console.log(
+                `useChatInstance useEffect: Forked Effect program for chatId: ${chatId}`,
+            );
+
+            /**
+             * Cleanup function that runs when the component unmounts or dependencies change.
+             * This ensures proper resource cleanup and prevents memory leaks.
+             */
+            return () => {
+                console.log(
+                    `useChatInstance cleanup: Interrupting Effect program for chatId: ${chatId}`,
+                );
+
+                isMounted.current = false;
+
+                // Interrupt the Effect fiber if it exists
+                if (activeFiberRef.current) {
+                    Effect.runFork(Fiber.interrupt(activeFiberRef.current));
+                    activeFiberRef.current = null;
+                }
+
+                // Reset dispatch function to prevent actions after unmount
+            };
+        },
+            [chatId, agentConfigData]
+        )
+        )
+    );  
+}

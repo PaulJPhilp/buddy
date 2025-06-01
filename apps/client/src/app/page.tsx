@@ -6,10 +6,10 @@ import ChatContainer from "./ChatContainer";
 
 export default function Home() {
   return (
-    <div className="h-screen w-full flex bg-gray-50">
-      {/* Single Chat App - Business */}
-      <div className="flex-1 bg-white">
-        <div className="h-[calc(100vh-3rem)]">
+    <div className="h-screen w-full bg-gray-100">
+      {/* Single Chat for debugging */}
+      <div className="h-full w-full bg-white shadow-sm">
+        <div className="h-full">
           <Suspense
             fallback={
               <div className="h-full w-full flex items-center justify-center">
