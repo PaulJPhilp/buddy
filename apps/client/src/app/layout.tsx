@@ -6,6 +6,8 @@ import { Toaster } from "sonner";
 
 import { AppShell } from "@/components/app-shell/AppShell";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { SelectedChatProvider } from "@/contexts/SelectedChatContext";
+import { ActiveChatProvider } from "@/contexts/ActiveChatContext";
 import { ErrorBoundary } from "@ui/components/ui/error-boundary";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
@@ -66,7 +68,11 @@ export default function RootLayout({
           <ErrorBoundary>
             <ThemeProvider>
               <Toaster position="top-center" />
-              <AppShell>{children}</AppShell>
+              <SelectedChatProvider>
+                <ActiveChatProvider>
+                  <AppShell>{children}</AppShell>
+                </ActiveChatProvider>
+              </SelectedChatProvider>
               <Analytics />
             </ThemeProvider>
           </ErrorBoundary>

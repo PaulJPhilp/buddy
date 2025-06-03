@@ -30,12 +30,6 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       setIsCollapsedInternal(isCollapsed);
     }, [isCollapsed]);
 
-    const handleToggle = () => {
-      const newState = !isCollapsedInternal;
-      setIsCollapsedInternal(newState);
-      onToggle?.();
-    };
-
     return (
       <div
         ref={ref}
@@ -51,7 +45,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       >
         <div
           className={cn(
-            "flex-1 overflow-hidden hover:overflow-y-auto",
+            "flex-1 overflow-y-auto",
             isCollapsedInternal ? "px-2" : "px-4",
           )}
         >

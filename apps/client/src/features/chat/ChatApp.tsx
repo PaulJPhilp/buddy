@@ -1,8 +1,11 @@
 "use client";
 
 import { useChatInstance } from "@/hooks/useChatInstance";
+import { useTheme, ThemeColors, defaultThemes } from "@/contexts/ThemeContext";
+import { useSelectedChat } from "@/hooks/useSelectedChat";
+import { useActiveChat } from "@/contexts/ActiveChatContext";
 import { Bug } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import ChatArea from "./components/ChatArea";
 import { HeaderBar } from "./components/HeaderBar";
 import UserArea from "./components/UserArea";
@@ -17,19 +20,70 @@ interface ChatAppProps {
 }
 
 export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppProps) {
-    console.log('[ChatApp] Rendering with:', { chatId, agentConfig: agentConfig.agentId, className, theme });
+    // Get theme from context including themeUpdateCount to track changes
+    const { getChatStyle, updateChatColor, themeUpdateCount } = useTheme();
+    
+    // Get active chat context to track which chat is active for theme editing
+    const { activeChatId, setActiveChatId } = useActiveChat();
+    
+    // Check if this chat is the active one
+    const isActive = activeChatId === chatId;
+    
+    // Handler to make this chat active when clicked
+    const handleMakeActive = useCallback(() => {
+        setActiveChatId(chatId);
+    }, [chatId, setActiveChatId]);
+    
+    // Initialize theme in context if provided as prop
+    useEffect(() => {
+        // Handle theme changes
+        if (!theme) return;
+
+        // If theme is a string, it's a theme name
+        if (typeof theme === 'string') {
+            // Check if this is a predefined theme
+            if (defaultThemes[theme]) {
+                Object.entries(defaultThemes[theme]).forEach(([key, value]) => {
+                    updateChatColor(chatId, key as keyof ThemeColors, value);
+                });
+            }
+        } 
+        // If theme is an object, it's a ChatAppTheme
+        else if (typeof theme === 'object') {
+            // Map the ChatAppTheme to ThemeColors
+            if (theme.colors?.background) updateChatColor(chatId, 'background', theme.colors.background);
+            if (theme.colors?.text) updateChatColor(chatId, 'foreground', theme.colors.text);
+            if (theme.colors?.primary) updateChatColor(chatId, 'primary', theme.colors.primary);
+            if (theme.colors?.secondary) updateChatColor(chatId, 'secondary', theme.colors.secondary);
+            if (theme.borders?.color) updateChatColor(chatId, 'border', theme.borders.color);
+            if (theme.userArea?.background) updateChatColor(chatId, 'userArea', theme.userArea.background);
+            if (theme.bubbles?.user?.background) updateChatColor(chatId, 'bubbleUser', theme.bubbles.user.background);
+            if (theme.bubbles?.agent?.background) updateChatColor(chatId, 'bubbleAgent', theme.bubbles.agent.background);
+            if (theme.header?.background) updateChatColor(chatId, 'headerBg', theme.header.background);
+            if (theme.header?.text) updateChatColor(chatId, 'headerText', theme.header.text);
+        }
+    }, [chatId, theme, updateChatColor]);
+    
+    // Get current theme styles and update when theme changes occur
+    const [themeStyles, setThemeStyles] = useState<React.CSSProperties>({});
+    
+    // Update theme styles when theme changes occur
+    useEffect(() => {
+        const newStyles = getChatStyle(chatId);
+        setThemeStyles(newStyles);
+    }, [chatId, getChatStyle, themeUpdateCount]);
+    
+    // Effect to track theme changes
+    useEffect(() => {
+        // Theme changes are now tracked via themeUpdateCount
+    }, [chatId, theme, themeStyles, themeUpdateCount]);
 
     const { chatState, runtimeError, dispatchAction } = useChatInstance(
         chatId,
         agentConfig
     );
 
-    console.log('[ChatApp] Chat state:', {
-        status: chatState.status,
-        messagesCount: chatState.messages.length,
-        agentName: chatState.agentName,
-        isTyping: chatState.isTyping
-    });
+    // Chat state is managed by useChatInstance hook
 
     // Use the agents from the agentConfig instead of mocks
     const agents = agentConfig.agents || [];
@@ -107,25 +161,35 @@ export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppP
         }
     };
 
-    // Determine data attribute for theme - always pass string themes
-    const dataChatTheme = typeof theme === 'string' ? theme : undefined;
-
-    console.log('[ChatApp] About to render with theme:', dataChatTheme);
-
+    // Determine data attribute for theme - use provided string theme or get from context
+    
+    // Create a key that changes when theme updates to force re-render
+    const themeKey = `theme-${chatId}-${themeUpdateCount}`;
+    
     return (
         <div
-            className={`flex flex-col h-full bg-chat-background text-chat-foreground ${className}`}
-            data-chat-theme={dataChatTheme}
+            key={themeKey}
+            className={`flex flex-col h-full ${className}`}
+            style={themeStyles}
+            data-theme-update={themeUpdateCount}
             suppressHydrationWarning={true}
         >
-            {/* Header - Fixed at top */}
-            <HeaderBar title={chatState.agentName} />
-
+            {/* Header - Fixed at top, clicking makes this chat active */}
+            <HeaderBar 
+                title={agentConfig.initialAgentName || "Chat"} 
+                isSelected={isActive} 
+                onHeaderClick={handleMakeActive}
+                errorInfo={runtimeError ? { message: String(runtimeError), severity: 'error' } : undefined}
+                className="flex-shrink-0 cursor-pointer"
+            />
+            
             {/* Main content area - Takes remaining space with flex-1 and min-h-0 */}
             <div className="flex flex-col flex-1 min-h-0">
                 {/* Chat content - Takes remaining space with overflow */}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    <div className="flex flex-col h-full max-w-4xl mx-auto p-4 w-full">
+                    <div 
+                      className="flex flex-col h-full max-w-4xl mx-auto p-4 w-full"
+                    >
                         {(runtimeError || chatState.error) && (
                             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg mb-4 flex-shrink-0">
                                 <h3 className="text-sm font-medium text-destructive">Error</h3>
@@ -135,7 +199,9 @@ export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppP
                             </div>
                         )}
 
-                        <div className="flex-1 min-h-0 overflow-hidden">
+                        <div 
+                          className="flex-1 min-h-0 overflow-hidden"
+                        >
                             <ChatArea
                                 messages={chatState.messages}
                                 isTyping={chatState.isTyping}
@@ -188,7 +254,13 @@ export function ChatApp({ chatId, agentConfig, className = "", theme }: ChatAppP
                     fontSize: '10px'
                 }}
             >
-                Theme: {typeof theme === 'string' ? theme : (theme ? 'object' : 'default')}
+                Theme: {typeof theme === 'string' ? theme : (theme ? 'custom object' : 'default')}
+                <div className="mt-1 flex flex-col gap-1">
+                    <div className="w-full h-2" style={{ backgroundColor: 'var(--color-chat-primary)' }}></div>
+                    <div className="w-full h-2" style={{ backgroundColor: 'var(--color-chat-secondary)' }}></div>
+                    <div className="w-full h-2" style={{ backgroundColor: 'var(--color-chat-bubble-user)' }}></div>
+                    <div className="w-full h-2" style={{ backgroundColor: 'var(--color-chat-bubble-agent)' }}></div>
+                </div>
             </div>
         </div>
     );

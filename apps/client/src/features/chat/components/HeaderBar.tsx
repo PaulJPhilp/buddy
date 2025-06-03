@@ -43,6 +43,8 @@ export interface HeaderBarProps {
   statusInfo?: StatusInfo;
   /** Optional callback when status panel is toggled */
   onToggleStatusPanel?: (isOpen: boolean) => void;
+  /** Optional callback when the header is clicked */
+  onHeaderClick?: () => void;
   /** Optional class name for styling */
   className?: string;
 }
@@ -55,6 +57,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
       isSelected,
       statusInfo,
       onToggleStatusPanel,
+      onHeaderClick, // Add onHeaderClick here
       className,
     },
     ref,
@@ -76,19 +79,18 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
       ? (statusInfo.cost.current / statusInfo.cost.limit) * 100
       : 0;
 
-    // Dynamic styles based on CSS Variables and isSelected state
     const headerStyle: React.CSSProperties = {
-      borderColor: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-border)', // Use primary for selected border
-      backgroundColor: isSelected ? 'var(--color-chat-secondary)' : 'var(--color-chat-header-bg)', // Lighter bg when selected
-      color: 'var(--color-chat-header-text)', // Base text color from theme
+      borderColor: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-border)',
+      backgroundColor: isSelected ? 'var(--color-chat-secondary)' : 'var(--color-chat-header-bg)',
+      color: 'var(--color-chat-header-text)'
     };
 
     const titleStyle: React.CSSProperties = {
-      color: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-header-text)', // Primary color for title when selected
+      color: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-header-text)'
     };
 
     const progressBarFillStyle: React.CSSProperties = {
-      backgroundColor: 'var(--color-chat-primary)', // Progress bars use primary color
+      backgroundColor: 'var(--color-chat-primary)'
     };
 
     return (
@@ -98,6 +100,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
         onOpenChange={handleStatusToggle}
         className={cn("w-full transition-colors", className)}
         style={headerStyle} // Apply dynamic styles
+        onClick={onHeaderClick} // Call onHeaderClick when the Collapsible area is clicked
       >
         <div className="flex items-center justify-between px-1 py-0.5 text-[0.5rem] h-4">
           <div className="flex items-center gap-1">
@@ -150,7 +153,10 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                 <span>{statusInfo.tokens.used.toLocaleString()}</span>
               </div>
               {/* Progress bar bg-muted can be replaced by a CSS var if needed */}
-              <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-0.5 w-full rounded-full overflow-hidden"
+                style={{ backgroundColor: 'var(--color-chat-border)' }}
+              >
                 <div
                   className="h-full transition-all"
                   style={{ width: `${tokenPercentage}%`, ...progressBarFillStyle }}
@@ -168,7 +174,10 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                   {statusInfo.cost.limit.toLocaleString()}
                 </span>
               </div>
-              <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-0.5 w-full rounded-full overflow-hidden"
+                style={{ backgroundColor: 'var(--color-chat-border)' }}
+              >
                 <div
                   className="h-full transition-all"
                   style={{ width: `${costPercentage}%`, ...progressBarFillStyle }}

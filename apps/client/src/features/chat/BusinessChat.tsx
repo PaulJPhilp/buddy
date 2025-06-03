@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { ChatApp } from "./ChatApp";
 import type { ChatAppTheme } from "./themes/themeTypes";
 import type { ChatAgentConfig } from "./types";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface BusinessChatProps {
   isActive?: boolean;
@@ -32,16 +33,11 @@ export default function BusinessChat({
   onActivate,
   theme,
 }: BusinessChatProps) {
-  console.log('[BusinessChat] Rendering with props:', { isActive, theme, onActivate: !!onActivate });
-
-  // Generate chatId only once per component instance
-  const chatId = React.useMemo(() => {
-    const id = `business-chat-${Date.now()}`;
-    console.log('[BusinessChat] Generated chatId:', id);
-    return id;
-  }, []);
-
-  console.log('[BusinessChat] Using agentConfig:', agentConfig);
+  const chatId = "chat-1";
+  const { getChatStyle } = useTheme();
+  
+  // Get theme styles from context
+  const themeStyles = useMemo(() => getChatStyle(chatId), [getChatStyle, chatId]);
 
   return (
     <ChatApp

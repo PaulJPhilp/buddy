@@ -18,37 +18,25 @@ const Palette = dynamic(() => import("lucide-react").then((mod) => ({ default: m
 export function ThemeSelector() {
     const {
         currentTheme,
-        isCustomMode,
+        setGlobalTheme,
         defaultThemes,
-        handlePresetTheme,
-        handleCustomMode,
     } = useTheme();
 
     return (
-        <SidebarSection title="🎨 Themes">
-            {/* Preset Themes */}
+        <SidebarSection title="🎨 Global Themes">
+            {/* Available Themes */}
             {Object.keys(defaultThemes).map((themeName) => (
                 <SidebarItem
                     key={themeName}
                     icon={<Palette className="h-4 w-4" aria-hidden="true" />}
                     collapsedIcon={<Palette className="h-4 w-4" aria-hidden="true" />}
-                    isActive={currentTheme === themeName && !isCustomMode}
-                    onClick={() => handlePresetTheme(themeName)}
+                    isActive={currentTheme === themeName}
+                    onClick={() => setGlobalTheme(themeName)}
                     className="capitalize"
                 >
                     {themeName}
                 </SidebarItem>
             ))}
-
-            {/* Custom Theme */}
-            <SidebarItem
-                icon={<Paintbrush className="h-4 w-4" aria-hidden="true" />}
-                collapsedIcon={<Paintbrush className="h-4 w-4" aria-hidden="true" />}
-                isActive={isCustomMode}
-                onClick={handleCustomMode}
-            >
-                Custom Theme
-            </SidebarItem>
         </SidebarSection>
     );
 } 

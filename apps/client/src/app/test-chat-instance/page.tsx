@@ -39,11 +39,11 @@ export default function TestChatInstancePage() {
                 <div className="mt-1">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: "400px" }}>
-                            <ChatContainer chatType="business" theme="spike-dark" />
+                            <ChatContainer chatType="business" theme="spike-dark" id={chatIds.business} />
                         </div>
 
                         <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: "400px" }}>
-                            <ChatContainer chatType="social" theme="minimal-test" />
+                            <ChatContainer chatType="social" theme="minimal-test" id={chatIds.social} />
                         </div>
                     </div>
                 </div>

@@ -19,7 +19,7 @@ export default function SimpleTest() {
                     }
                 >
                     <ClientOnly>
-                        <ChatContainer chatType="business" />
+                        <ChatContainer chatType="business" id="simple-test" />
                     </ClientOnly>
                 </Suspense>
             </div>

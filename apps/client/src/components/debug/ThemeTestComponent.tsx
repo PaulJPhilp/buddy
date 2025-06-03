@@ -21,11 +21,23 @@ const mockAgentConfig = {
 
 export function ThemeTestComponent() {
   const [currentTheme, setCurrentTheme] = useState<string>("default");
+  const [themeColors, setThemeColors] = useState<Record<string, string>>({
+    background: "#ffffff",
+    foreground: "#000000",
+    primary: "#0ea5e9",
+    secondary: "#64748b",
+    userArea: "#f8fafc",
+    bubbleUser: "#0ea5e9",
+    bubbleAgent: "#64748b",
+    headerBg: "#f8fafc",
+    headerText: "#000000"
+  });
 
   const themes = [
     { value: "default", label: "Default" },
     { value: "spike-dark", label: "Spike Dark" },
     { value: "minimal-test", label: "Minimal Test" },
+    { value: "custom", label: "Custom" },
   ];
 
   console.log("ThemeTestComponent render - currentTheme:", currentTheme);
@@ -37,7 +49,7 @@ export function ThemeTestComponent() {
           <div className="text-lg font-semibold text-green-600 mb-4">
             ✅ Theme Test Component Loaded!
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {themes.map((theme) => (
               <button
                 key={theme.value}
@@ -45,6 +57,50 @@ export function ThemeTestComponent() {
                 onClick={() => {
                   console.log("Switching to theme:", theme.value);
                   setCurrentTheme(theme.value);
+                  
+                  // Reset custom colors when switching themes
+                  if (theme.value !== 'custom') {
+                    // We would load the actual theme colors here
+                    // For now, just use some defaults based on the theme name
+                    if (theme.value === 'spike-dark') {
+                      setThemeColors({
+                        background: "#1e293b",
+                        foreground: "#f8fafc",
+                        primary: "#38bdf8",
+                        secondary: "#64748b",
+                        userArea: "#0f172a",
+                        bubbleUser: "#38bdf8",
+                        bubbleAgent: "#475569",
+                        headerBg: "#0f172a",
+                        headerText: "#f8fafc"
+                      });
+                    } else if (theme.value === 'minimal-test') {
+                      setThemeColors({
+                        background: "#f9fafb",
+                        foreground: "#111827",
+                        primary: "#4f46e5",
+                        secondary: "#9ca3af",
+                        userArea: "#f3f4f6",
+                        bubbleUser: "#4f46e5",
+                        bubbleAgent: "#9ca3af",
+                        headerBg: "#f3f4f6",
+                        headerText: "#111827"
+                      });
+                    } else {
+                      // Default theme
+                      setThemeColors({
+                        background: "#ffffff",
+                        foreground: "#000000",
+                        primary: "#0ea5e9",
+                        secondary: "#64748b",
+                        userArea: "#f8fafc",
+                        bubbleUser: "#0ea5e9",
+                        bubbleAgent: "#64748b",
+                        headerBg: "#f8fafc",
+                        headerText: "#000000"
+                      });
+                    }
+                  }
                 }}
                 className={`px-4 py-2 rounded border transition-colors ${currentTheme === theme.value
                   ? "bg-blue-600 text-white border-blue-600"
@@ -67,7 +123,24 @@ export function ThemeTestComponent() {
               <ChatApp
                 chatId="theme-test-chat"
                 agentConfig={mockAgentConfig}
-                theme={currentTheme === "default" ? undefined : currentTheme}
+                theme={currentTheme === "default" ? undefined : 
+                       currentTheme === "custom" ? { 
+                         colors: {
+                           background: themeColors.background,
+                           text: themeColors.foreground,
+                           primary: themeColors.primary,
+                           secondary: themeColors.secondary
+                         },
+                         userArea: { background: themeColors.userArea },
+                         bubbles: {
+                           user: { background: themeColors.bubbleUser },
+                           agent: { background: themeColors.bubbleAgent }
+                         },
+                         header: {
+                           background: themeColors.headerBg,
+                           text: themeColors.headerText
+                         }
+                       } : currentTheme}
                 className="h-full"
               />
             </div>
@@ -78,22 +151,51 @@ export function ThemeTestComponent() {
           <div className="p-4 bg-white border border-gray-300 rounded-lg">
             <h3 className="font-semibold mb-2">Theme Colors</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-chat-background border border-gray-400 rounded" />
-                <span>Chat Background</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-chat-primary rounded" />
-                <span>Chat Primary</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-chat-secondary rounded" />
-                <span>Chat Secondary</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-chat-user-area border border-gray-400 rounded" />
-                <span>User Area</span>
-              </div>
+              {currentTheme === 'custom' ? (
+                <div className="space-y-3">
+                  {Object.entries(themeColors).map(([key, value]) => (
+                    <div key={key} className="flex flex-col">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium">{key}</label>
+                        <div 
+                          className="w-6 h-6 rounded border border-gray-300" 
+                          style={{ backgroundColor: value }}
+                        />
+                      </div>
+                      <input 
+                        type="text" 
+                        value={value}
+                        onChange={(e) => {
+                          setThemeColors(prev => ({
+                            ...prev,
+                            [key]: e.target.value
+                          }));
+                        }}
+                        className="px-2 py-1 text-xs border rounded w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-chat-background border border-gray-400 rounded" />
+                    <span>Chat Background</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-4 h-4 bg-chat-primary rounded" />
+                    <span>Chat Primary</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-4 h-4 bg-chat-secondary rounded" />
+                    <span>Chat Secondary</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-4 h-4 bg-chat-user-area border border-gray-400 rounded" />
+                    <span>User Area</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -109,15 +211,38 @@ export function ThemeTestComponent() {
                 <span>Agent Bubble</span>
               </div>
             </div>
+            
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium mb-2">Preview</h4>
+              <div className="space-y-2">
+                <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: 'var(--color-chat-bubble-user)', color: '#fff' }}>
+                  User message example
+                </div>
+                <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: 'var(--color-chat-bubble-agent)', color: '#fff' }}>
+                  Agent response example
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="p-4 bg-white border border-gray-300 rounded-lg">
             <h3 className="font-semibold mb-2">Instructions</h3>
             <p className="text-sm text-gray-600">
               Switch between themes using the buttons above to see how the chat
-              appearance changes. Each theme defines different color schemes
-              using Tailwind v4's @theme directive.
+              appearance changes. Select "Custom" to edit theme colors directly.
             </p>
+            
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium mb-2">CSS Variables</h4>
+              <div className="bg-gray-100 p-2 rounded text-xs font-mono overflow-x-auto">
+                <pre>{`:root {
+  --color-chat-background: ${themeColors.background};
+  --color-chat-foreground: ${themeColors.foreground};
+  --color-chat-primary: ${themeColors.primary};
+  --color-chat-secondary: ${themeColors.secondary};
+}`}</pre>
+              </div>
+            </div>
           </div>
         </div>
       </div>

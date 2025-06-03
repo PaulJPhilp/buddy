@@ -2,14 +2,24 @@
 
 import { Menu } from "lucide-react";
 import React from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface AppToolbarProps {
   onToggleSidebarAction: () => void;
 }
 
 export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
+  const { getChatStyle } = useTheme();
+  const themeStyles = getChatStyle('shell');
   return (
-    <header className="flex items-center h-6 px-4 border-b bg-background/80">
+    <header 
+      className="flex items-center h-6 px-4 border-b" 
+      style={{
+        backgroundColor: 'var(--color-chat-header-bg)',
+        color: 'var(--color-chat-header-text)',
+        borderColor: 'var(--color-chat-border)'
+      }}
+    >
       <button
         type="button"
         onClick={onToggleSidebarAction}

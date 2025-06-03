@@ -85,7 +85,12 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     return (
       <div
         ref={ref}
-        className={cn("w-full bg-chat-user-area text-chat-user-area-foreground border-t border-chat-border", className)}
+        className={cn("w-full border-t", className)}
+        style={{
+          backgroundColor: 'var(--color-chat-user-area)',
+          color: 'var(--color-chat-foreground)',
+          borderColor: 'var(--color-chat-border)'
+        }}
       >
         <div className="w-full max-w-4xl mx-auto px-4 py-3">
           {/* 3-Row Layout: AttachmentToolbar, MinimalInput, AgentToolbar */}

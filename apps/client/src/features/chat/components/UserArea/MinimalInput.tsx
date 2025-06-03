@@ -121,12 +121,13 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     return (
       <div
         className={cn(
-          "flex items-center w-full border rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-[hsl(var(--chat-ring-actual-hsl-components))] transition-all duration-150 ease-in-out bg-white",
+          "flex items-center w-full border rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-[var(--color-chat-primary)] transition-all duration-150 ease-in-out",
           className
         )}
         style={{
-          borderColor: 'var(--chat-border-color)',
-          borderWidth: 'var(--chat-border-thickness)',
+          backgroundColor: 'var(--color-chat-background)',
+          borderColor: 'var(--color-chat-border)',
+          color: 'var(--color-chat-foreground)'
         }}
       >
         <TextareaAutosize
@@ -141,10 +142,10 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
           disabled={disabled}
           className="flex-grow resize-none text-[7px] rounded overflow-auto pl-2 leading-[18px] transition-height duration-200 ease-in-out bg-transparent focus:outline-none min-h-[24px] max-h-[24px] h-[24px] flex items-center"
           style={{
-            color: 'var(--chat-color-text)',
+            color: 'var(--color-chat-foreground)',
             paddingTop: '3px',
             paddingBottom: '3px',
-            // backgroundColor: 'var(--chat-color-background)', // Let parent div background show through
+            backgroundColor: 'transparent'
           }}
           aria-label="Message input"
           ref={ref}

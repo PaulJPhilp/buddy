@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { ChatApp } from "./ChatApp";
 import type { ChatAppTheme } from "./themes/themeTypes";
 import type { ChatAgentConfig } from "./types";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SocialChatProps {
   isActive?: boolean;
@@ -32,8 +33,11 @@ export default function SocialChat({
   onActivate,
   theme,
 }: SocialChatProps) {
-  // Generate chatId only once per component instance
-  const chatId = React.useMemo(() => `social-chat-${Date.now()}`, []);
+  const chatId = "chat-2";
+  const { getChatStyle } = useTheme();
+  
+  // Get theme styles from context
+  const themeStyles = useMemo(() => getChatStyle(chatId), [getChatStyle, chatId]);
 
   return (
     <ChatApp

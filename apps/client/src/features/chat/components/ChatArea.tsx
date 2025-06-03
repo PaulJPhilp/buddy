@@ -83,10 +83,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       <div
         ref={scrollableAreaRef}
         className={cn(
-          "flex-1 overflow-y-auto p-4 space-y-4 bg-chat-background text-chat-foreground",
+          "flex-1 overflow-y-auto p-4 space-y-4",
           isLoadingHistory && "opacity-80",
           className
         )}
+        style={{
+          backgroundColor: 'var(--color-chat-background)',
+          color: 'var(--color-chat-foreground)'
+        }}
         role="log"
         aria-live="polite"
       >
@@ -148,7 +152,13 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         })}
         {isTyping && (
           <div className="flex justify-start">
-            <div className="text-sm bg-chat-bubble-agent text-chat-bubble-agent-foreground px-3 py-2 rounded-xl">
+            <div 
+              className="text-sm px-3 py-2 rounded-xl"
+              style={{
+                backgroundColor: 'var(--color-chat-bubble-agent)',
+                color: 'var(--color-chat-foreground)'
+              }}
+            >
               <div className="flex items-center space-x-2">
                 <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" />
                 <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -162,7 +172,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       {showScrollButton && (
         <Button
           size="icon"
-          className="absolute bottom-4 right-4 rounded-full shadow-lg opacity-90 hover:opacity-100 bg-chat-secondary text-chat-secondary hover:bg-chat-secondary/80"
+          className="absolute bottom-4 right-4 rounded-full shadow-lg opacity-90 hover:opacity-100"
+          style={{
+            backgroundColor: 'var(--color-chat-secondary)',
+            color: 'var(--color-chat-foreground)',
+          }}
           onClick={scrollToBottom}
         >
           <Icon name="ArrowDown" size={16} aria-hidden="true" />
