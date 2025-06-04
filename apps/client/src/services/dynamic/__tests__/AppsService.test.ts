@@ -30,8 +30,10 @@ describe('AppsService', () => {
       
       // Retrieve and verify
       const retrieved = yield* appsService.getById('test-app')
-      expect(retrieved._tag).toBe('Some')
-      expect(retrieved.value).toEqual(app)
+      expect(retrieved).toMatchObject({
+        _tag: 'Some',
+        value: app
+      })
     })
     
     // First provide the dependencies, then provide the AppsService
@@ -78,8 +80,10 @@ describe('AppsService', () => {
       
       // Retrieve and verify
       const retrieved = yield* appsService.getById('test-app')
-      expect(retrieved._tag).toBe('Some')
-      expect(retrieved.value).toEqual({ ...app, ...update })
+      expect(retrieved).toMatchObject({
+        _tag: 'Some',
+        value: { ...app, ...update }
+      })
     })
     
     return Effect.runPromise(
@@ -124,7 +128,9 @@ describe('AppsService', () => {
       
       // Verify it's gone
       const retrieved = yield* appsService.getById('test-app')
-      expect(retrieved._tag).toBe('None')
+      expect(retrieved).toMatchObject({
+        _tag: 'None'
+      })
     })
     
     return Effect.runPromise(
