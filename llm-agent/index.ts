@@ -197,7 +197,7 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
 
 try {
   // Create WebSocket server directly
-  const wss = new WebSocketServer({ port: Number(PORT) });
+  const wss = new WebSocketServer({ port: Number(PORT), path: "/chat" });
 
   wss.on('connection', (ws) => {
     console.log('[Server] Client connected');

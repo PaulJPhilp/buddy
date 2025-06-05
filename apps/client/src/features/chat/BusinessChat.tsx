@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useMemo } from "react";
 import { ChatApp } from "./ChatApp";
 import type { ChatAppTheme } from "./themes/themeTypes";
 import type { ChatAgentConfig } from "./types";
-import { useTheme } from "@/contexts/ThemeContext";
 
 interface BusinessChatProps {
   isActive?: boolean;
@@ -14,7 +14,6 @@ interface BusinessChatProps {
 
 const agentConfig: ChatAgentConfig = {
   agentId: "business-agent",
-  agentWsUrl: "ws://localhost:8080",
   initialAgentName: "Business Assistant",
   agents: [
     {
@@ -35,7 +34,7 @@ export default function BusinessChat({
 }: BusinessChatProps) {
   const chatId = "chat-1";
   const { getChatStyle } = useTheme();
-  
+
   // Get theme styles from context
   const themeStyles = useMemo(() => getChatStyle(chatId), [getChatStyle, chatId]);
 

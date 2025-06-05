@@ -1,9 +1,10 @@
+import { createWebSocketEnvelope } from "@buddy/protocol";
 import { Effect, Stream } from "effect";
 import { describe, expect, it } from "vitest";
 import { WebSocketService } from "./WebSocketService";
 
 describe("WebSocketService", () => {
-  const mockUrl = "ws://localhost:3000";
+  const serverUrl = "ws://localhost:8080/chat";
 
   describe("Connection management", () => {
     it("should connect and disconnect successfully", () =>
@@ -12,7 +13,7 @@ describe("WebSocketService", () => {
           const service = yield* WebSocketService;
 
           // Connect
-          yield* service.connect(mockUrl);
+          yield* service.connect(serverUrl);
           yield* Effect.sleep(100); // Give time for connection
 
           // Disconnect
@@ -43,11 +44,11 @@ describe("WebSocketService", () => {
           const service = yield* WebSocketService;
 
           // First connection
-          yield* service.connect(mockUrl);
+          yield* service.connect(serverUrl);
 
           // Second connection should fail
           yield* Effect.try({
-            try: () => service.connect(mockUrl),
+            try: () => service.connect(serverUrl),
             catch: (error) => {
               expect(error).toEqual({
                 code: "CONNECT_ERROR",
@@ -69,18 +70,19 @@ describe("WebSocketService", () => {
           const service = yield* WebSocketService;
 
           // Connect using Effect.scoped to ensure cleanup
-          yield* service.connect(mockUrl);
+          yield* service.connect(serverUrl);
 
-          // Send message - explicitly ignore the return value
+          // Send message
           const message = {
-            type: "MESSAGE" as const,
-            payload: "Hello, world!",
-            text: "Hello, world!", // Added text property
-            timestamp: new Date().toDateString(), // Added timestamp property
+            type: "USER_MESSAGE" as const,
+            text: "Hello, world!",
+            timestamp: new Date().toISOString(),
+            metadata: { chatId: "test-chat-id-123", agentId: "test-agent-001" }
           };
+          const envelope = createWebSocketEnvelope(message);
 
-          // Send message - explicitly ignore the return value
-          yield* service.send(message);
+          // Send message
+          yield* service.send(envelope);
 
           // Receive message
           const received = yield* Stream.runHead(service.receive()); // received is Option<WebSocketMessage>
@@ -98,12 +100,12 @@ describe("WebSocketService", () => {
 
           yield* Effect.try({
             try: () =>
-              service.send({
-                type: "MESSAGE" as const,
-                payload: "Should fail",
+              service.send(createWebSocketEnvelope({
+                type: "USER_MESSAGE" as const,
                 text: "Should fail",
-                timestamp: new Date().toDateString(),
-              }),
+                timestamp: new Date().toISOString(),
+                metadata: { chatId: "test-chat-id-123", agentId: "test-agent-001" }
+              })),
             catch: (error) => {
               expect(error).toEqual({
                 code: "SEND_ERROR",

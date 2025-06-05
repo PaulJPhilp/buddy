@@ -74,7 +74,6 @@ const originalWebSocket = global.WebSocket;
 describe("useChatInstance Integration Tests", () => {
     const mockConfig: ChatAgentConfig = {
         agentId: "test-agent",
-        agentWsUrl: "ws://localhost:3002",
         initialAgentName: "Test Agent",
     };
 

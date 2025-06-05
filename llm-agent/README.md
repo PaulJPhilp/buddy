@@ -1,4 +1,4 @@
-# mock-agent-llm
+# llm-agent
 
 A WebSocket server that provides an LLM-powered chat experience with rich Markdown/MDX formatting support.
 

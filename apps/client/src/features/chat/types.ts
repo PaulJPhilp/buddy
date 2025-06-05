@@ -128,7 +128,6 @@ export type AgentEvent =
 // Renamed from AgentConfigData to ChatAgentConfig
 export interface ChatAgentConfig {
   agentId: string;
-  agentWsUrl: string;
   initialAgentName: string;
   agents?: Agent[]; // Optional array of available agents
 }

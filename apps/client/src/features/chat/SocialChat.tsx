@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useMemo } from "react";
 import { ChatApp } from "./ChatApp";
 import type { ChatAppTheme } from "./themes/themeTypes";
 import type { ChatAgentConfig } from "./types";
-import { useTheme } from "@/contexts/ThemeContext";
 
 interface SocialChatProps {
   isActive?: boolean;
@@ -14,7 +14,6 @@ interface SocialChatProps {
 
 const agentConfig: ChatAgentConfig = {
   agentId: "social-agent",
-  agentWsUrl: "ws://localhost:8080",
   initialAgentName: "Social Assistant",
   agents: [
     {
@@ -35,7 +34,7 @@ export default function SocialChat({
 }: SocialChatProps) {
   const chatId = "chat-2";
   const { getChatStyle } = useTheme();
-  
+
   // Get theme styles from context
   const themeStyles = useMemo(() => getChatStyle(chatId), [getChatStyle, chatId]);
 

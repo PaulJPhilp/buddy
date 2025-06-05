@@ -27,7 +27,7 @@ sleep 2
 
 # Start the LLM server
 echo -e "${GREEN}🤖 Starting LLM Server on port 8080...${NC}"
-cd mock-agent-llm
+cd llm-agent
 npm run start &
 LLM_PID=$!
 cd ..

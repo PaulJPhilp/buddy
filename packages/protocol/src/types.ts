@@ -24,6 +24,7 @@ export interface UserMessage extends BaseMessage {
 export interface ConnectionMessage extends BaseMessage {
     readonly type: "CONNECTION";
     readonly action: "CONNECT" | "DISCONNECT" | "PING";
+    readonly connectionState?: ConnectionState;
     readonly clientInfo?: {
         readonly userAgent?: string;
         readonly version?: string;

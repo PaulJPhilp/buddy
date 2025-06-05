@@ -74,7 +74,7 @@ describe("WebSocketService Global Singleton Test", () => {
         // First Effect chain: Connect to WebSocket
         const connectEffect = Effect.gen(function* () {
             const ws = yield* WebSocketService;
-            yield* ws.connect("ws://localhost:8080");
+            yield* ws.connect("ws://localhost:8080/chat");
             return "connected";
         }).pipe(Effect.provide(WebSocketService.Default));
 
@@ -99,7 +99,7 @@ describe("WebSocketService Global Singleton Test", () => {
         // Connect once
         const connectEffect = Effect.gen(function* () {
             const ws = yield* WebSocketService;
-            yield* ws.connect("ws://localhost:8080");
+            yield* ws.connect("ws://localhost:8080/chat");
             return "connected";
         }).pipe(Effect.provide(WebSocketService.Default));
 

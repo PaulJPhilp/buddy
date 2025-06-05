@@ -1,40 +1,11 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
-// Mock WebSocket globally for tests
-global.WebSocket = class MockWebSocket {
-    static CONNECTING = 0;
-    static OPEN = 1;
-    static CLOSING = 2;
-    static CLOSED = 3;
+// Use real WebSocket for tests (Node.js implementation)
+import WebSocket from 'ws';
 
-    readyState = MockWebSocket.CONNECTING;
-    url: string;
-    onopen: ((event: Event) => void) | null = null;
-    onclose: ((event: CloseEvent) => void) | null = null;
-    onerror: ((event: Event) => void) | null = null;
-    onmessage: ((event: MessageEvent) => void) | null = null;
-
-    constructor(url: string) {
-        this.url = url;
-    }
-
-    send(data: string) {
-        // Mock implementation
-    }
-
-    close() {
-        this.readyState = MockWebSocket.CLOSED;
-    }
-
-    addEventListener(type: string, listener: EventListener) {
-        // Mock implementation
-    }
-
-    removeEventListener(type: string, listener: EventListener) {
-        // Mock implementation
-    }
-} as any;
+// Polyfill WebSocket for Node.js environment
+global.WebSocket = WebSocket as any;
 
 // Mock console methods to reduce noise in tests
 global.console = {

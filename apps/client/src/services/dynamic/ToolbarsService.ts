@@ -9,7 +9,7 @@
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  */
 
-import { Chunk, Effect, Layer, Ref, Schema } from "effect"
+import { Chunk, Effect, Layer, Option, Ref, Schema } from "effect"
 import { ToolbarConfig, ToolbarConfigSchema } from "../../schemas/ToolbarConfigSchema"
 
 export interface ToolbarsServiceApi {
@@ -31,12 +31,16 @@ export class ToolbarsService extends Effect.Service<ToolbarsServiceApi>()(
       })
       const getById = (id: string) => Effect.gen(function* () {
         const chunk = yield* Ref.get(ref)
-        return Chunk.findFirst(chunk, a => a.id === id)
+        const optionToolbar = Chunk.findFirst(chunk, a => a.id === id)
+        return Option.getOrUndefined(optionToolbar)
       })
-      const create = (toolbar: ToolbarConfig) => Effect.gen(function* () {
-        const validToolbar = yield* Schema.decode(ToolbarConfigSchema)(toolbar)
-        yield* Ref.update(ref, chunk => Chunk.append(chunk, validToolbar))
-      })
+      const create = (toolbar: ToolbarConfig) =>
+        Effect.gen(function* () {
+          const validToolbar = yield* Schema.decode(ToolbarConfigSchema)(toolbar)
+          yield* Ref.update(ref, chunk => Chunk.append(chunk, validToolbar))
+        }).pipe(
+          Effect.catchTag("ParseError", e => Effect.logWarning("Failed to decode toolbar config", e).pipe(Effect.flatMap(() => Effect.void)))
+        )
       const update = (id: string, patch: Partial<ToolbarConfig>) => Effect.gen(function* () {
         yield* Ref.update(ref, chunk =>
           Chunk.map(chunk, toolbar =>
@@ -57,6 +61,6 @@ export class ToolbarsService extends Effect.Service<ToolbarsServiceApi>()(
     }),
     dependencies: []
   }
-) {}
+) { }
 
 export const ToolbarsServiceLive = Layer.scoped(ToolbarsService)

@@ -3,10 +3,10 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
-console.log("Starting mock-agent-llm server...");
+console.log("Starting llm-agent server...");
 
-// Get the path to the mock-agent-llm directory
-const mockServerPath = join(process.cwd(), "../../mock-agent-llm");
+// Get the path to the llm-agent directory
+const mockServerPath = join(process.cwd(), "../../llm-agent");
 
 // Start the server using npm run start (Node.js runtime)
 const serverProcess = spawn("npm", ["run", "start"], {
@@ -16,7 +16,7 @@ const serverProcess = spawn("npm", ["run", "start"], {
 });
 
 serverProcess.on("error", (error) => {
-    console.error("Failed to start mock-agent-llm server:", error);
+    console.error("Failed to start llm-agent server:", error);
     process.exit(1);
 });
 
@@ -27,7 +27,7 @@ serverProcess.on("close", (code) => {
 
 // Handle cleanup on exit
 process.on("SIGINT", () => {
-    console.log("\nShutting down mock-agent-llm server...");
+    console.log("\nShutting down llm-agent server...");
     serverProcess.kill("SIGTERM");
 });
 

@@ -1,4 +1,4 @@
-import * as S from '@effect/schema/Schema'
+import { Schema } from 'effect'
 
 export interface ChatAppConfig {
   id: string
@@ -7,9 +7,9 @@ export interface ChatAppConfig {
   toolbarId: string
 }
 
-export const ChatAppConfigSchema = S.Struct({
-  id: S.String,
-  name: S.String,
-  agentId: S.String,
-  toolbarId: S.String,
+export const ChatAppConfigSchema = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  agentId: Schema.String,
+  toolbarId: Schema.String,
 })

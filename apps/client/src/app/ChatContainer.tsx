@@ -4,14 +4,13 @@ import BusinessChat from "@/features/chat/BusinessChat";
 import SocialChat from "@/features/chat/SocialChat";
 import type { ChatAppTheme } from "@/features/chat/themes/themeTypes";
 import { AgentRuntimeService } from "@/services/agent-runtime/AgentRuntimeService";
-import { ChatService } from "@/services/chat/ChatService";
 import { WebSocketService } from "@/services/websocket/WebSocketService";
 
+import { useSelectedChat } from "@/contexts/SelectedChatContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useSession } from "@clerk/nextjs";
 import { Effect, Fiber, Layer, Runtime } from "effect";
 import React, { useEffect, useMemo, useState } from "react";
-import { useSelectedChat } from "@/contexts/SelectedChatContext";
-import { useTheme, ThemeColors } from "@/contexts/ThemeContext";
 
 // Create a context for the runtime
 export const RuntimeContext = React.createContext<Runtime.Runtime<any> | null>(
@@ -28,10 +27,10 @@ export default function ChatContainer({ chatType, theme, id }: ChatContainerProp
   const { session } = useSession();
   const { getAppTheme, chatThemes, themeUpdateCount } = useTheme();
   const { selectedChatId } = useSelectedChat();
-  
+
   // Check if this chat is the selected one
   const isSelected = id === selectedChatId;
-  
+
   // Get theme from context or use provided theme
   // If this is the selected chat, we should use the theme from the selected chat
   // Otherwise, use the theme for this specific chat ID
@@ -43,10 +42,12 @@ export default function ChatContainer({ chatType, theme, id }: ChatContainerProp
       appliedTheme = id;
     }
   }
-  
+
   // Track theme updates
   useEffect(() => {
     // Effect runs when theme updates occur
+    // Mark dependencies as used to satisfy linter for this placeholder effect.
+    void [themeUpdateCount, appliedTheme, id, isSelected, selectedChatId];
   }, [themeUpdateCount, appliedTheme, id, isSelected, selectedChatId]);
 
   // All hooks at the top level
@@ -64,8 +65,7 @@ export default function ChatContainer({ chatType, theme, id }: ChatContainerProp
   // Memoize runtime layer to prevent unnecessary re-renders
   const appLayer = useMemo(() => Layer.mergeAll(
     WebSocketService.Default,
-    AgentRuntimeService.Default,
-    ChatService.Default
+    AgentRuntimeService.Default
   ), []);
 
   // Create runtime effect only once

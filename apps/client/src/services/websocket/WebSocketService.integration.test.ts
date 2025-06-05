@@ -80,7 +80,7 @@ describe("WebSocketService Integration Tests", () => {
                 const ws = yield* WebSocketService;
 
                 // Connect
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
 
                 // Send first message
                 const message1 = createUserMessage("Hello 1");
@@ -105,7 +105,7 @@ describe("WebSocketService Integration Tests", () => {
 
             const connectEffect = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "connected";
             }).pipe(Effect.provide(webSocketLayer));
 
@@ -128,7 +128,7 @@ describe("WebSocketService Integration Tests", () => {
         it("should fail when using different service layers", async () => {
             const connectEffect = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "connected";
             }).pipe(Effect.provide(WebSocketService.Default));
 
@@ -159,7 +159,7 @@ describe("WebSocketService Integration Tests", () => {
                 expect(sendResult._tag).toBe("Left");
 
                 // Connect
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
 
                 // Now send should work
                 const message2 = createUserMessage("Should work");
@@ -177,13 +177,13 @@ describe("WebSocketService Integration Tests", () => {
 
             const connectEffect1 = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "connected1";
             }).pipe(Effect.provide(webSocketLayer));
 
             const connectEffect2 = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "connected2";
             }).pipe(Effect.provide(webSocketLayer));
 
@@ -213,7 +213,7 @@ describe("WebSocketService Integration Tests", () => {
 
             const testEffect = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "should not reach here";
             }).pipe(Effect.provide(WebSocketService.Default));
 
@@ -225,7 +225,7 @@ describe("WebSocketService Integration Tests", () => {
                 const ws = yield* WebSocketService;
 
                 // Connect first
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
 
                 // Simulate connection loss by closing the socket
                 // This is tricky to test with our current setup, so we'll skip for now
@@ -255,7 +255,7 @@ describe("WebSocketService Integration Tests", () => {
             // Using separate Default instances (the problem case)
             const effect1 = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "effect1";
             }).pipe(Effect.provide(WebSocketService.Default));
 
@@ -292,7 +292,7 @@ describe("WebSocketService Integration Tests", () => {
 
             const effect1 = Effect.gen(function* () {
                 const ws = yield* WebSocketService;
-                yield* ws.connect("ws://localhost:8080");
+                yield* ws.connect("ws://localhost:8080/chat");
                 return "effect1";
             }).pipe(Effect.provide(sharedLayer));
 

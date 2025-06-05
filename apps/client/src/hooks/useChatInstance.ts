@@ -9,89 +9,86 @@ import {
 } from "effect";
 import { useEffect, useMemo, useState } from "react";
 
+import {
+    AgentRuntimeError,
+    AgentRuntimeService,
+    AgentSession
+} from "@/services/agent-runtime/AgentRuntimeService";
 import { MdxService, type MdxServiceApi } from "@/services/mdx";
-import { type WebSocketError, WebSocketService } from "@/services/websocket/WebSocketService";
 import { ProtocolMessage, createUserMessage } from "@buddy/protocol";
 import type {
     ChatAgentConfig,
     ChatInstanceAction,
     ChatInstanceHookState,
-    ClientMessagePayload,
-    Message
+    Message,
 } from "../features/chat/types";
 
 // Constants from design doc (can be moved to a config file or AgentConfig if needed)
 const INITIAL_RECONNECT_DELAY = Duration.seconds(1); // Example: 1 second
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-// Helper function to convert ProtocolMessage to UI Message with MDX processing
-function convertProtocolMessageToUIMessage(protocolMessage: ProtocolMessage): Effect.Effect<Message | null, never, MdxServiceApi> {
+// Helper function to convert a ProtocolMessage to a UI Message, compiling MDX
+// for LLM_RESPONSE and handling streaming, error, and welcome messages.
+function convertProtocolMessageToUIMessage(
+    protocolMessage: ProtocolMessage
+): Effect.Effect<Message | null, never, MdxServiceApi> {
     return Effect.gen(function* () {
+        const mdxService = yield* MdxService;
         switch (protocolMessage.type) {
             case "LLM_RESPONSE": {
-                // Process LLM responses through MDX
-                const mdxService = yield* MdxService;
-                const compiledResult = yield* mdxService.compile(protocolMessage.content || "", {
-                    development: process.env.NODE_ENV === "development"
-                }).pipe(
-                    Effect.catchAll((error) => {
-                        return Effect.succeed({
-                            compiledSource: protocolMessage.content || "",
-                            frontmatter: {},
-                            metadata: { mdxError: true }
-                        });
+                const compiledResult = yield* mdxService
+                    .compile(protocolMessage.content || "", {
+                        development: process.env.NODE_ENV === "development",
                     })
-                );
-
+                    .pipe(
+                        Effect.catchAll(() =>
+                            Effect.succeed({
+                                compiledSource: "",
+                                frontmatter: {},
+                                metadata: {},
+                            })
+                        )
+                    );
                 return {
                     id: protocolMessage.id || crypto.randomUUID(),
                     text: protocolMessage.content || "",
                     role: "assistant" as const,
                     timestamp: new Date(protocolMessage.timestamp).getTime(),
                     metadata: {
+                        mdx: compiledResult,
                         ...protocolMessage.metadata,
-                        mdx: {
-                            compiledSource: compiledResult.compiledSource,
-                            frontmatter: compiledResult.frontmatter,
-                            metadata: compiledResult.metadata
-                        }
-                    }
+                    },
                 };
             }
-
             case "LLM_STREAM": {
-                // For streaming messages, we'll handle them differently
-                // This is just for complete messages
-                if (protocolMessage.isComplete) {
-                    return null; // Don't create a message for completion markers
-                }
+                if (protocolMessage.isComplete) return null;
                 return {
                     id: protocolMessage.streamId || protocolMessage.id || crypto.randomUUID(),
                     text: protocolMessage.content || "",
                     role: "assistant" as const,
                     timestamp: new Date(protocolMessage.timestamp).getTime(),
-                    metadata: { ...protocolMessage.metadata, streaming: true }
+                    metadata: {
+                        ...protocolMessage.metadata,
+                        streaming: true,
+                    },
                 };
             }
-
             case "ERROR":
                 return {
                     id: protocolMessage.id || crypto.randomUUID(),
                     text: `Error: ${protocolMessage.message}`,
                     role: "assistant" as const,
                     timestamp: new Date(protocolMessage.timestamp).getTime(),
-                    metadata: { error: true, code: protocolMessage.code }
+                    metadata: { error: true, code: protocolMessage.code },
                 };
-
             case "WELCOME":
                 return {
                     id: protocolMessage.id || crypto.randomUUID(),
                     text: protocolMessage.message,
                     role: "assistant" as const,
                     timestamp: new Date(protocolMessage.timestamp).getTime(),
-                    metadata: { welcome: true, serverInfo: protocolMessage.serverInfo }
+                    metadata: { welcome: true, serverInfo: protocolMessage.serverInfo },
                 };
-
             default:
                 return null;
         }
@@ -101,14 +98,13 @@ function convertProtocolMessageToUIMessage(protocolMessage: ProtocolMessage): Ef
 export function useChatInstance(
     chatId: string,
     agentConfigData: ChatAgentConfig,
+    injectedLayer?: Layer.Layer<any, any, any>
 ): {
     chatState: ChatInstanceHookState;
-    runtimeError: unknown | null;
+    runtimeError: AgentRuntimeError | null;
     dispatchAction: (action: ChatInstanceAction) => void;
 } {
-    // Memoize the agentConfig properties to prevent unnecessary re-renders
     const agentId = useMemo(() => agentConfigData.agentId, [agentConfigData.agentId]);
-    const agentWsUrl = useMemo(() => agentConfigData.agentWsUrl, [agentConfigData.agentWsUrl]);
     const initialAgentName = useMemo(() => agentConfigData.initialAgentName, [agentConfigData.initialAgentName]);
 
     const [chatState, setChatState] = useState<ChatInstanceHookState>(() => ({
@@ -119,361 +115,204 @@ export function useChatInstance(
         isTyping: false,
     }));
 
-    const [runtimeError, setRuntimeError] = useState<unknown | null>(null);
-
+    const [runtimeError, setRuntimeError] = useState<AgentRuntimeError | null>(null);
     const [dispatch, setDispatch] = useState<(action: ChatInstanceAction) => void>(
-        () => () =>
-            console.warn(
-                "Dispatch action called before Effect runtime initialized for chat instance",
-            ),
+        () => () => console.warn("Dispatch called before Effect runtime initialized")
     );
 
-    // Create the WebSocket layer for this hook
-    const webSocketLayer = useMemo(() =>
-        Layer.merge(
-            WebSocketService.Default,
-            MdxService.Default
-        ),
-        []);
+    const serviceLayer = useMemo(() =>
+        injectedLayer ?? Layer.merge(AgentRuntimeService.Default, MdxService.Default),
+        [injectedLayer]
+    );
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: agentConfigData is intentionally excluded to prevent re-renders when other properties change
     useEffect(() => {
-
-
         const program = Effect.gen(function* () {
-            yield* Effect.logInfo(
-                `Effect program starting for ${chatId}, Agent: ${agentId}`,
-            );
+            const agentRuntime = yield* AgentRuntimeService;
+            yield* Effect.logInfo(`[useChatInstance] Program starting for ${chatId}, Agent: ${agentId}`);
             setRuntimeError(null);
 
             const inputQueue = yield* Queue.unbounded<ChatInstanceAction>();
+            setDispatch(() => (action: ChatInstanceAction) => Effect.runFork(Queue.offer(inputQueue, action)));
 
-            // Track streaming messages outside React state to avoid timing issues
             const streamingMessages = new Map<string, string>();
 
-            setDispatch(() => (action: ChatInstanceAction) => {
-                Effect.runFork(Queue.offer(inputQueue, action));
-            });
+            const updateChatState = (updater: (prev: ChatInstanceHookState) => ChatInstanceHookState) =>
+                Effect.sync(() => setChatState(updater));
 
-            const updateStatus = (status: ChatInstanceHookState["status"], error?: string) =>
-                Effect.sync(() => {
-                    setChatState((prev) => ({
-                        ...prev,
-                        status,
-                        error: error ?? prev.error,
-                    }));
-                });
+            const addMessageToState = (message: Message) =>
+                updateChatState((prev) => ({ ...prev, messages: [...prev.messages, message] }));
 
-            const addMessage = (message: Message) =>
-                Effect.sync(() => {
-                    setChatState((prev) => ({
-                        ...prev,
-                        messages: [...prev.messages, message],
-                    }));
-                });
-
-            const updateStreamingMessage = (streamId: string, originalChunkText: string, _unusedParam: string) =>
-                Effect.sync(() => {
-                    // FIXED: Only accumulate original text, compile complete markdown later
-                    // This prevents breaking markdown syntax by compiling incomplete chunks
-                    const currentAccumulatedText = streamingMessages.get(streamId) || '';
-                    const newAccumulatedText = currentAccumulatedText + originalChunkText;
+            const updateStreamingMessageInState = (streamId: string, chunk: string) =>
+                updateChatState((prev) => {
+                    const currentAccumulatedText = streamingMessages.get(streamId) || "";
+                    const newAccumulatedText = currentAccumulatedText + chunk;
                     streamingMessages.set(streamId, newAccumulatedText);
 
-                    setChatState((prev) => {
-                        const existingMessageIndex = prev.messages.findIndex(
-                            msg => msg.id === streamId
-                        );
-
-                        if (existingMessageIndex >= 0) {
-                            // Update existing streaming message with accumulated text
-                            const updatedMessages = [...prev.messages];
-                            updatedMessages[existingMessageIndex] = {
-                                ...updatedMessages[existingMessageIndex],
-                                text: newAccumulatedText, // Accumulated original text
-                                metadata: {
-                                    ...(updatedMessages[existingMessageIndex].metadata || {}),
-                                    streaming: true, // Still streaming until isComplete
-                                }
-                            };
-                            return { ...prev, messages: updatedMessages };
-                        }
-
-                        // Create new streaming message with just accumulated text
-                        const newMessage: Message = {
-                            id: streamId,
-                            text: newAccumulatedText, // Accumulated original text
-                            role: "assistant",
-                            timestamp: Date.now(),
-                            metadata: {
-                                streaming: true,
-                            }
+                    const existingMessageIndex = prev.messages.findIndex(msg => msg.id === streamId);
+                    if (existingMessageIndex >= 0) {
+                        const updatedMessages = [...prev.messages];
+                        updatedMessages[existingMessageIndex] = {
+                            ...updatedMessages[existingMessageIndex],
+                            text: newAccumulatedText,
+                            metadata: { ...(updatedMessages[existingMessageIndex].metadata || {}), streaming: true },
                         };
-                        return { ...prev, messages: [...prev.messages, newMessage] };
-                    });
+                        return { ...prev, messages: updatedMessages };
+                    }
+                    const newMessage: Message = {
+                        id: streamId, text: newAccumulatedText, role: "assistant", timestamp: Date.now(), metadata: { streaming: true }
+                    };
+                    return { ...prev, messages: [...prev.messages, newMessage] };
                 });
 
-            const setTyping = (isTyping: boolean) =>
-                Effect.sync(() =>
-                    setChatState((prev) => ({
-                        ...prev,
-                        isTyping,
-                    })),
-                );
+            const finalizeStreamingMessageInState = (streamId: string) => Effect.gen(function* () {
+                const accumulatedText = streamingMessages.get(streamId);
+                if (!accumulatedText) return;
 
-            const webSocketManagerCoreLogic = Effect.gen(function* () {
-                // Add a small delay to allow component to stabilize
-                yield* Effect.sleep(Duration.millis(100));
+                const mdxService = yield* MdxService;
+                const compiledResult = yield* mdxService.compile(accumulatedText, { development: process.env.NODE_ENV === "development" })
+                    .pipe(Effect.catchAll(() => Effect.succeed({ compiledSource: accumulatedText, frontmatter: {}, metadata: { mdxError: true } })));
 
-                yield* updateStatus("connecting");
-                yield* Effect.logInfo(
-                    `WebSocketManager: Attempting to connect to ${agentWsUrl} for chatId: ${chatId}`,
-                );
+                yield* updateChatState((prev) => ({
+                    ...prev,
+                    messages: prev.messages.map(msg => msg.id === streamId ? {
+                        ...msg, text: accumulatedText, metadata: { ...msg.metadata, streaming: false, mdx: compiledResult }
+                    } : msg)
+                }));
+                streamingMessages.delete(streamId);
+            });
 
-                const wsUrl = `${agentWsUrl}?chatId=${chatId}&agentId=${agentId}`;
+            const setTypingInState = (isTyping: boolean) =>
+                updateChatState((prev) => ({ ...prev, isTyping }));
 
-                const wsService = yield* WebSocketService;
+            yield* Effect.logInfo(`[useChatInstance] Attempting to establish session for ${chatId}, agent ${agentId}`);
 
-                // Connect using our WebSocketService
-                yield* wsService.connect(wsUrl);
-                yield* Effect.logInfo("WebSocketManager: Connection established.");
-                yield* updateStatus("connected");
-
-                const outgoingEffect = Stream.fromQueue(inputQueue).pipe(
-                    Stream.tap((action) => {
-                        return Effect.logDebug("OutgoingQueue: Action received", action);
-                    }),
-                    Stream.filter(
-                        (action): action is Extract<ChatInstanceAction, { _tag: "sendMessage" }> => {
-                            return action._tag === "sendMessage";
-                        }
-                    ),
-                    Stream.tap((action) => {
-                        // Add user message to UI immediately
-                        const userMessage: Message = {
-                            id: crypto.randomUUID(),
-                            text: action.text,
-                            role: "user",
-                            timestamp: Date.now(),
-                            attachments: action.attachments
-                        };
-                        return addMessage(userMessage);
-                    }),
-                    Stream.map(
-                        (action): ClientMessagePayload => {
-                            return {
-                                type: "userMessage" as const,
-                                message: {
-                                    text: action.text,
-                                    attachments: action.attachments,
-                                },
-                            };
-                        }
-                    ),
-                    Stream.map((payload) => {
-                        return createUserMessage(payload.message.text, {
-                            timestamp: new Date().toISOString(),
-                            metadata: {
-                                chatId: chatId, // Include chatId for server routing
-                                sessionId: crypto.randomUUID()
-                            } as any
-                        });
-                    }),
-                    Stream.tap((message) => {
-                        return Effect.logDebug(
-                            `WebSocketManager: Sending message - ${message.text}`,
-                        );
-                    }),
-                    Stream.runForEach((message) => {
-                        return wsService.send(message);
-                    })
-                );
-                yield* Effect.forkDaemon(outgoingEffect);
-                yield* Effect.logInfo("WebSocketManager: Outgoing message handler forked.");
-
-                const incomingStreamLogic = wsService.receive().pipe(
-                    Stream.tap((msg) => {
-                        return Effect.logDebug("WebSocketManager: Raw message received", msg);
-                    }),
-                    Stream.tap((event) => {
-                        return Effect.logDebug("WebSocketManager: Received ProtocolMessage", event);
-                    }),
-                    Stream.runForEach((message: ProtocolMessage) => {
-                        // Handle the ProtocolMessage based on its type
-                        if (message.type === "CONNECTION" && message.action === "PING") {
-                            return Effect.logDebug("Ping received from agent");
-                        }
-
-                        // Handle different message types
-                        return Effect.gen(function* () {
-
-                            switch (message.type) {
-                                case "THINKING":
-                                    yield* setTyping(message.isThinking);
-                                    break;
-
-                                case "LLM_STREAM":
-                                    if (!message.isComplete && message.content) {
-                                        const streamId = message.streamId || message.id || crypto.randomUUID();
-                                        // FIXED: Just accumulate original text, don't compile individual chunks
-                                        // Compiling individual chunks breaks markdown syntax (e.g., "##" alone becomes empty <h2>)
-                                        yield* updateStreamingMessage(streamId, message.content, message.content); // Pass original chunk text for both params
-
-                                    } else if (message.isComplete) {
-                                        // Stream is complete, compile the accumulated markdown
-                                        const streamId = message.streamId || message.id || crypto.randomUUID();
-                                        const accumulatedText = streamingMessages.get(streamId);
-
-                                        if (accumulatedText) {
-                                            // NOW compile the complete accumulated markdown
-                                            const mdxService = yield* MdxService;
-                                            const compiledResult = yield* mdxService.compile(accumulatedText, {
-                                                development: process.env.NODE_ENV === "development"
-                                            }).pipe(
-                                                Effect.catchAll((error) => {
-                                                    return Effect.succeed({
-                                                        compiledSource: accumulatedText, // Fallback to original text
-                                                        frontmatter: {},
-                                                        metadata: { mdxError: true }
-                                                    });
-                                                })
-                                            );
-
-                                            yield* Effect.sync(() =>
-                                                setChatState((prev) => ({
-                                                    ...prev,
-                                                    messages: prev.messages.map(msg_item => {
-                                                        if (msg_item.id !== streamId) return msg_item;
-
-                                                        return {
-                                                            ...msg_item,
-                                                            text: accumulatedText, // Keep original text for fallback
-                                                            metadata: {
-                                                                ...msg_item.metadata,
-                                                                streaming: false, // Mark as not streaming
-                                                                mdx: {
-                                                                    compiledSource: compiledResult.compiledSource,
-                                                                    frontmatter: compiledResult.frontmatter,
-                                                                    metadata: compiledResult.metadata
-                                                                }
-                                                            }
-                                                        };
-                                                    })
-                                                }))
-                                            );
-
-                                            // Clean up our tracking map
-                                            streamingMessages.delete(streamId);
-                                        }
-                                    }
-                                    break;
-
-                                case "LLM_RESPONSE":
-                                case "ERROR":
-                                case "WELCOME": {
-                                    const uiMessage = yield* convertProtocolMessageToUIMessage(message);
-                                    if (uiMessage) {
-                                        yield* addMessage(uiMessage);
-                                    }
-                                    break;
-                                }
-
-                                case "ACK":
-                                    yield* Effect.logDebug("Received acknowledgment:", message.message);
-                                    break;
-
-                                default:
-                                    yield* Effect.logDebug("Unhandled message type:", message.type);
-                            }
-                        });
-                    }),
-                    Stream.catchAll((error) =>
-                        Effect.gen(function* () {
-                            yield* Effect.logWarning(
-                                "WebSocketManager: Error in incoming stream",
-                                error
-                            );
-                            yield* updateStatus("reconnecting", error.message);
-                            return Stream.fail(error);
-                        }),
-                    ),
-                    Stream.runDrain
-                );
-                yield* incomingStreamLogic;
-            }).pipe(Effect.scoped);
-
-            // Apply retry logic to the webSocketManagerCoreLogic
-            yield* webSocketManagerCoreLogic.pipe(
+            const sessionEffect = agentRuntime.establishSession(agentId, chatId).pipe(
                 Effect.retry(
                     Schedule.intersect(
-                        Schedule.exponential(INITIAL_RECONNECT_DELAY).pipe(
-                            Schedule.jittered,
-                        ),
-                        Schedule.recurs(MAX_RECONNECT_ATTEMPTS),
+                        Schedule.exponential(INITIAL_RECONNECT_DELAY).pipe(Schedule.jittered),
+                        Schedule.recurs(MAX_RECONNECT_ATTEMPTS)
                     ).pipe(
-                        Schedule.tapOutput((output) => {
-                            const attempt =
-                                typeof output === "number" ? output + 1 : output[1] + 1;
-                            return updateStatus(
-                                "reconnecting",
-                                `Connection attempt ${attempt} failed. Retrying...`,
-                            );
-                        }),
-                    ),
-                ),
-                Effect.tapError((e) =>
-                    updateStatus(
-                        "error",
-                        "Failed to connect after multiple attempts. Please check your connection or try again later.",
-                    ).pipe(
-                        Effect.flatMap(() =>
-                            Effect.logError(
-                                "WebSocketManager: Max retries reached. Final error:",
-                                e.message
-                            ),
-                        ),
-                    ),
-                ),
+                        Schedule.tapOutput((details) => {
+                            const attempt = typeof details === "number" ? details + 1 : details[1] + 1;
+                            return updateChatState(prev => ({ ...prev, status: "reconnecting", error: `Connection attempt ${attempt} failed. Retrying...` }));
+                        })
+                    )
+                )
             );
 
-            // These lines run after the webSocketManagerCoreLogic (with retries) has completed or definitively failed.
-            yield* Effect.logInfo(
-                `Effect program for ${chatId} finished webSocketManager attempt.`,
-            );
+            const agentSession: AgentSession = yield* sessionEffect;
 
-            yield* updateStatus("disconnected", "Connection closed.");
+            yield* Effect.logInfo(`[useChatInstance] Session established: ${agentSession.id}, URL: ${agentSession.url}`);
+
+            yield* Effect.forkDaemon(agentSession.status$.pipe(
+                Stream.runForEach((status) => Effect.sync(() => {
+                    switch (status._tag) {
+                        case "Initializing":
+                            setChatState(prev => ({ ...prev, status: "initializing" }));
+                            break;
+                        case "Connecting":
+                            setChatState(prev => ({ ...prev, status: "connecting", error: `Attempt ${status.attempt} to ${status.url}` }));
+                            break;
+                        case "Connected":
+                            setChatState(prev => ({ ...prev, status: "connected", error: undefined }));
+                            break;
+                        case "Disconnected":
+                            setChatState(prev => ({ ...prev, status: "disconnected", error: status.reason ?? "Connection closed" }));
+                            break;
+                        case "Error":
+                            setChatState(prev => ({ ...prev, status: "error", error: status.error.message }));
+                            setRuntimeError(status.error);
+                            break;
+                    }
+                }))
+            ));
+
+            yield* Effect.forkDaemon(Stream.fromQueue(inputQueue).pipe(
+                Stream.tap(action => Effect.runFork(Effect.logDebug("[useChatInstance] Action for outgoing", action))),
+                Stream.filter((action): action is Extract<ChatInstanceAction, { _tag: "sendMessage" }> => action._tag === "sendMessage"),
+                Stream.tap(action => Effect.runFork(
+                    Effect.gen(function* () {
+                        const userUIMessage: Message = {
+                            id: crypto.randomUUID(), text: action.text, role: "user", timestamp: Date.now(), attachments: action.attachments
+                        };
+                        return yield* addMessageToState(userUIMessage);
+                    })
+                )),
+                Stream.map(action => createUserMessage(action.text, {
+                    timestamp: new Date().toISOString(),
+                    metadata: {
+                        chatId,
+                        sessionId: agentSession.id,
+                        attachments: action.attachments?.map(att => att.name)
+                    }
+                })),
+                Stream.tap(message => Effect.runFork(Effect.logDebug(`[useChatInstance] Sending protocol message for ${chatId}`, message))),
+                Stream.runForEach(message => agentSession.send(message).pipe(
+                    Effect.catchAll(err => {
+                        Effect.logError(`[useChatInstance] Failed to send message for ${chatId}`, err);
+                        return updateChatState(prev => ({ ...prev, error: `Failed to send: ${err.message}` }));
+                    })
+                ))
+            ));
+
+            yield* Effect.forkDaemon(agentSession.incomingMessages$.pipe(
+                Stream.tap(pm => Effect.runFork(Effect.logDebug(`[useChatInstance] Raw incoming message for ${chatId}`, pm))),
+                Stream.runForEach((protocolMessage: ProtocolMessage) => Effect.gen(function* () {
+                    switch (protocolMessage.type) {
+                        case "THINKING":
+                            yield* setTypingInState(protocolMessage.isThinking);
+                            break;
+                        case "LLM_STREAM":
+                            if (!protocolMessage.isComplete && protocolMessage.content) {
+                                const streamId = protocolMessage.streamId || protocolMessage.id || crypto.randomUUID();
+                                yield* updateStreamingMessageInState(streamId, protocolMessage.content);
+                            } else if (protocolMessage.isComplete) {
+                                const streamId = protocolMessage.streamId || protocolMessage.id || crypto.randomUUID();
+                                yield* finalizeStreamingMessageInState(streamId);
+                            }
+                            break;
+                        case "CONNECTION":
+                            if (protocolMessage.connectionState === "RECONNECTING") {
+                                yield* updateChatState(prev => ({ ...prev, status: "reconnecting", error: "Server is reconnecting..." }));
+                            } else if (protocolMessage.connectionState === "CONNECTED") {
+                                yield* updateChatState(prev => ({ ...prev, status: "connected", error: undefined }));
+                            }
+                            break;
+                        default: {
+                            const uiMessage = yield* convertProtocolMessageToUIMessage(protocolMessage);
+                            if (uiMessage) yield* addMessageToState(uiMessage);
+                            break;
+                        }
+                    }
+                }).pipe(Effect.catchAll(e => Effect.logError("Error processing incoming message", e))))
+            ));
+
+            yield* Effect.never;
+
         }).pipe(
-            Effect.catchAll((error: WebSocketError) => {
-                console.error(
-                    `Critical error in chat instance ${chatId} Effect program:`,
-                    error.message,
-                    error
-                );
-                setRuntimeError(error.message);
-                setChatState((prev) => ({
-                    ...prev,
-                    status: "error",
-                    error: error.message,
-                }));
-                return Effect.void;
-            }),
+            Effect.scoped,
+            Effect.catchAll((error: AgentRuntimeError) => Effect.gen(function* () {
+                yield* Effect.logError(`[useChatInstance] Unrecoverable error in session management for ${chatId}`, error);
+                setRuntimeError(error);
+                yield* Effect.sync(() => setChatState(prev => ({ ...prev, status: "error", error: error.message })));
+                return yield* Effect.never;
+            })),
+
         );
 
-        const fiber = Effect.runFork(
-            program.pipe(
-                Effect.provide(webSocketLayer)
-            ) as Effect.Effect<void, never, never>
-        );
+        const fiber = Effect.runFork(program.pipe(
+            Effect.provide(serviceLayer)
+        ) as Effect.Effect<void, never, never>);
 
         return () => {
-            Effect.runFork(Fiber.interrupt(fiber));
-            setDispatch(
-                () => () =>
-                    console.warn("Dispatch action called after chat instance unmounted"),
+            Effect.runFork(
+                Effect.logInfo(`[useChatInstance] Cleaning up for ${chatId}, interrupting fiber ${fiber.id().id}`)
+                    .pipe(Effect.andThen(Fiber.interrupt(fiber)))
             );
-            setChatState((prev) => ({ ...prev, status: "disconnected" }));
+            setDispatch(() => () => console.warn("Dispatch called after chat instance unmounted"));
+            setChatState(prev => ({ ...prev, status: "disconnected" }));
         };
-    }, [agentId, agentWsUrl, chatId]);
+    }, [agentId, chatId, serviceLayer]);
 
     return { chatState, runtimeError, dispatchAction: dispatch };
 } 

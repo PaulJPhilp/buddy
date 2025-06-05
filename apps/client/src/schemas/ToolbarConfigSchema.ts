@@ -1,13 +1,13 @@
-import * as S from '@effect/schema/Schema'
+import { Schema } from 'effect'
 
 export interface ToolbarConfig {
   id: string
   name: string
-  tools: unknown[]
+  tools: readonly unknown[]
 }
 
-export const ToolbarConfigSchema = S.Struct({
-  id: S.String,
-  name: S.String,
-  tools: S.Array(S.Unknown),
+export const ToolbarConfigSchema = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  tools: Schema.Array(Schema.Unknown),
 })

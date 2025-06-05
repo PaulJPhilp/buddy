@@ -1,11 +1,11 @@
-import * as S from '@effect/schema/Schema'
+import { Schema } from 'effect'
 
 export interface AgentConfig {
   id: string
   initialAgentName: string
 }
 
-export const AgentConfigSchema = S.Struct({
-  id: S.String,
-  initialAgentName: S.String,
+export const AgentConfigSchema = Schema.Struct({
+  id: Schema.String,
+  initialAgentName: Schema.String,
 })

@@ -9,7 +9,7 @@
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  */
 
-import { Chunk, Effect, Ref, Schema } from "effect"
+import { Chunk, Effect, Option, Ref, Schema } from "effect"
 import { AgentConfig, AgentConfigSchema } from "../../schemas/AgentConfigSchema"
 
 export interface AgentsServiceApi {
@@ -31,12 +31,16 @@ export class AgentsService extends Effect.Service<AgentsServiceApi>()(
       })
       const getById = (id: string) => Effect.gen(function* () {
         const chunk = yield* Ref.get(ref)
-        return Chunk.findFirst(chunk, a => a.id === id)
+        const optionAgent = Chunk.findFirst(chunk, a => a.id === id)
+        return Option.getOrUndefined(optionAgent)
       })
-      const create = (agent: AgentConfig) => Effect.gen(function* () {
-        const validAgent = yield* Schema.decode(AgentConfigSchema)(agent)
-        yield* Ref.update(ref, chunk => Chunk.append(chunk, validAgent))
-      })
+      const create = (agent: AgentConfig) =>
+        Effect.gen(function* () {
+          const validAgent = yield* Schema.decode(AgentConfigSchema)(agent)
+          yield* Ref.update(ref, chunk => Chunk.append(chunk, validAgent))
+        }).pipe(
+          Effect.catchTag("ParseError", e => Effect.logWarning("Failed to decode agent config", e).pipe(Effect.flatMap(() => Effect.void)))
+        )
       const update = (id: string, patch: Partial<AgentConfig>) => Effect.gen(function* () {
         yield* Ref.update(ref, chunk =>
           Chunk.map(chunk, agent =>
@@ -57,7 +61,7 @@ export class AgentsService extends Effect.Service<AgentsServiceApi>()(
     }),
     dependencies: []
   }
-) {}
+) { }
 
 import { Layer } from "effect"
 export const AgentsServiceLive = Layer.scoped(AgentsService)

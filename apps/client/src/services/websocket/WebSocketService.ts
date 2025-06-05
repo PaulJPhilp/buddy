@@ -23,7 +23,7 @@ export interface WebSocketServiceApi {
   readonly _tag: "WebSocketService";
   connect(url: string): Effect.Effect<void, WebSocketError>;
   disconnect(): Effect.Effect<void, WebSocketError>;
-  send(message: UserMessage): Effect.Effect<void, WebSocketError>;
+  send(message: UserMessage | WebSocketEnvelope): Effect.Effect<void, WebSocketError>;
   receive(): Stream.Stream<ProtocolMessage, WebSocketError, never>;
 }
 
@@ -225,11 +225,10 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
         }
       });
 
-    const send = (message: UserMessage): Effect.Effect<void, WebSocketError> =>
+    const send = (message: UserMessage | WebSocketEnvelope): Effect.Effect<void, WebSocketError> =>
       Effect.gen(function* () {
         console.log("[WebSocketService] Attempting to send message:", {
           message,
-          metadata: message.metadata,
           timestamp: new Date().toISOString()
         });
 
@@ -251,15 +250,21 @@ const createWebSocketServiceImpl = (): Effect.Effect<WebSocketServiceApi, never,
           throw new WebSocketError("WebSocket not connected", ERROR_CODES.CONNECTION_LOST);
         }
         try {
-          const validation = validateUserInput(message.text);
-          if (!validation.isValid) {
-            throw new WebSocketError(
-              `Invalid message: ${validation.errors.join(', ')}`,
-              ERROR_CODES.INVALID_MESSAGE
-            );
+          let envelope: WebSocketEnvelope;
+          if ('text' in message) {
+            // It's a UserMessage
+            const validation = validateUserInput(message.text);
+            if (!validation.isValid) {
+              throw new WebSocketError(
+                `Invalid message: ${validation.errors.join(', ')}`,
+                ERROR_CODES.INVALID_MESSAGE
+              );
+            }
+            envelope = createWebSocketEnvelope(message);
+          } else {
+            // It's already an envelope
+            envelope = message;
           }
-
-          const envelope = createWebSocketEnvelope(message);
           console.log("[WebSocketService] Sending envelope:", {
             envelope,
             socketUrl: socket.url,

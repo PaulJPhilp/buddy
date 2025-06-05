@@ -35,7 +35,7 @@ export interface AgentConfigApi {
 export class AgentConfig extends Effect.Service<AgentConfigData>()("AgentConfig", {
     effect: Effect.succeed({
         agentId: "test-agent-001",
-        agentWsUrl: "ws://localhost:8080",
+        agentWsUrl: "ws://localhost:8080/chat",
         initialAgentName: "TestAgent"
     }),
     dependencies: []
@@ -43,6 +43,6 @@ export class AgentConfig extends Effect.Service<AgentConfigData>()("AgentConfig"
 
 export const defaultAgentConfig: AgentConfigData = {
     agentId: "test-agent-001",
-    agentWsUrl: "ws://localhost:8080",
+    agentWsUrl: "ws://localhost:8080/chat",
     initialAgentName: "TestAgent",
 }; 

@@ -34,7 +34,6 @@ vi.mock("@/hooks/useChatInstance", () => ({
 describe("ChatApp", () => {
     const mockConfig: ChatAgentConfig = {
         agentId: "test-agent",
-        agentWsUrl: "ws://localhost:3002",
         initialAgentName: "Test Agent",
     };
 

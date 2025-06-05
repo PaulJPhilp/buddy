@@ -10,7 +10,7 @@
 
 // Export all types
 export type {
-    AcknowledgmentMessage, BaseMessage, ClientMessage, ConnectionMessage, ConnectionState, ErrorMessage, LLMResponseMessage, LLMStreamMessage, ProtocolError, ProtocolMessage, ServerMessage, ThinkingStateMessage, UserMessage, ValidationResult, WebSocketEnvelope, WelcomeMessage
+    AcknowledgmentMessage, BaseMessage, ClientMessage, ConnectionMessage, ConnectionState, ErrorMessage, LLMResponseMessage, LLMStreamMessage, ProtocolError, ProtocolMessage, ServerMessage, ThinkingStateMessage, UserMessage, ValidationResult, WebSocketEnvelope, WelcomeMessage, ConnectionState
 } from './types.js';
 
 // Export validation functions

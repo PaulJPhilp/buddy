@@ -9,7 +9,7 @@
   "workspaces": [
     "apps/client",
     "packages/*",
-    "mock-agent-llm"
+    "llm-agent"
   ],
   "scripts": {
     "dev": "next dev",
