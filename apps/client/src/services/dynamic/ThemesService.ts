@@ -9,333 +9,373 @@
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  */
 
-import { Effect, Ref } from "effect"
-import type { ThemeColors } from "@/contexts/ThemeContext"
-import { parseJsonEffect } from "./utils"
+import { Effect, Ref } from "effect";
+import { parseJsonEffect } from "./utils";
+
+// Define ThemeColors interface locally to avoid circular dependency
+// This matches the interface in ThemeContext but is self-contained
+export interface ThemeColors {
+  background: string; // maps to colors.background
+  foreground: string; // maps to colors.text
+  primary: string; // maps to colors.primary
+  secondary: string; // maps to colors.secondary
+  border: string; // maps to border.color (main container border)
+  userArea: string; // maps to userArea.background
+  bubbleUser: string; // maps to bubbles.user.background
+  bubbleAgent: string; // maps to bubbles.agent.background
+  headerBg: string; // maps to header.background
+  headerText: string; // maps to header.text
+  userAreaBorder?: string; // border between chat area and user area (optional for backward compatibility)
+  inputBorder?: string; // input field border (optional for backward compatibility)
+}
 
 // Storage key for themes in localStorage
-const THEMES_STORAGE_KEY = 'buddy:themes'
+const THEMES_STORAGE_KEY = "buddy:themes";
 
 // Helper type for non-empty strings
-type NonEmptyString<T extends string> = T extends '' ? never : T
+type NonEmptyString<T extends string> = T extends "" ? never : T;
 
 /**
  * Validates that a chatId is a non-empty string
  * @throws {InvalidChatIdError} If chatId is empty or not a string
  */
-const validateChatId = <T extends string>(chatId: T): Effect.Effect<NonEmptyString<T>, InvalidChatIdError> => {
-  if (typeof chatId !== 'string' || chatId.trim() === '') {
+const validateChatId = <T extends string>(
+  chatId: T,
+): Effect.Effect<NonEmptyString<T>, InvalidChatIdError> => {
+  if (typeof chatId !== "string" || chatId.trim() === "") {
     return Effect.fail<InvalidChatIdError>({
-      _tag: 'InvalidChatIdError',
-      message: 'chatId must be a non-empty string',
-      chatId
-    })
+      _tag: "InvalidChatIdError",
+      message: "chatId must be a non-empty string",
+      chatId,
+    });
   }
-  return Effect.succeed(chatId as NonEmptyString<T>)
-}
+  return Effect.succeed(chatId as NonEmptyString<T>);
+};
 
 /**
  * Validates that an object matches the ThemeColors interface
+ * Provides backward compatibility by adding default values for missing properties
  * @throws {ThemeValidationError} If the theme object is invalid
  */
-const validateThemeObject = (theme: unknown): Effect.Effect<ThemeColors, ThemeValidationError> => {
-  if (typeof theme !== 'object' || theme === null) {
+const validateThemeObject = (
+  theme: unknown,
+): Effect.Effect<ThemeColors, ThemeValidationError> => {
+  if (typeof theme !== "object" || theme === null) {
     return Effect.fail<ThemeValidationError>({
-      _tag: 'ThemeValidationError',
-      message: 'Theme must be an object',
-      details: 'Expected an object but received ' + String(theme)
-    })
+      _tag: "ThemeValidationError",
+      message: "Theme must be an object",
+      details: `Expected an object but received ${String(theme)}`,
+    });
   }
 
   const requiredKeys: Array<keyof ThemeColors> = [
-    'background', 'foreground', 'primary', 'secondary', 
-    'border', 'userArea', 'bubbleUser', 'bubbleAgent',
-    'headerBg', 'headerText'
-  ]
+    "background",
+    "foreground",
+    "primary",
+    "secondary",
+    "border",
+    "userArea",
+    "bubbleUser",
+    "bubbleAgent",
+    "headerBg",
+    "headerText",
+  ];
 
-  const missingKeys = requiredKeys.filter(key => !(key in theme))
+  const missingKeys = requiredKeys.filter((key) => !(key in theme));
   if (missingKeys.length > 0) {
     return Effect.fail<ThemeValidationError>({
-      _tag: 'ThemeValidationError',
-      message: `Missing required theme properties: ${missingKeys.join(', ')}`,
-      details: `Theme is missing required properties: ${missingKeys.join(', ')}`
-    })
+      _tag: "ThemeValidationError",
+      message: `Missing required theme properties: ${missingKeys.join(", ")}`,
+      details: `Theme is missing required properties: ${missingKeys.join(", ")}`,
+    });
   }
 
-  const invalidTypes = requiredKeys.filter(key => {
-    const value = (theme as ThemeColors)[key]
-    return typeof value !== 'string' || value.trim() === ''
-  })
+  const invalidTypes = requiredKeys.filter((key) => {
+    const value = (theme as ThemeColors)[key];
+    return typeof value !== "string" || value.trim() === "";
+  });
 
   if (invalidTypes.length > 0) {
     return Effect.fail<ThemeValidationError>({
-      _tag: 'ThemeValidationError',
-      message: `Theme properties must be non-empty strings: ${invalidTypes.join(', ')}`,
-      details: `Invalid values for properties: ${invalidTypes.join(', ')}`
-    })
+      _tag: "ThemeValidationError",
+      message: `Theme properties must be non-empty strings: ${invalidTypes.join(", ")}`,
+      details: `Invalid values for properties: ${invalidTypes.join(", ")}`,
+    });
   }
 
-  return Effect.succeed(theme as ThemeColors)
-}
+  return Effect.succeed(theme as ThemeColors);
+};
 
 export type FileSystemUnavailableError = {
-  _tag: 'FileSystemUnavailableError'
-  message: string
-  cause?: unknown
-}
+  _tag: "FileSystemUnavailableError";
+  message: string;
+  cause?: unknown;
+};
 
 export type FileReadError = {
-  _tag: 'FileReadError'
-  message: string
-  path: string
-  cause?: unknown
-}
+  _tag: "FileReadError";
+  message: string;
+  path: string;
+  cause?: unknown;
+};
 
 export type JsonParseError = {
-  _tag: 'JsonParseError'
-  message: string
-  input: string
-  cause?: unknown
-}
+  _tag: "JsonParseError";
+  message: string;
+  input: string;
+  cause?: unknown;
+};
 
 export type ThemeValidationError = {
-  readonly _tag: "ThemeValidationError"
-  readonly message: string
-  readonly details: string
-  readonly path?: string[]
-  readonly value?: unknown
-}
+  readonly _tag: "ThemeValidationError";
+  readonly message: string;
+  readonly details: string;
+  readonly path?: string[];
+  readonly value?: unknown;
+};
 
 export type ThemeNotFoundError = {
-  readonly _tag: "ThemeNotFoundError"
-  readonly message: string
-  readonly chatId: string
-}
+  readonly _tag: "ThemeNotFoundError";
+  readonly message: string;
+  readonly chatId: string;
+};
 
 export type InvalidChatIdError = {
-  readonly _tag: "InvalidChatIdError"
-  readonly message: string
-  readonly chatId: string
-}
+  readonly _tag: "InvalidChatIdError";
+  readonly message: string;
+  readonly chatId: string;
+};
 
 export type InvalidThemeError = {
-  readonly _tag: "InvalidThemeError"
-  readonly message: string
-  readonly details: string
-  readonly chatId?: string
-}
+  readonly _tag: "InvalidThemeError";
+  readonly message: string;
+  readonly details: string;
+  readonly chatId?: string;
+};
 
 export type StorageError = {
-  readonly _tag: "StorageError"
-  readonly message: string
-  readonly cause?: unknown
-}
+  readonly _tag: "StorageError";
+  readonly message: string;
+  readonly cause?: unknown;
+};
 
 export type ThemesServiceError =
   | ThemeValidationError
   | ThemeNotFoundError
   | InvalidChatIdError
   | InvalidThemeError
-  | StorageError
+  | StorageError;
 
 export interface ThemesServiceApi {
-  getTheme(chatId: string): Effect.Effect<ThemeColors | undefined, InvalidChatIdError>
-  setTheme(chatId: string, theme: ThemeColors): Effect.Effect<void, InvalidChatIdError | ThemeValidationError>
-  updateTheme(chatId: string, partial: Partial<ThemeColors>): Effect.Effect<void, InvalidChatIdError | ThemeNotFoundError | ThemeValidationError>
-  deleteTheme(chatId: string): Effect.Effect<void, InvalidChatIdError>
-  listThemes(): Effect.Effect<Record<string, ThemeColors>>
-  resetThemes(): Effect.Effect<void>
-  
+  getTheme(
+    chatId: string,
+  ): Effect.Effect<ThemeColors | undefined, InvalidChatIdError>;
+  setTheme(
+    chatId: string,
+    theme: ThemeColors,
+  ): Effect.Effect<void, InvalidChatIdError | ThemeValidationError>;
+  updateTheme(
+    chatId: string,
+    partial: Partial<ThemeColors>,
+  ): Effect.Effect<
+    void,
+    InvalidChatIdError | ThemeNotFoundError | ThemeValidationError
+  >;
+  deleteTheme(chatId: string): Effect.Effect<void, InvalidChatIdError>;
+  listThemes(): Effect.Effect<Record<string, ThemeColors>>;
+  resetThemes(): Effect.Effect<void>;
+
   /**
    * Load themes from localStorage
    * @param options Configuration for loading themes
    * @returns Effect that resolves with the loaded themes
    */
-  loadThemes(
-    options?: {
-      /** If specified, only loads themes for these chat IDs */
-      chatIds?: string[]
-      /** If true, merges with existing themes (default: true) */
-      merge?: boolean
-      /** If true, validates theme objects (default: true) */
-      validate?: boolean
-    }
-  ): Effect.Effect<Record<string, ThemeColors>, StorageError | ThemeValidationError | InvalidChatIdError>
-  
+  loadThemes(options?: {
+    /** If specified, only loads themes for these chat IDs */
+    chatIds?: string[];
+    /** If true, merges with existing themes (default: true) */
+    merge?: boolean;
+    /** If true, validates theme objects (default: true) */
+    validate?: boolean;
+  }): Effect.Effect<
+    Record<string, ThemeColors>,
+    StorageError | ThemeValidationError | InvalidChatIdError
+  >;
+
   /**
    * Save themes to localStorage
    * @param options Configuration for saving themes
    * @returns Effect that resolves when themes are saved
    */
-  saveThemes(
-    options?: {
-      /** If specified, only saves these chat IDs (default: all themes) */
-      chatIds?: string[]
-    }
-  ): Effect.Effect<void, StorageError | ThemeNotFoundError | InvalidChatIdError>
+  saveThemes(options?: {
+    /** If specified, only saves these chat IDs (default: all themes) */
+    chatIds?: string[];
+  }): Effect.Effect<
+    void,
+    StorageError | ThemeNotFoundError | InvalidChatIdError
+  >;
 }
-
-
 
 export class ThemesService extends Effect.Service<ThemesServiceApi>()(
   "ThemesService",
   {
     scoped: Effect.gen(function* () {
-      const ref = yield* Ref.make<Record<string, ThemeColors>>({})
+      const ref = yield* Ref.make<Record<string, ThemeColors>>({});
 
       const getTheme = (chatId: string) =>
         Effect.gen(function* () {
-          const validChatId = yield* validateChatId(chatId)
-          const themes = yield* Ref.get(ref)
-          return themes[validChatId]
-        }) as Effect.Effect<ThemeColors | undefined, InvalidChatIdError>
+          const validChatId = yield* validateChatId(chatId);
+          const themes = yield* Ref.get(ref);
+          return themes[validChatId];
+        }) as Effect.Effect<ThemeColors | undefined, InvalidChatIdError>;
 
       const setTheme = (chatId: string, theme: ThemeColors) =>
         Effect.gen(function* () {
-          const validChatId = yield* validateChatId(chatId)
-          const validTheme = yield* validateThemeObject(theme)
-          yield* Ref.update(ref, themes => ({
+          const validChatId = yield* validateChatId(chatId);
+          const validTheme = yield* validateThemeObject(theme);
+          yield* Ref.update(ref, (themes) => ({
             ...themes,
-            [validChatId]: validTheme
-          }))
-        }) as Effect.Effect<void, InvalidChatIdError | ThemeValidationError>
+            [validChatId]: validTheme,
+          }));
+        }) as Effect.Effect<void, InvalidChatIdError | ThemeValidationError>;
 
       const updateTheme = (
         chatId: string,
-        partialUpdates: Partial<ThemeColors>
+        partialUpdates: Partial<ThemeColors>,
       ) =>
         Effect.gen(function* () {
-          const validChatId = yield* validateChatId(chatId)
-          const themes = yield* Ref.get(ref)
+          const validChatId = yield* validateChatId(chatId);
+          const themes = yield* Ref.get(ref);
           if (!themes[validChatId]) {
             return yield* Effect.fail<ThemeNotFoundError>({
-              _tag: 'ThemeNotFoundError',
+              _tag: "ThemeNotFoundError",
               message: `No theme found for chatId: ${validChatId}`,
-              chatId: validChatId
-            })
+              chatId: validChatId,
+            });
           }
-          const merged = { ...themes[validChatId], ...partialUpdates }
-          yield* validateThemeObject(merged)
-          yield* Ref.update(ref, t => ({
+          const merged = { ...themes[validChatId], ...partialUpdates };
+          yield* validateThemeObject(merged);
+          yield* Ref.update(ref, (t) => ({
             ...t,
-            [validChatId]: merged
-          }))
-        }) as Effect.Effect<void, InvalidChatIdError | ThemeNotFoundError | ThemeValidationError>
+            [validChatId]: merged,
+          }));
+        }) as Effect.Effect<
+          void,
+          InvalidChatIdError | ThemeNotFoundError | ThemeValidationError
+        >;
 
       const deleteTheme = (chatId: string) =>
         Effect.gen(function* () {
-          const validChatId = yield* validateChatId(chatId)
-          yield* Ref.update(ref, themes => {
-            const { [validChatId]: _, ...rest } = themes
-            return rest
-          })
-        }) as Effect.Effect<void, InvalidChatIdError>
+          const validChatId = yield* validateChatId(chatId);
+          yield* Ref.update(ref, (themes) => {
+            const { [validChatId]: _, ...rest } = themes;
+            return rest;
+          });
+        }) as Effect.Effect<void, InvalidChatIdError>;
 
       const listThemes = () =>
         Effect.gen(function* () {
-          const themes = yield* Ref.get(ref)
-          return { ...themes }
-        }) as Effect.Effect<Record<string, ThemeColors>>
+          const themes = yield* Ref.get(ref);
+          return { ...themes };
+        }) as Effect.Effect<Record<string, ThemeColors>>;
 
       const resetThemes = () =>
         Effect.gen(function* () {
-          yield* Ref.set(ref, {})
-        }) as Effect.Effect<void>
+          yield* Ref.set(ref, {});
+        }) as Effect.Effect<void>;
 
       const loadThemes = (
         options: {
-          chatIds?: string[]
-          merge?: boolean
-          validate?: boolean
-        } = {}
+          chatIds?: string[];
+          merge?: boolean;
+          validate?: boolean;
+        } = {},
       ) =>
         Effect.gen(function* () {
-          const { chatIds, merge = true, validate = true } = options
+          const { chatIds, merge = true, validate = true } = options;
           try {
-            const storedThemes = localStorage.getItem(THEMES_STORAGE_KEY)
-            if (!storedThemes) return {}
-            const parsedThemes = yield* parseJsonEffect(storedThemes)
-            let themesToLoad: Record<string, unknown> = {}
-            if (
-              typeof parsedThemes === 'object' && parsedThemes !== null
-            ) {
-              themesToLoad = parsedThemes as Record<string, unknown>
+            const storedThemes = localStorage.getItem(THEMES_STORAGE_KEY);
+            if (!storedThemes) return {};
+            const parsedThemes = yield* parseJsonEffect(storedThemes);
+            let themesToLoad: Record<string, unknown> = {};
+            if (typeof parsedThemes === "object" && parsedThemes !== null) {
+              themesToLoad = parsedThemes as Record<string, unknown>;
             } else {
               return yield* Effect.fail<ThemeValidationError>({
-                _tag: 'ThemeValidationError',
-                message: 'Invalid themes format in storage',
-                details: 'Expected an object with theme data'
-              })
+                _tag: "ThemeValidationError",
+                message: "Invalid themes format in storage",
+                details: "Expected an object with theme data",
+              });
             }
-            let filtered: Record<string, ThemeColors> = {}
+            const filtered: Record<string, ThemeColors> = {};
             for (const [id, theme] of Object.entries(themesToLoad)) {
-              if (chatIds && !chatIds.includes(id)) continue
+              if (chatIds && !chatIds.includes(id)) continue;
               if (validate) {
-                const validTheme = yield* validateThemeObject(theme)
-                filtered[id] = validTheme
+                const validTheme = yield* validateThemeObject(theme);
+                filtered[id] = validTheme;
               } else {
-                filtered[id] = theme as ThemeColors
+                filtered[id] = theme as ThemeColors;
               }
             }
             if (merge) {
-              yield* Ref.update(ref, t => ({ ...t, ...filtered }))
+              yield* Ref.update(ref, (t) => ({ ...t, ...filtered }));
             } else {
-              yield* Ref.set(ref, filtered)
+              yield* Ref.set(ref, filtered);
             }
-            return filtered
+            return filtered;
           } catch (error) {
             return yield* Effect.fail<StorageError>({
-              _tag: 'StorageError',
-              message: 'Failed to load themes from storage',
-              cause: error
-            })
+              _tag: "StorageError",
+              message: "Failed to load themes from storage",
+              cause: error,
+            });
           }
         }) as Effect.Effect<
           Record<string, ThemeColors>,
           StorageError | ThemeValidationError | InvalidChatIdError
-        >
+        >;
 
       const saveThemes = (
         options: {
-          chatIds?: string[]
-        } = {}
+          chatIds?: string[];
+        } = {},
       ) =>
         Effect.gen(function* () {
-          const { chatIds } = options
+          const { chatIds } = options;
           try {
-            const themes = yield* Ref.get(ref)
-            let themesToSave: Record<string, ThemeColors>
+            const themes = yield* Ref.get(ref);
+            let themesToSave: Record<string, ThemeColors>;
             if (chatIds) {
-              const missing = chatIds.filter(id => !(id in themes))
+              const missing = chatIds.filter((id) => !(id in themes));
               if (missing.length > 0) {
                 return yield* Effect.fail<ThemeNotFoundError>({
-                  _tag: 'ThemeNotFoundError',
-                  message: `Themes not found for chatIds: ${missing.join(', ')}`,
-                  chatId: missing[0]
-                })
+                  _tag: "ThemeNotFoundError",
+                  message: `Themes not found for chatIds: ${missing.join(", ")}`,
+                  chatId: missing[0],
+                });
               }
               themesToSave = Object.fromEntries(
-                Object.entries(themes).filter(([id]) => chatIds.includes(id))
-              )
+                Object.entries(themes).filter(([id]) => chatIds.includes(id)),
+              );
             } else {
-              themesToSave = { ...themes }
+              themesToSave = { ...themes };
             }
             localStorage.setItem(
               THEMES_STORAGE_KEY,
-              JSON.stringify(themesToSave)
-            )
-            return undefined
+              JSON.stringify(themesToSave),
+            );
+            return undefined;
           } catch (error) {
             return yield* Effect.fail<StorageError>({
-              _tag: 'StorageError',
-              message: 'Failed to save themes to storage',
-              cause: error
-            })
+              _tag: "StorageError",
+              message: "Failed to save themes to storage",
+              cause: error,
+            });
           }
         }) as Effect.Effect<
           void,
           StorageError | ThemeNotFoundError | InvalidChatIdError
-        >
+        >;
 
       return {
         getTheme,
@@ -345,9 +385,9 @@ export class ThemesService extends Effect.Service<ThemesServiceApi>()(
         listThemes,
         resetThemes,
         loadThemes,
-        saveThemes
-      } satisfies ThemesServiceApi
+        saveThemes,
+      } satisfies ThemesServiceApi;
     }),
-    dependencies: []
-  }
-) {}
+    dependencies: [],
+  },
+) { }

@@ -89,7 +89,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
         style={{
           backgroundColor: 'var(--color-chat-user-area)',
           color: 'var(--color-chat-foreground)',
-          borderColor: 'var(--color-chat-border)'
+          borderColor: 'var(--color-chat-user-area-border)'
         }}
       >
         <div className="w-full max-w-4xl mx-auto px-4 py-3">

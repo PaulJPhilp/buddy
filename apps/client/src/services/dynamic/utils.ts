@@ -1,12 +1,8 @@
 import { Effect } from "effect"
-import type { ThemeColors } from "@/contexts/ThemeContext"
-import { ChatThemeJsonSchema, type ChatThemeJson } from "@/schemas/ChatThemeJsonSchema"
-import * as Schema from "@effect/schema/Schema"
 import type {
-  FileSystemUnavailableError,
   FileReadError,
-  JsonParseError,
-  ThemeValidationError
+  FileSystemUnavailableError,
+  JsonParseError
 } from "./ThemesService"
 
 /**
@@ -64,69 +60,7 @@ export const parseJsonEffect = (data: string): Effect.Effect<JSONValue, JsonPars
       _tag: "JsonParseError",
       message: "Failed to parse JSON",
       cause: e,
-      input: ""
+      input: data
     })
-  })
-}
-
-/**
- * Validate and transform a JSON object into a ThemeColors object
- * @param json The JSON object to validate
- * @returns Effect containing the validated ThemeColors or ThemesServiceError
- */
-/**
- * Type guard to check if an object has the required ChatThemeJson structure
- */
-const isThemeJsonObject = (json: object): json is ChatThemeJson & Record<string, unknown> => {
-  return (
-    "container" in json &&
-    typeof json.container === "object" &&
-    json.container !== null &&
-    "defaults" in json.container &&
-    typeof json.container.defaults === "object" &&
-    json.container.defaults !== null
-  )
-}
-
-export const validateThemeJson = (json: JSONValue): Effect.Effect<ThemeColors, ThemeValidationError> => {
-  return Effect.gen(function* () {
-    if (typeof json !== "object" || json === null || Array.isArray(json)) {
-      return yield* Effect.fail<ThemeValidationError>({
-        _tag: "ThemeValidationError",
-        message: "Invalid theme format",
-        details: "Expected a theme object but received invalid JSON"
-      })
-    }
-
-    if (!isThemeJsonObject(json)) {
-      return yield* Effect.fail<ThemeValidationError>({
-        _tag: "ThemeValidationError",
-        message: "Invalid theme format",
-        details: "Missing required theme properties in JSON"
-      })
-    }
-
-    const result = yield* Effect.try({
-      try: () => Schema.decodeSync(ChatThemeJsonSchema)(json),
-      catch: (e): ThemeValidationError => ({
-        _tag: "ThemeValidationError",
-        message: "Theme validation failed",
-        details: e instanceof Error ? e.message : "Unknown validation error"
-      })
-    })
-
-    const theme: ThemeColors = {
-      background: result.container.defaults.chatArea.userArea.inputArea.inputAreaColor,
-      foreground: result.container.defaults.chatArea.userArea.inputArea.fontColor,
-      primary: result.container.borderColor,
-      secondary: result.container.defaults.chatArea.assistantBubble.color,
-      border: result.container.borderColor,
-      userArea: result.container.defaults.chatArea.userArea.inputArea.inputAreaColor,
-      bubbleUser: result.container.defaults.chatArea.userBubble.color,
-      bubbleAgent: result.container.defaults.chatArea.assistantBubble.color,
-      headerBg: result.container.defaults.headerBar.color,
-      headerText: result.container.defaults.headerBar.fontColor
-    }
-    return theme
   })
 }

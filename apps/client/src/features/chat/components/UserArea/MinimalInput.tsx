@@ -126,7 +126,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
         )}
         style={{
           backgroundColor: 'var(--color-chat-background)',
-          borderColor: 'var(--color-chat-border)',
+          borderColor: 'var(--color-chat-input-border)',
           color: 'var(--color-chat-foreground)'
         }}
       >

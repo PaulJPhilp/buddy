@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTheme, ThemeColors, defaultTheme } from "@/contexts/ThemeContext";
-import { useSelectedChat } from "@/contexts/SelectedChatContext";
 import { useActiveChat } from "@/contexts/ActiveChatContext";
+import { useSelectedChat } from "@/contexts/SelectedChatContext";
+import { ThemeColors, defaultTheme, useTheme } from "@/contexts/ThemeContext";
 import { cssToThemeColors, themeColorsToCss } from "@/features/chat/themes/themeUtils";
-import { ChromePicker } from "react-color";
 import { Sidebar, SidebarSection } from "@ui/components/ui/sidebar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@ui/components/ui/select";
+import { useEffect, useState } from "react";
+import { ChromePicker } from "react-color";
 
 interface AppSidebarProps {
   isOpen: boolean;
@@ -50,45 +49,40 @@ export function AppSidebar({ isOpen, onToggleAction }: AppSidebarProps) {
     'chat-1': 'chat-1', // Use the actual chat ID as the theme ID
     'chat-2': 'chat-2'  // Use the actual chat ID as the theme ID
   };
-  
+
   // Get the effective theme ID based on the active chat (or selected chat as fallback)
-  const effectiveThemeId = activeChatId ? 
-    (chatIdToThemeId[activeChatId] || 'chat-1') : 
+  const effectiveThemeId = activeChatId ?
+    (chatIdToThemeId[activeChatId] || 'chat-1') :
     (chatIdToThemeId[selectedChatId] || 'chat-1');
-  
-  // Track theme changes based on active chat
-  useEffect(() => {
-    // Effect runs when active chat or theme ID changes
-  }, [activeChatId, selectedChatId, effectiveThemeId]);
-  
+
   // Show a message if no chat is active
   const noActiveChat = !activeChatId;
-  
+
   const currentColors = chatThemes[effectiveThemeId] || { ...defaultTheme };
-  
+
   // Initialize the theme if it doesn't exist
   useEffect(() => {
     if (!chatThemes[effectiveThemeId]) {
       // Initialize with default theme
-      Object.entries(defaultTheme).forEach(([key, value]) => {
-        updateChatColor(effectiveThemeId, key as keyof ThemeColors, value);
-      });
+      for (const [key, value] of Object.entries(defaultTheme)) {
+        updateChatColor(effectiveThemeId, key as keyof ThemeColors, value)
+      }
     }
-  }, [chatThemes, updateChatColor, effectiveThemeId]);
+  }, [chatThemes, updateChatColor, effectiveThemeId])
 
   useEffect(() => {
     if (currentColors) {
       setEditingColors(prevState => {
-        const newState = { ...prevState };
-        Object.keys(currentColors).forEach(key => {
-          if (!(key in newState)) {
-            newState[key] = currentColors[key as keyof ThemeColors];
+        const newState = { ...prevState }
+        for (const [key, value] of Object.entries(currentColors)) {
+          if (!(key in newState) && value !== undefined) {
+            newState[key] = value
           }
-        });
-        return newState;
-      });
+        }
+        return newState
+      })
     }
-  }, [currentColors]);
+  }, [currentColors])
 
   // This effect is no longer needed as we're using a fixed chat ID
   // and initializing it in the effect above
@@ -121,19 +115,18 @@ ${themeColorsToCss(colors)}`;
       try {
         // Try to parse the CSS variables from the imported file
         const content = reader.result as string;
-        
+
         // Use our utility function to convert CSS to ThemeColors
         const themeColors = cssToThemeColors(content);
-        
+
         if (!themeColors) {
           console.error('[AppSidebar] Could not parse theme from CSS file');
           return;
         }
-        
         // Update theme in context using the effective theme ID
-        Object.entries(themeColors).forEach(([key, value]) => {
-          updateChatColor(effectiveThemeId, key as keyof ThemeColors, value);
-        });
+        for (const [key, value] of Object.entries(themeColors)) {
+          updateChatColor(effectiveThemeId, key as keyof ThemeColors, value)
+        }
 
         // Update local state to reflect the imported theme
         setEditingColors(prevState => ({
@@ -179,8 +172,9 @@ ${themeColorsToCss(colors)}`;
                 <div key={key} className="space-y-1">
                   <div className="text-xs font-medium">{label}</div>
                   <div className="flex items-center gap-2 mb-2 relative">
-                    <div
-                      className="w-8 h-8 rounded-md cursor-pointer border border-gray-300 flex items-center justify-center"
+                    <button
+                      type="button"
+                      className="w-8 h-8 rounded-md border border-gray-300 flex items-center justify-center"
                       style={{ backgroundColor: currentColors[key as keyof ThemeColors] || '#ffffff' }}
                       onClick={() => setOpenColorPicker(key)}
                     >
@@ -192,6 +186,14 @@ ${themeColorsToCss(colors)}`;
                               e.stopPropagation();
                               setOpenColorPicker(null);
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                setOpenColorPicker(null);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
                           />
                           <div className="relative z-50 shadow-lg rounded-lg overflow-hidden">
                             <ChromePicker
@@ -205,7 +207,7 @@ ${themeColorsToCss(colors)}`;
                           </div>
                         </div>
                       )}
-                    </div>
+                    </button>
                     <input
                       type="text"
                       value={editingColors[key] !== undefined ? editingColors[key] : currentColors[key as keyof ThemeColors] || ''}
@@ -217,7 +219,7 @@ ${themeColorsToCss(colors)}`;
                         if (isValidColor(value)) {
                           updateChatColor(effectiveThemeId, key as keyof ThemeColors, value);
                         } else {
-                          setEditingColors({ ...editingColors, [key]: currentColors[key as keyof ThemeColors] });
+                          setEditingColors({ ...editingColors, [key]: currentColors[key as keyof ThemeColors] || '' });
                         }
                       }}
                       onKeyDown={(e) => {
@@ -226,7 +228,7 @@ ${themeColorsToCss(colors)}`;
                           if (isValidColor(value)) {
                             updateChatColor(effectiveThemeId, key as keyof ThemeColors, value);
                           } else {
-                            setEditingColors({ ...editingColors, [key]: currentColors[key as keyof ThemeColors] });
+                            setEditingColors({ ...editingColors, [key]: currentColors[key as keyof ThemeColors] || '' });
                           }
                           e.currentTarget.blur();
                         }
@@ -249,6 +251,7 @@ ${themeColorsToCss(colors)}`;
         ) : (
           <div className="space-y-2 p-2">
             <button
+              type="button"
               onClick={exportTheme}
               className="w-full px-2 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
             >
@@ -266,10 +269,10 @@ ${themeColorsToCss(colors)}`;
             <div className="mt-4 pt-2 border-t border-gray-200">
               <div className="text-xs font-medium mb-2">Theme Preview</div>
               <div className="flex flex-col space-y-1">
-                <div className="h-2 rounded" style={{ backgroundColor: currentColors.primary }}></div>
-                <div className="h-2 rounded" style={{ backgroundColor: currentColors.secondary }}></div>
-                <div className="h-2 rounded" style={{ backgroundColor: currentColors.bubbleUser }}></div>
-                <div className="h-2 rounded" style={{ backgroundColor: currentColors.bubbleAgent }}></div>
+                <div className="h-2 rounded" style={{ backgroundColor: currentColors.primary }} />
+                <div className="h-2 rounded" style={{ backgroundColor: currentColors.secondary }} />
+                <div className="h-2 rounded" style={{ backgroundColor: currentColors.bubbleUser }} />
+                <div className="h-2 rounded" style={{ backgroundColor: currentColors.bubbleAgent }} />
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {activeChatId ? `Editing active chat: ${activeChatId === 'chat1' ? 'Business Chat' : 'Social Chat'}` : 'No active chat'}
@@ -278,6 +281,6 @@ ${themeColorsToCss(colors)}`;
           </div>
         )}
       </SidebarSection>
-    </Sidebar>
+    </Sidebar >
   );
 }
