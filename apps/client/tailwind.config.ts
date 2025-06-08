@@ -12,23 +12,20 @@ const config: Config = {
     extend: {
       colors: {
         // Chat theme colors using CSS variables
-        'chat-background': 'var(--color-chat-background, #ffffff)',
-        'chat-foreground': 'var(--color-chat-foreground, #000000)',
-        'chat-primary': 'var(--color-chat-primary, #0ea5e9)',
-        'chat-secondary': 'var(--color-chat-secondary, #64748b)',
-        'chat-border': 'var(--color-chat-border, #e2e8f0)',
-        'chat-user-area': 'var(--color-chat-user-area, #f8fafc)',
-        'chat-bubble-user': 'var(--color-chat-bubble-user, #0ea5e9)',
-        'chat-bubble-agent': 'var(--color-chat-bubble-agent, #64748b)',
-        'chat-header-bg': 'var(--color-chat-header-bg, #f8fafc)',
-        'chat-header-text': 'var(--color-chat-header-text, #000000)',
+        "chat-background": "var(--color-chat-background, #ffffff)",
+        "chat-foreground": "var(--color-chat-foreground, #000000)",
+        "chat-primary": "var(--color-chat-primary, #0ea5e9)",
+        "chat-secondary": "var(--color-chat-secondary, #64748b)",
+        "chat-border": "var(--color-chat-border, #e2e8f0)",
+        "chat-user-area": "var(--color-chat-user-area, #f8fafc)",
+        "chat-bubble-user": "var(--color-chat-bubble-user, #0ea5e9)",
+        "chat-bubble-agent": "var(--color-chat-bubble-agent, #64748b)",
+        "chat-header-bg": "var(--color-chat-header-bg, #f8fafc)",
+        "chat-header-text": "var(--color-chat-header-text, #000000)",
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/typography")
-  ],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 };
 
 export default config;

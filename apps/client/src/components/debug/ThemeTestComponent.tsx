@@ -1,25 +1,18 @@
 "use client";
 
 import { ChatApp } from "@/features/chat/ChatApp";
+import type { ProtocolMessage as ChatProtocolMessage } from "@/features/chat/ChatApp";
+import { useAgentSession } from "@/hooks/useAgentSession";
 import { useState } from "react";
 
-const mockAgentConfig = {
-  agentId: "debug-agent",
-  agentWsUrl: "ws://localhost:8080",
-  initialAgentName: "Debug Test Agent",
-  agents: [
-    {
-      id: "debug-agent",
-      name: "Debug Agent",
-      description: "A helpful agent for debugging",
-      status: { mood: 80, energy: 90, health: 100 },
-      capabilities: { canSpeak: true, canMove: false, canLearn: true },
-      type: "assistant"
-    }
-  ]
-};
-
 export function ThemeTestComponent() {
+  const agentId = "theme-test-agent";
+  const chatId = "theme-test-chat";
+  const { status, messages, error, sendMessage } = useAgentSession(
+    agentId,
+    chatId,
+  );
+
   const [currentTheme, setCurrentTheme] = useState<string>("default");
   const [themeColors, setThemeColors] = useState<Record<string, string>>({
     background: "#ffffff",
@@ -30,7 +23,7 @@ export function ThemeTestComponent() {
     bubbleUser: "#0ea5e9",
     bubbleAgent: "#64748b",
     headerBg: "#f8fafc",
-    headerText: "#000000"
+    headerText: "#000000",
   });
 
   const themes = [
@@ -57,12 +50,12 @@ export function ThemeTestComponent() {
                 onClick={() => {
                   console.log("Switching to theme:", theme.value);
                   setCurrentTheme(theme.value);
-                  
+
                   // Reset custom colors when switching themes
-                  if (theme.value !== 'custom') {
+                  if (theme.value !== "custom") {
                     // We would load the actual theme colors here
                     // For now, just use some defaults based on the theme name
-                    if (theme.value === 'spike-dark') {
+                    if (theme.value === "spike-dark") {
                       setThemeColors({
                         background: "#1e293b",
                         foreground: "#f8fafc",
@@ -72,9 +65,9 @@ export function ThemeTestComponent() {
                         bubbleUser: "#38bdf8",
                         bubbleAgent: "#475569",
                         headerBg: "#0f172a",
-                        headerText: "#f8fafc"
+                        headerText: "#f8fafc",
                       });
-                    } else if (theme.value === 'minimal-test') {
+                    } else if (theme.value === "minimal-test") {
                       setThemeColors({
                         background: "#f9fafb",
                         foreground: "#111827",
@@ -84,7 +77,7 @@ export function ThemeTestComponent() {
                         bubbleUser: "#4f46e5",
                         bubbleAgent: "#9ca3af",
                         headerBg: "#f3f4f6",
-                        headerText: "#111827"
+                        headerText: "#111827",
                       });
                     } else {
                       // Default theme
@@ -97,15 +90,16 @@ export function ThemeTestComponent() {
                         bubbleUser: "#0ea5e9",
                         bubbleAgent: "#64748b",
                         headerBg: "#f8fafc",
-                        headerText: "#000000"
+                        headerText: "#000000",
                       });
                     }
                   }
                 }}
-                className={`px-4 py-2 rounded border transition-colors ${currentTheme === theme.value
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
+                className={`px-4 py-2 rounded border transition-colors ${
+                  currentTheme === theme.value
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
               >
                 {theme.label}
               </button>
@@ -118,31 +112,40 @@ export function ThemeTestComponent() {
 
         <div className="h-[600px] border border-gray-300 rounded-lg overflow-hidden">
           <div className="p-4 bg-gray-50 text-center">
-            <p className="text-gray-600">ChatApp will appear here once loaded...</p>
-            <div className="mt-4">
-              <ChatApp
-                chatId="theme-test-chat"
-                agentConfig={mockAgentConfig}
-                theme={currentTheme === "default" ? undefined : 
-                       currentTheme === "custom" ? { 
-                         colors: {
-                           background: themeColors.background,
-                           text: themeColors.foreground,
-                           primary: themeColors.primary,
-                           secondary: themeColors.secondary
-                         },
-                         userArea: { background: themeColors.userArea },
-                         bubbles: {
-                           user: { background: themeColors.bubbleUser },
-                           agent: { background: themeColors.bubbleAgent }
-                         },
-                         header: {
-                           background: themeColors.headerBg,
-                           text: themeColors.headerText
-                         }
-                       } : currentTheme}
-                className="h-full"
-              />
+            <div className="text-sm text-gray-600 mb-2">Chat Preview</div>
+            <div className="h-[400px] border border-gray-200 rounded-lg overflow-hidden">
+              {status === "initializing" || status === "connecting" ? (
+                <div className="text-gray-400 flex items-center justify-center h-full">
+                  Connecting...
+                </div>
+              ) : error ? (
+                <div className="text-red-600 flex items-center justify-center h-full">
+                  {error}
+                </div>
+              ) : (
+                <ChatApp
+                  chatId={chatId}
+                  agentId={agentId}
+                  messages={messages as ChatProtocolMessage[]}
+                  sendMessageAction={sendMessage}
+                  error={null}
+                  className="h-full"
+                  theme={{
+                    colors: {
+                      background: themeColors.background,
+                      text: themeColors.foreground, // Using foreground as text
+                      primary: themeColors.primary,
+                      secondary: themeColors.secondary,
+                      accent: themeColors.primary, // Using primary as accent
+                      border: "#e5e7eb", // Default border color
+                    },
+                    header: {
+                      background: themeColors.headerBg,
+                      text: themeColors.headerText,
+                    },
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -151,24 +154,24 @@ export function ThemeTestComponent() {
           <div className="p-4 bg-white border border-gray-300 rounded-lg">
             <h3 className="font-semibold mb-2">Theme Colors</h3>
             <div className="space-y-2 text-sm">
-              {currentTheme === 'custom' ? (
+              {currentTheme === "custom" ? (
                 <div className="space-y-3">
                   {Object.entries(themeColors).map(([key, value]) => (
                     <div key={key} className="flex flex-col">
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs font-medium">{key}</label>
-                        <div 
-                          className="w-6 h-6 rounded border border-gray-300" 
+                        <div
+                          className="w-6 h-6 rounded border border-gray-300"
                           style={{ backgroundColor: value }}
                         />
                       </div>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={value}
                         onChange={(e) => {
-                          setThemeColors(prev => ({
+                          setThemeColors((prev) => ({
                             ...prev,
-                            [key]: e.target.value
+                            [key]: e.target.value,
                           }));
                         }}
                         className="px-2 py-1 text-xs border rounded w-full"
@@ -211,14 +214,26 @@ export function ThemeTestComponent() {
                 <span>Agent Bubble</span>
               </div>
             </div>
-            
+
             <div className="mt-4 pt-4 border-t border-gray-200">
               <h4 className="text-sm font-medium mb-2">Preview</h4>
               <div className="space-y-2">
-                <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: 'var(--color-chat-bubble-user)', color: '#fff' }}>
+                <div
+                  className="p-2 rounded-lg text-xs"
+                  style={{
+                    backgroundColor: "var(--color-chat-bubble-user)",
+                    color: "#fff",
+                  }}
+                >
                   User message example
                 </div>
-                <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: 'var(--color-chat-bubble-agent)', color: '#fff' }}>
+                <div
+                  className="p-2 rounded-lg text-xs"
+                  style={{
+                    backgroundColor: "var(--color-chat-bubble-agent)",
+                    color: "#fff",
+                  }}
+                >
                   Agent response example
                 </div>
               </div>
@@ -231,7 +246,7 @@ export function ThemeTestComponent() {
               Switch between themes using the buttons above to see how the chat
               appearance changes. Select "Custom" to edit theme colors directly.
             </p>
-            
+
             <div className="mt-4 pt-4 border-t border-gray-200">
               <h4 className="text-sm font-medium mb-2">CSS Variables</h4>
               <div className="bg-gray-100 p-2 rounded text-xs font-mono overflow-x-auto">
@@ -248,4 +263,4 @@ export function ThemeTestComponent() {
       </div>
     </div>
   );
-} 
+}

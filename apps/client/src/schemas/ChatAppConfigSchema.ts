@@ -1,10 +1,11 @@
-import { Schema } from 'effect'
+import { Schema } from "effect";
 
 export interface ChatAppConfig {
-  id: string
-  name: string
-  agentId: string
-  toolbarId: string
+  id: string;
+  name: string;
+  agentId: string;
+  toolbarId: string;
+  themeId: string;
 }
 
 export const ChatAppConfigSchema = Schema.Struct({
@@ -12,4 +13,5 @@ export const ChatAppConfigSchema = Schema.Struct({
   name: Schema.String,
   agentId: Schema.String,
   toolbarId: Schema.String,
-})
+  themeId: Schema.String,
+});

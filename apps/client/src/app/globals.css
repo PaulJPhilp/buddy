@@ -3,8 +3,9 @@
 /* ===== ROOT THEME VARIABLES ===== */
 :root {
   /* Font families */
-  --font-family-sans: "geist", ui-sans-serif, system-ui, sans-serif;
-  --font-family-mono: "geist-mono", ui-monospace, monospace;
+  --font-family-sans: var(--font-geist-sans), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-family-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Base radius */
   --radius: 0.5rem;

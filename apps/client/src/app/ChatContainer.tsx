@@ -1,170 +1,122 @@
 "use client";
 
-import BusinessChat from "@/features/chat/BusinessChat";
-import SocialChat from "@/features/chat/SocialChat";
 import type { ChatAppTheme } from "@/features/chat/themes/themeTypes";
-import { AgentRuntimeService } from "@/services/agent-runtime/AgentRuntimeService";
-import { WebSocketService } from "@/services/websocket/WebSocketService";
-
-import { useSelectedChat } from "@/contexts/SelectedChatContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useSession } from "@clerk/nextjs";
-import { Effect, Fiber, Layer, Runtime } from "effect";
-import React, { useEffect, useMemo, useState } from "react";
+import { useTheme } from "next-themes";
+import { useMemo } from "react";
+import { useChatRuntime } from "../contexts/ChatRuntimeContext";
 
-// Create a context for the runtime
-export const RuntimeContext = React.createContext<Runtime.Runtime<any> | null>(
-  null,
-);
-
+// Props interface
 interface ChatContainerProps {
-  chatType: "business" | "social";
-  theme?: Partial<ChatAppTheme> | string;
+  theme?: ChatAppTheme;
   id: string;
+  displayName?: string;
 }
 
-export default function ChatContainer({ chatType, theme, id }: ChatContainerProps) {
+// Main container component
+export default function ChatContainer({
+  theme,
+  id,
+  displayName,
+}: ChatContainerProps) {
+  console.warn("ChatContainer mounted", { id, displayName });
+
+  // Use the chat runtime context
+  const runtime = useChatRuntime();
+
+  const { theme: rawTheme } = useTheme();
   const { session } = useSession();
-  const { getAppTheme, chatThemes, themeUpdateCount } = useTheme();
-  const { selectedChatId } = useSelectedChat();
 
-  // Check if this chat is the selected one
-  const isSelected = id === selectedChatId;
+  const sessionData = useMemo(
+    () => ({
+      userId: session?.user?.id ?? "default_user_id",
+      userName: session?.user?.fullName ?? "Unknown User",
+    }),
+    [session?.user?.id, session?.user?.fullName],
+  );
 
-  // Get theme from context or use provided theme
-  // If this is the selected chat, we should use the theme from the selected chat
-  // Otherwise, use the theme for this specific chat ID
-  let appliedTheme = theme;
-  if (!appliedTheme) {
-    if (isSelected && chatThemes[selectedChatId]) {
-      appliedTheme = selectedChatId;
-    } else if (id && chatThemes[id]) {
-      appliedTheme = id;
+  // Theme handling - simplified
+  const appliedTheme = useMemo(() => {
+    try {
+      if (theme && typeof theme === "object") return theme;
+      if (theme && typeof theme === "string") {
+        try {
+          return JSON.parse(theme);
+        } catch (e) {
+          console.error("Error parsing theme:", e);
+        }
+      }
+      if (rawTheme && typeof rawTheme === "object") return rawTheme;
+      if (
+        rawTheme &&
+        typeof rawTheme === "string" &&
+        !["system", "dark", "light"].includes(rawTheme)
+      ) {
+        try {
+          return JSON.parse(rawTheme);
+        } catch (e) {
+          console.error("Error parsing rawTheme:", e);
+        }
+      }
+    } catch (error) {
+      console.error("Theme processing error:", error);
     }
-  }
-
-  // Track theme updates
-  useEffect(() => {
-    // Effect runs when theme updates occur
-    // Mark dependencies as used to satisfy linter for this placeholder effect.
-    void [themeUpdateCount, appliedTheme, id, isSelected, selectedChatId];
-  }, [themeUpdateCount, appliedTheme, id, isSelected, selectedChatId]);
-
-  // All hooks at the top level
-  const [runtimeInstance, setRuntimeInstance] =
-    useState<Runtime.Runtime<any> | null>(null);
-  const [runtimeError, setRuntimeError] = useState<string | null>(null);
-  const [isLoadingRuntime, setIsLoadingRuntime] = useState(true);
-
-  // Memoize session data to prevent unnecessary re-renders
-  const sessionData = useMemo(() => ({
-    userId: session?.user?.id ?? "default_user_id",
-    sessionId: session?.id ?? "default_session_id"
-  }), [session?.user?.id, session?.id]);
-
-  // Memoize runtime layer to prevent unnecessary re-renders
-  const appLayer = useMemo(() => Layer.mergeAll(
-    WebSocketService.Default,
-    AgentRuntimeService.Default
-  ), []);
-
-  // Create runtime effect only once
-  const effectToBuildAppRuntime = useMemo(() => {
-    return Effect.scoped(Layer.toRuntime(appLayer));
-  }, [appLayer]);
-
-  const contextValue = useMemo(() => runtimeInstance, [runtimeInstance]);
-
-  const ChatComponent = useMemo(() => {
-    const component = chatType === "business" ? BusinessChat : SocialChat;
-    return component;
-  }, [chatType]);
-
-  // Memoize the onActivate callback to prevent unnecessary re-renders
-  const onActivateCallback = useMemo(() => () => { }, []);
-
-  const renderedChat = useMemo(() => {
-    return (
-      <ChatComponent
-        isActive={true}
-        onActivate={onActivateCallback}
-        theme={appliedTheme}
-        key={`chat-${id}-theme-${themeUpdateCount}`} // Add a key to force re-render on theme changes
-      />
-    );
-  }, [ChatComponent, onActivateCallback, appliedTheme, themeUpdateCount, id]);
-
-  // Initialize runtime only if we don't have one
-  useEffect(() => {
-    if (runtimeInstance) return;
-
-    let mounted = true;
-    setIsLoadingRuntime(true);
-    setRuntimeError(null);
-
-    const fiber = Effect.runFork(
-      effectToBuildAppRuntime
-        .pipe(
-          Effect.tap((runtime) =>
-            Effect.sync(() => {
-              if (!mounted) return;
-              setIsLoadingRuntime(false);
-              setRuntimeInstance(runtime as Runtime.Runtime<any>);
-            })
-          ),
-          Effect.catchAll((error: unknown) =>
-            Effect.sync(() => {
-              if (!mounted) return;
-              console.error('[ChatContainer] Runtime initialization failed:', error);
-              setIsLoadingRuntime(false);
-              const prettyErrorString = String(
-                error instanceof Error ? error.message : JSON.stringify(error)
-              );
-              setRuntimeError(prettyErrorString);
-            })
-          ),
-          Effect.map(() => void 0)
-        ) as Effect.Effect<void, never, never>
-    );
-
-    return () => {
-      mounted = false;
-      Effect.runFork(Fiber.interrupt(fiber));
-    };
-  }, [effectToBuildAppRuntime, runtimeInstance]);
-
-  if (isLoadingRuntime) {
-    const themeColor = chatType === "business" ? "blue" : "purple";
-    return (
-      <div className="h-full w-full flex items-center justify-center">
-        <div className="text-center">
-          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 border-${themeColor}-600 mx-auto mb-4`} />
-          <div className="text-lg font-semibold mb-2">
-            Initializing {chatType === "business" ? "Business" : "Social"} Chat
-          </div>
-          <div className={`text-sm text-${themeColor}-600`}>Setting up runtime...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (runtimeError) {
-    console.error('[ChatContainer] Runtime error occurred:', runtimeError);
-    return (
-      <div className="h-full w-full flex items-center justify-center">
-        <div className="text-center text-red-600">
-          <div className="text-lg font-semibold mb-2">Error</div>
-          <div className="text-sm">{runtimeError}</div>
-        </div>
-      </div>
-    );
-  }
+    return {};
+  }, [theme, rawTheme]);
 
   return (
-    <RuntimeContext.Provider value={contextValue}>
-      <div className="h-full w-full">
-        {renderedChat}
+    <div className="h-full w-full p-4">
+      <div className="mb-4 text-lg font-semibold">Chat Container ({id})</div>
+
+      {/* Session Info */}
+      <div className="mb-4 p-3 bg-gray-100 rounded">
+        <div className="font-medium">Session Info:</div>
+        <div>
+          <div>User: {sessionData.userName}</div>
+          <div>ID: {sessionData.userId}</div>
+        </div>
       </div>
-    </RuntimeContext.Provider>
+
+      {/* Chat Info */}
+      <div className="mb-4 p-3 bg-gray-100 rounded">
+        <div className="font-medium">Chat Info:</div>
+        <div>
+          <div>Chat ID: {id}</div>
+          <div>Display Name: {displayName}</div>
+        </div>
+      </div>
+
+      {/* Theme Info */}
+      <div className="mb-4 p-3 bg-gray-100 rounded">
+        <div className="font-medium">Theme Info:</div>
+        <pre className="text-sm mt-2 overflow-auto">
+          {JSON.stringify(appliedTheme, null, 2)}
+        </pre>
+      </div>
+
+      {/* Runtime Status */}
+      <div className="mb-4 p-3 bg-gray-100 rounded">
+        <div className="font-medium">Runtime Status:</div>
+        {runtime.status === "ready" ? (
+          <div className="text-green-600">Runtime ready</div>
+        ) : runtime.status === "error" ? (
+          <div className="text-red-600">
+            Runtime error: {String(runtime.error)}
+          </div>
+        ) : (
+          <div className="text-blue-600">Initializing runtime...</div>
+        )}
+      </div>
+
+      {/* Runtime Services Info */}
+      {runtime.chatRuntime && (
+        <div className="mb-4 p-3 bg-gray-100 rounded">
+          <div className="font-medium">Available Services:</div>
+          <div>
+            <div>Chat Runtime Service: Available</div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

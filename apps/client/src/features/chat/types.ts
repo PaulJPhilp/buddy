@@ -96,12 +96,12 @@ export interface ChatInstanceHookState {
   chatId: string;
   messages: ReadonlyArray<Message>; // Uses the Message interface defined above
   status:
-  | "initializing"
-  | "connecting"
-  | "connected"
-  | "disconnected"
-  | "reconnecting"
-  | "error";
+    | "initializing"
+    | "connecting"
+    | "connected"
+    | "disconnected"
+    | "reconnecting"
+    | "error";
   agentName: string;
   error?: string;
   isTyping?: boolean;
@@ -119,7 +119,11 @@ export type ChatInstanceAction =
  */
 export type AgentEvent =
   | { type: "newMessage"; payload: Message } // Uses the Message interface defined above
-  | { type: "statusUpdate"; status: ChatInstanceHookState["status"]; agentName?: string }
+  | {
+      type: "statusUpdate";
+      status: ChatInstanceHookState["status"];
+      agentName?: string;
+    }
   | { type: "fullState"; payload: ChatInstanceHookState } // Uses the hook's state
   | { type: "error"; message: string }
   | { type: "pong" }

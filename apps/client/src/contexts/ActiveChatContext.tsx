@@ -7,18 +7,22 @@ interface ActiveChatContextType {
   setActiveChatId: (id: string) => void;
 }
 
-const ActiveChatContext = createContext<ActiveChatContextType | undefined>(undefined);
+const ActiveChatContext = createContext<ActiveChatContextType | undefined>(
+  undefined,
+);
 
-export const ActiveChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ActiveChatProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   // Initialize with chat1 as the default active chat
-  const [activeChatId, setActiveChatId] = useState<string | null>('chat1');
+  const [activeChatId, setActiveChatId] = useState<string | null>("chat1");
 
   return (
     <ActiveChatContext.Provider value={{ activeChatId, setActiveChatId }}>
       {children}
     </ActiveChatContext.Provider>
   );
-}
+};
 
 export function useActiveChat() {
   const context = useContext(ActiveChatContext);

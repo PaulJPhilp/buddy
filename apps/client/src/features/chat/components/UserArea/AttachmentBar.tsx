@@ -44,8 +44,8 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
     <ul
       className={cn("flex flex-wrap gap-2 rounded", className)}
       style={{
-        backgroundColor: 'var(--color-chat-background)',
-        color: 'var(--color-chat-foreground)'
+        backgroundColor: "var(--color-chat-background)",
+        color: "var(--color-chat-foreground)",
       }}
       aria-label="Attached files"
     >
@@ -54,10 +54,10 @@ const AttachmentBar: React.FC<AttachmentBarProps> = ({
           key={file.id}
           className="flex items-center gap-2 rounded px-3 py-1.5 text-sm"
           style={{
-            backgroundColor: 'var(--color-chat-background)',
-            color: 'var(--color-chat-foreground)',
-            borderColor: 'var(--color-chat-border)',
-            border: '1px solid'
+            backgroundColor: "var(--color-chat-background)",
+            color: "var(--color-chat-foreground)",
+            borderColor: "var(--color-chat-border)",
+            border: "1px solid",
           }}
         >
           <FileIcon

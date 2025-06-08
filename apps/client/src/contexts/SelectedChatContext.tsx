@@ -7,9 +7,13 @@ interface SelectedChatContextType {
   setSelectedChatId: (id: string) => void;
 }
 
-const SelectedChatContext = createContext<SelectedChatContextType | undefined>(undefined);
+const SelectedChatContext = createContext<SelectedChatContextType | undefined>(
+  undefined,
+);
 
-export function SelectedChatProvider({ children }: { children: React.ReactNode }) {
+export function SelectedChatProvider({
+  children,
+}: { children: React.ReactNode }) {
   const [selectedChatId, setSelectedChatId] = useState("chat1");
 
   return (
@@ -22,7 +26,9 @@ export function SelectedChatProvider({ children }: { children: React.ReactNode }
 export function useSelectedChat() {
   const context = useContext(SelectedChatContext);
   if (!context) {
-    throw new Error("useSelectedChat must be used within a SelectedChatProvider");
+    throw new Error(
+      "useSelectedChat must be used within a SelectedChatProvider",
+    );
   }
   return context;
 }

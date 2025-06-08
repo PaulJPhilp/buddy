@@ -1,4 +1,4 @@
-import * as S from '@effect/schema/Schema';
+import * as S from "@effect/schema/Schema";
 
 /**
  * ChatThemeJson: JSON serializable theme schema for chat apps.
@@ -131,13 +131,13 @@ const InputAreaSchema = S.Struct({
 const UserAreaSchema = S.Struct({
   attachmentToolbar: ToolbarSchema,
   inputArea: InputAreaSchema,
-  agentToolbar: AgentToolbarSchema
+  agentToolbar: AgentToolbarSchema,
 });
 
 const ChatAreaSchema = S.Struct({
   userBubble: BubbleSchema,
   assistantBubble: BubbleSchema,
-  userArea: UserAreaSchema
+  userArea: UserAreaSchema,
 });
 
 export const ChatThemeJsonSchema = S.Struct({
@@ -146,8 +146,8 @@ export const ChatThemeJsonSchema = S.Struct({
     defaults: S.Struct({
       headerBar: HeaderBarSchema,
       chatArea: ChatAreaSchema,
-    })
+    }),
   }),
   headerBar: HeaderBarSchema,
-  chatArea: ChatAreaSchema
+  chatArea: ChatAreaSchema,
 });

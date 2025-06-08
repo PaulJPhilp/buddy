@@ -1,35 +1,13 @@
 "use client";
 
-import { type ThemeColors, useTheme } from "@/contexts/ThemeContext";
-import { ChatApp } from "@/features/chat/ChatApp";
-import { AgentRuntimeService } from "@/services/agent-runtime/AgentRuntimeService";
-import { MdxService } from "@/services/mdx";
-import { Effect, Layer } from "effect";
+import {
+  type ChatAppColors,
+  type ChatAppTheme,
+  type ChatAppTypography,
+  defaultChatTheme,
+} from "@/features/chat/themes/themeTypes";
+import { useTheme } from "next-themes";
 import React, { useEffect, useRef, useState } from "react";
-
-const mockAgentConfig = {
-  agentId: "test-agent",
-  agentWsUrl: "ws://localhost:8080",
-  initialAgentName: "Theme Builder Agent",
-  agents: [
-    {
-      id: "test-agent",
-      name: "Theme Builder",
-      description: "A helpful agent for testing themes",
-      status: { mood: 80, energy: 90, health: 100 },
-      capabilities: { canSpeak: true, canMove: false, canLearn: true },
-      type: "assistant"
-    },
-    {
-      id: "creative-agent",
-      name: "Creative Assistant",
-      description: "Helps with creative tasks",
-      status: { mood: 95, energy: 85, health: 100 },
-      capabilities: { canSpeak: true, canMove: false, canLearn: true },
-      type: "creative"
-    }
-  ]
-};
 
 function ColorPicker({
   label,
@@ -72,22 +50,23 @@ function ColorPicker({
   );
 }
 
-function ComponentPreview({ colors }: { colors: ThemeColors }) {
+// Preview component for the canonical ChatAppTheme structure
+function ComponentPreview({ theme }: { theme: ChatAppTheme }) {
   return (
     <div
       className="p-4 rounded-lg border space-y-4"
       style={{
-        backgroundColor: colors.background,
-        color: colors.foreground,
-        borderColor: colors.border
+        backgroundColor: theme.colors.background,
+        color: theme.colors.text,
+        borderColor: theme.borders?.color ?? "#ccc",
       }}
     >
       {/* Header Preview */}
       <div
         className="flex justify-between items-center p-3 rounded"
         style={{
-          backgroundColor: colors.headerBg,
-          color: colors.headerText
+          backgroundColor: theme.header?.background ?? "#ccc",
+          color: theme.header?.text ?? "#000",
         }}
       >
         <h3 className="font-semibold">Chat Header</h3>
@@ -99,7 +78,10 @@ function ComponentPreview({ colors }: { colors: ThemeColors }) {
         <div className="flex justify-end">
           <div
             className="max-w-xs p-3 rounded-lg text-white text-sm"
-            style={{ backgroundColor: colors.bubbleUser }}
+            style={{
+              backgroundColor: theme.bubbles?.user?.background ?? "#ccc",
+              color: theme.bubbles?.user?.text ?? "#000",
+            }}
           >
             This is a user message bubble
           </div>
@@ -107,7 +89,10 @@ function ComponentPreview({ colors }: { colors: ThemeColors }) {
         <div className="flex justify-start">
           <div
             className="max-w-xs p-3 rounded-lg text-white text-sm"
-            style={{ backgroundColor: colors.bubbleAgent }}
+            style={{
+              backgroundColor: theme.bubbles?.agent?.background ?? "#ccc",
+              color: theme.bubbles?.agent?.text ?? "#000",
+            }}
           >
             This is an agent response bubble
           </div>
@@ -118,16 +103,16 @@ function ComponentPreview({ colors }: { colors: ThemeColors }) {
       <div
         className="p-3 rounded border-t-2"
         style={{
-          backgroundColor: colors.userArea,
-          borderTopColor: colors.userAreaBorder || colors.border
+          backgroundColor: theme.userArea?.background ?? "#ccc",
         }}
       >
         <div
-          className="w-full p-2 rounded text-sm border"
+          className="flex items-center gap-2 mt-2 p-2 rounded border"
           style={{
-            backgroundColor: colors.background,
-            color: colors.foreground,
-            borderColor: colors.inputBorder || colors.border
+            backgroundColor: theme.colors.background,
+            color: theme.colors.text,
+            borderColor: theme.borders?.color ?? "#ccc",
+            borderTopColor: theme.borders?.color ?? "#ccc",
           }}
         >
           Type your message here...
@@ -136,14 +121,14 @@ function ComponentPreview({ colors }: { colors: ThemeColors }) {
           <button
             type="button"
             className="px-3 py-1 rounded text-sm text-white"
-            style={{ backgroundColor: colors.secondary }}
+            style={{ backgroundColor: theme.colors.primary }}
           >
             Cancel
           </button>
           <button
             type="button"
             className="px-3 py-1 rounded text-sm text-white"
-            style={{ backgroundColor: colors.primary }}
+            style={{ backgroundColor: theme.colors.secondary }}
           >
             Send
           </button>
@@ -153,43 +138,102 @@ function ComponentPreview({ colors }: { colors: ThemeColors }) {
   );
 }
 
-function ThemePresets() {
-  const { defaultThemes, setGlobalTheme, currentTheme, updateChatColor } = useTheme();
-  const previewChatId = 'preview';
-
-  const applyPreset = (themeName: string) => {
-    setGlobalTheme(themeName);
-    const themeColors = defaultThemes[themeName];
-    if (themeColors) {
-      // Apply to preview chat
-      for (const [key, value] of Object.entries(themeColors)) {
-        updateChatColor(previewChatId, key as keyof ThemeColors, value)
+function ThemePresets({
+  setLocalTheme,
+}: { setLocalTheme: (theme: ChatAppTheme) => void }) {
+  const { theme: rawTheme, setTheme } = useTheme();
+  // Safely parse theme with error handling
+  let parsedTheme = defaultChatTheme;
+  try {
+    if (rawTheme) {
+      if (
+        typeof rawTheme === "string" &&
+        !["system", "dark", "light"].includes(rawTheme)
+      ) {
+        const parsed = JSON.parse(rawTheme);
+        if (parsed && typeof parsed === "object") {
+          parsedTheme = { ...defaultChatTheme, ...parsed } as ChatAppTheme;
+        }
+      } else if (rawTheme && typeof rawTheme === "object") {
+        parsedTheme = { ...defaultChatTheme, ...rawTheme } as ChatAppTheme;
       }
     }
+  } catch (error) {
+    console.error("Error parsing theme in ThemePresets:", error);
+    // Fall back to default theme on parsing error
   }
+  const theme = parsedTheme;
+
+  const handlePresetClick = (presetTheme: ChatAppTheme) => {
+    const themeStr = JSON.stringify(presetTheme);
+    setTheme(themeStr);
+    setLocalTheme(presetTheme);
+  };
+
+  const presets: Record<string, ChatAppTheme> = {
+    Default: defaultChatTheme,
+    Dark: {
+      ...defaultChatTheme,
+      colors: {
+        ...defaultChatTheme.colors,
+        background: "#1a1a1a",
+        text: "#ffffff",
+      },
+      bubbles: {
+        user: { background: "#2563eb", text: "#ffffff" },
+        agent: { background: "#4b5563", text: "#ffffff" },
+      },
+    },
+    Light: {
+      ...defaultChatTheme,
+      colors: {
+        ...defaultChatTheme.colors,
+        background: "#ffffff",
+        text: "#000000",
+      },
+      bubbles: {
+        user: { background: "#3b82f6", text: "#ffffff" },
+        agent: { background: "#6b7280", text: "#ffffff" },
+      },
+    },
+  };
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg border mb-8">
       <h2 className="text-xl font-semibold mb-4">🎨 Theme Presets</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Object.entries(defaultThemes).map(([themeName, themeColors]) => (
+        {Object.entries(presets).map(([presetName, presetTheme]) => (
           <button
             type="button"
-            key={themeName}
-            onClick={() => applyPreset(themeName)}
-            className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${currentTheme === themeName
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-              }`}
+            key={presetName}
+            onClick={() => handlePresetClick(presetTheme)}
+            className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+              JSON.stringify(theme) === JSON.stringify(presetTheme)
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
           >
             <div className="text-left">
-              <div className="font-medium capitalize mb-2">{themeName.replace('-', ' ')}</div>
+              <div className="font-medium capitalize mb-2">
+                {presetName.replace("-", " ")}
+              </div>
               <div className="flex gap-1 mb-2">
                 {[
-                  { color: themeColors.primary, label: 'Primary' },
-                  { color: themeColors.secondary, label: 'Secondary' },
-                  { color: themeColors.bubbleUser, label: 'User Bubble' },
-                  { color: themeColors.bubbleAgent, label: 'Agent Bubble' }
+                  { color: theme.colors.primary, label: "Primary" },
+                  {
+                    color:
+                      theme.bubbles?.user?.background ||
+                      defaultChatTheme.bubbles?.user?.background ||
+                      "#0ea5e9",
+                    label: "User Bubble",
+                  },
+                  {
+                    color:
+                      theme.bubbles?.agent?.background ||
+                      defaultChatTheme.bubbles?.agent?.background ||
+                      "#64748b",
+                    label: "Agent Bubble",
+                  },
                 ].map(({ color, label }) => (
                   <div
                     key={label}
@@ -200,7 +244,9 @@ function ThemePresets() {
                 ))}
               </div>
               <div className="text-xs text-gray-500">
-                {currentTheme === themeName ? 'Current' : 'Click to apply'}
+                {JSON.stringify(theme) === JSON.stringify(presetTheme)
+                  ? "Current"
+                  : "Click to apply"}
               </div>
             </div>
           </button>
@@ -209,366 +255,296 @@ function ThemePresets() {
     </div>
   );
 }
+export default function ThemeBuilderPage() {
+  // Use state to track if we're on the client side
+  const [isClient, setIsClient] = useState(false);
+  const { theme: rawTheme, setTheme } = useTheme();
+  const [localTheme, setLocalTheme] = useState<ChatAppTheme>(defaultChatTheme);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-function ThemeActions() {
-  const { chatThemes } = useTheme();
-  const previewChatId = 'preview';
-  const currentTheme = chatThemes[previewChatId];
+  // Set isClient to true when component mounts (client-side only)
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-  const exportTheme = () => {
-    if (!currentTheme) return;
+  // Initialize theme from localStorage or default
+  useEffect(() => {
+    if (isClient && !isInitialized) {
+      try {
+        // Only parse theme on client-side
+        if (rawTheme) {
+          let parsedTheme = {};
+          if (typeof rawTheme === "string") {
+            try {
+              try {
+                if (
+                  typeof rawTheme === "string" &&
+                  !["system", "dark", "light"].includes(rawTheme)
+                ) {
+                  parsedTheme = JSON.parse(rawTheme);
+                } else if (typeof rawTheme === "object") {
+                  parsedTheme = rawTheme;
+                }
+              } catch (error) {
+                console.error(
+                  "Error parsing theme in ThemeBuilderPage:",
+                  error,
+                );
+                parsedTheme = {};
+              }
+            } catch (parseError) {
+              console.error("Error parsing theme JSON:", parseError);
+            }
+          } else {
+            parsedTheme = rawTheme;
+          }
+          const mergedTheme = {
+            ...defaultChatTheme,
+            ...parsedTheme,
+          } as ChatAppTheme;
+          setLocalTheme(mergedTheme);
+        }
+      } catch (e) {
+        console.error("Error initializing theme:", e);
+      }
+      setIsInitialized(true);
+    }
+  }, [rawTheme, setTheme, isInitialized, isClient]);
 
-    const themeData = {
-      name: `custom-theme-${Date.now()}`,
-      colors: currentTheme,
-      timestamp: new Date().toISOString()
-    };
+  // Return a minimal version during SSR to prevent errors
+  if (!isClient) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold mb-4">Theme Builder</h1>
+        <p>Loading theme editor...</p>
+      </div>
+    );
+  }
 
-    const blob = new Blob([JSON.stringify(themeData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${themeData.name}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleThemeUpdate = (newTheme: Partial<ChatAppTheme>) => {
+    const updatedTheme = {
+      ...defaultChatTheme,
+      ...localTheme,
+      ...newTheme,
+    } as ChatAppTheme;
+    setLocalTheme(updatedTheme);
+    setTheme(JSON.stringify(updatedTheme));
   };
 
-  const importTheme = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleColorChange = (key: keyof ChatAppColors, value: string) => {
+    handleThemeUpdate({
+      colors: {
+        ...(localTheme.colors || {}),
+        [key]: value,
+      },
+    });
+  };
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result as string);
-        if (data.colors && typeof data.colors === 'object') {
-          const { updateChatColor } = useTheme();
-          for (const [key, value] of Object.entries(data.colors)) {
-            if (typeof value === 'string') {
-              updateChatColor(previewChatId, key as keyof ThemeColors, value);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to import theme:', error);
-        alert('Failed to import theme. Please check the file format.');
-      }
-    };
-    reader.readAsText(file);
+  const handleBorderChange = (value: string) => {
+    handleThemeUpdate({
+      borders: {
+        ...(localTheme.borders || {}),
+        color: value,
+      },
+    });
+  };
+
+  const handleBubbleColorChange = (type: "user" | "agent", value: string) => {
+    handleThemeUpdate({
+      bubbles: {
+        ...(localTheme.bubbles || {}),
+        [type]: {
+          ...(localTheme.bubbles?.[type] || {}),
+          background: value,
+        },
+      },
+    });
+  };
+
+  const handleHeaderColorChange = (
+    key: "background" | "text",
+    value: string,
+  ) => {
+    handleThemeUpdate({
+      header: {
+        ...(localTheme.header || {}),
+        [key]: value,
+      },
+    });
+  };
+
+  const handleTypographyChange = (
+    key: keyof ChatAppTypography,
+    value: string,
+  ) => {
+    handleThemeUpdate({
+      typography: {
+        ...(localTheme.typography || {}),
+        [key]: value,
+      },
+    });
   };
 
   const resetTheme = () => {
-    const { defaultThemes, updateChatColor } = useTheme();
-    const defaultTheme = defaultThemes['spike-light']
-    if (defaultTheme) {
-      for (const [key, value] of Object.entries(defaultTheme)) {
-        updateChatColor(previewChatId, key as keyof ThemeColors, value)
-      }
-    }
-  }
+    setTheme(JSON.stringify(defaultChatTheme));
+    setLocalTheme(defaultChatTheme);
+  };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border mb-8">
-      <h2 className="text-xl font-semibold mb-4">🔧 Theme Actions</h2>
-      <div className="flex flex-wrap gap-4">
-        <button
-          type="button"
-          onClick={exportTheme}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          📤 Export Theme
-        </button>
-
-        <label className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors cursor-pointer">
-          📥 Import Theme
-          <input
-            type="file"
-            accept=".json"
-            onChange={importTheme}
-            className="hidden"
-          />
-        </label>
-
-        <button
-          type="button"
-          onClick={resetTheme}
-          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-        >
-          🔄 Reset to Default
-        </button>
-      </div>
-
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-        <div className="text-sm font-medium mb-2">💾 Auto-Save Status</div>
-        <div className="text-xs text-gray-600">
-          ✅ All theme changes are automatically saved to localStorage via ThemesService integration.
-          Your themes will persist across browser sessions.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Mock layer for silent theme testing (no WebSocket connections)
-const MockAgentRuntimeLayer = Layer.succeed(AgentRuntimeService, {
-  establishSession: () => Effect.succeed({
-    id: "mock-session-theme-test",
-    url: "mock://theme-test",
-    status$: {
-      pipe: () => ({
-        pipe: () => Effect.never
-      })
-    },
-    incomingMessages$: {
-      pipe: () => ({
-        pipe: () => Effect.never
-      })
-    },
-    send: () => Effect.succeed(undefined),
-    close: () => Effect.succeed(undefined)
-  }),
-  closeSession: () => Effect.succeed(undefined),
-  sendMessage: () => Effect.succeed(undefined),
-  getSession: () => Effect.succeed(undefined)
-} as any);
-
-const ThemeTestLayer = Layer.merge(MockAgentRuntimeLayer, MdxService.Default);
-
-export default function ThemeBuilderPage() {
-  const [previewChatId] = useState('preview');
-  const [jsonError, setJsonError] = useState('');
-
-  // Get theme context values
-  const { chatThemes, updateChatColor, getChatStyle } = useTheme();
-
-  const chatStyle = getChatStyle(previewChatId);
-
-  // Ensure preview theme exists
-  useEffect(() => {
-    if (!chatThemes[previewChatId]) {
-      // Initialize with spike-light default
-      const { defaultThemes } = useTheme();
-      const defaultTheme = defaultThemes['spike-light'];
-      if (defaultTheme) {
-        for (const [key, value] of Object.entries(defaultTheme)) {
-          updateChatColor(previewChatId, key as keyof ThemeColors, value);
-        }
-      }
-    }
-  }, [chatThemes, previewChatId, updateChatColor]);
-
-  const currentTheme = chatThemes[previewChatId];
-
-  return (
-    <div
-      className="min-h-screen bg-gray-50 py-12"
-      style={chatStyle}
-    >
+    <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">🎨 Advanced Theme Builder</h1>
-          <p className="text-gray-600">
-            Design and customize chat themes with real-time preview and automatic persistence.
-            All changes are saved automatically via the integrated ThemesService.
-          </p>
-        </div>
-
-        {/* Theme Presets */}
-        <ThemePresets />
-
-        {/* Theme Actions */}
-        <ThemeActions />
-
-        {/* Color Editor */}
         <div className="bg-white p-6 rounded-xl shadow-lg border mb-8">
-          <h2 className="text-xl font-semibold mb-6">🎨 Theme Color Editor</h2>
-          {currentTheme ? (
+          <h2 className="text-xl font-semibold mb-4">🔧 Theme Builder</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Theme Editor */}
             <div className="space-y-8">
-              {/* Container Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                  <div className="w-3 h-3 rounded bg-gray-500" />
-                  <h3 className="text-lg font-medium">📦 Container</h3>
-                  <span className="text-sm text-gray-500">Overall app appearance</span>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pl-5">
+              <div>
+                <h3 className="text-lg font-medium mb-4">Colors</h3>
+                <div className="space-y-4">
                   <ColorPicker
                     label="Background"
-                    value={currentTheme.background}
-                    onChange={(value) => updateChatColor(previewChatId, "background", value)}
-                    variable="--color-chat-background"
+                    value={
+                      localTheme.colors?.background ||
+                      defaultChatTheme.colors?.background ||
+                      ""
+                    }
+                    onChange={(value) => handleColorChange("background", value)}
+                    variable="--color-bg"
                   />
                   <ColorPicker
-                    label="Text Color"
-                    value={currentTheme.foreground}
-                    onChange={(value) => updateChatColor(previewChatId, "foreground", value)}
-                    variable="--color-chat-foreground"
+                    label="Text"
+                    value={
+                      localTheme.colors?.text ||
+                      defaultChatTheme.colors?.text ||
+                      ""
+                    }
+                    onChange={(value) => handleColorChange("text", value)}
+                    variable="--color-text"
                   />
                   <ColorPicker
-                    label="Border Color"
-                    value={currentTheme.border}
-                    onChange={(value) => updateChatColor(previewChatId, "border", value)}
-                    variable="--color-chat-border"
+                    label="Primary"
+                    value={
+                      localTheme.colors?.primary ||
+                      defaultChatTheme.colors?.primary ||
+                      ""
+                    }
+                    onChange={(value) => handleColorChange("primary", value)}
+                    variable="--color-primary"
                   />
                   <ColorPicker
-                    label="Primary Accent"
-                    value={currentTheme.primary}
-                    onChange={(value) => updateChatColor(previewChatId, "primary", value)}
-                    variable="--color-chat-primary"
+                    label="Secondary"
+                    value={
+                      localTheme.colors?.secondary ||
+                      defaultChatTheme.colors?.secondary ||
+                      ""
+                    }
+                    onChange={(value) => handleColorChange("secondary", value)}
+                    variable="--color-secondary"
                   />
                 </div>
               </div>
 
-              {/* Header Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                  <div className="w-3 h-3 rounded bg-blue-500" />
-                  <h3 className="text-lg font-medium">📄 Header</h3>
-                  <span className="text-sm text-gray-500">Top navigation bar</span>
+              <div>
+                <h3 className="text-lg font-medium mb-4">Borders</h3>
+                <div className="space-y-4">
+                  <ColorPicker
+                    label="Border Color"
+                    value={
+                      localTheme.borders?.color ||
+                      defaultChatTheme.borders?.color ||
+                      ""
+                    }
+                    onChange={handleBorderChange}
+                    variable="--color-border"
+                  />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pl-5">
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium mb-4">Message Bubbles</h3>
+                <div className="space-y-4">
+                  <ColorPicker
+                    label="User Bubble"
+                    value={
+                      localTheme.bubbles?.user?.background ||
+                      defaultChatTheme.bubbles?.user?.background ||
+                      ""
+                    }
+                    onChange={(value) => handleBubbleColorChange("user", value)}
+                    variable="--bubble-user-bg"
+                  />
+                  <ColorPicker
+                    label="Agent Bubble"
+                    value={
+                      localTheme.bubbles?.agent?.background ||
+                      defaultChatTheme.bubbles?.agent?.background ||
+                      ""
+                    }
+                    onChange={(value) =>
+                      handleBubbleColorChange("agent", value)
+                    }
+                    variable="--bubble-agent-bg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium mb-4">Header</h3>
+                <div className="space-y-4">
                   <ColorPicker
                     label="Header Background"
-                    value={currentTheme.headerBg}
-                    onChange={(value) => updateChatColor(previewChatId, "headerBg", value)}
-                    variable="--color-chat-header-bg"
+                    value={
+                      localTheme.header?.background ||
+                      defaultChatTheme.header?.background ||
+                      ""
+                    }
+                    onChange={(value) =>
+                      handleHeaderColorChange("background", value)
+                    }
+                    variable="--header-bg"
                   />
                   <ColorPicker
                     label="Header Text"
-                    value={currentTheme.headerText}
-                    onChange={(value) => updateChatColor(previewChatId, "headerText", value)}
-                    variable="--color-chat-header-text"
-                  />
-                </div>
-              </div>
-
-              {/* Chat Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                  <div className="w-3 h-3 rounded bg-green-500" />
-                  <h3 className="text-lg font-medium">💬 Chat</h3>
-                  <span className="text-sm text-gray-500">Message bubbles and conversation</span>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pl-5">
-                  <ColorPicker
-                    label="User Message Bubble"
-                    value={currentTheme.bubbleUser}
-                    onChange={(value) => updateChatColor(previewChatId, "bubbleUser", value)}
-                    variable="--color-chat-bubble-user"
-                  />
-                  <ColorPicker
-                    label="Agent Message Bubble"
-                    value={currentTheme.bubbleAgent}
-                    onChange={(value) => updateChatColor(previewChatId, "bubbleAgent", value)}
-                    variable="--color-chat-bubble-agent"
-                  />
-                  <ColorPicker
-                    label="Secondary Accent"
-                    value={currentTheme.secondary}
-                    onChange={(value) => updateChatColor(previewChatId, "secondary", value)}
-                    variable="--color-chat-secondary"
-                  />
-                </div>
-              </div>
-
-              {/* User Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                  <div className="w-3 h-3 rounded bg-purple-500" />
-                  <h3 className="text-lg font-medium">👤 User</h3>
-                  <span className="text-sm text-gray-500">Input area and user controls</span>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pl-5">
-                  <ColorPicker
-                    label="User Area Background"
-                    value={currentTheme.userArea}
-                    onChange={(value) => updateChatColor(previewChatId, "userArea", value)}
-                    variable="--color-chat-user-area"
-                  />
-                  <ColorPicker
-                    label="User Area Top Border"
-                    value={currentTheme.userAreaBorder || currentTheme.border}
-                    onChange={(value) => updateChatColor(previewChatId, "userAreaBorder", value)}
-                    variable="--color-chat-user-area-border"
-                  />
-                  <ColorPicker
-                    label="Input Field Border"
-                    value={currentTheme.inputBorder || currentTheme.border}
-                    onChange={(value) => updateChatColor(previewChatId, "inputBorder", value)}
-                    variable="--color-chat-input-border"
+                    value={
+                      localTheme.header?.text ||
+                      defaultChatTheme.header?.text ||
+                      ""
+                    }
+                    onChange={(value) => handleHeaderColorChange("text", value)}
+                    variable="--header-text"
                   />
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Loading theme editor...</p>
-            </div>
-          )}
-        </div>
 
-        {/* Component Preview */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border mb-8">
-          <h2 className="text-xl font-semibold mb-4">🔍 Component Preview</h2>
-          {currentTheme && <ComponentPreview colors={currentTheme} />}
-        </div>
-
-        {/* Live ChatApp Preview */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">💬 Live ChatApp Preview</h2>
-            <div className="text-sm text-gray-500">
-              Theme ID: <code className="bg-gray-100 px-2 py-1 rounded">{previewChatId}</code>
-            </div>
-          </div>
-
-          <div className="w-full">
-            <div className="h-[500px] border border-gray-300 rounded-lg overflow-hidden shadow-lg">
-              <ChatApp
-                chatId={previewChatId}
-                agentConfig={{
-                  ...mockAgentConfig,
-                  agentId: "test-agent",
-                  initialAgentName: "Theme Builder Agent"
-                }}
-                className="h-full"
-                injectedLayer={ThemeTestLayer}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Debug Information */}
-        <div className="bg-gray-50 p-6 rounded-xl border">
-          <h3 className="text-lg font-semibold mb-4">🐛 Debug Information</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+            {/* Live Preview */}
             <div>
-              <div className="font-medium mb-2">Applied Theme Colors:</div>
-              <pre className="text-xs bg-white p-3 rounded border overflow-x-auto">
-                {JSON.stringify(currentTheme || {}, null, 2)}
-              </pre>
-            </div>
-            <div>
-              <div className="font-medium mb-2">Generated CSS Variables:</div>
-              <pre className="text-xs bg-white p-3 rounded border overflow-x-auto">
-                {Object.entries(chatStyle || {}).map(([key, value]) =>
-                  `${key}: ${value};`
-                ).join('\n')}
-              </pre>
+              <h3 className="text-lg font-medium mb-4">Live Preview</h3>
+              <ComponentPreview theme={localTheme} />
+              <div className="mt-8">
+                <button
+                  onClick={resetTheme}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                >
+                  Reset to Default
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="font-medium mb-2">📊 ThemesService Status:</div>
-            <div className="text-xs space-y-1">
-              <div>✅ ThemesService integration active</div>
-              <div>✅ localStorage persistence enabled</div>
-              <div>✅ Automatic save/load functionality</div>
-              <div>✅ Theme validation enabled</div>
-            </div>
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <h3 className="text-lg font-medium mb-4">Theme Presets</h3>
+          <ThemePresets setLocalTheme={setLocalTheme} />
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="font-medium mb-2">📊 ThemesService Status:</div>
+          <div className="text-xs space-y-1">
+            <div>✅ ThemesService integration active</div>
+            <div>✅ localStorage persistence enabled</div>
+            <div>✅ Automatic save/load functionality</div>
+            <div>✅ Theme validation enabled</div>
           </div>
         </div>
       </div>

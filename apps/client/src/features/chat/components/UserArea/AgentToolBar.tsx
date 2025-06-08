@@ -81,9 +81,7 @@ const AgentToolBar: React.FC<AgentToolBarProps> = ({
               : "Select agent"}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent
-          className="text-[6px] leading-none min-w-[60px]"
-        >
+        <SelectContent className="text-[6px] leading-none min-w-[60px]">
           {agents.map((agent) => (
             <SelectItem
               key={agent.id}

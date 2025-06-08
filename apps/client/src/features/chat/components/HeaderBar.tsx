@@ -7,7 +7,12 @@ import {
   CollapsibleTrigger,
 } from "@ui/components/ui/collapsible";
 import { cn } from "@ui/lib/utils";
-import { AlertCircle, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  MessageCircle,
+} from "lucide-react";
 import React, { useState } from "react";
 
 export interface ErrorInfo {
@@ -71,8 +76,8 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
 
     const tokenPercentage = statusInfo?.tokens
       ? (statusInfo.tokens.used /
-        (statusInfo.tokens.used + statusInfo.tokens.remaining)) *
-      100
+          (statusInfo.tokens.used + statusInfo.tokens.remaining)) *
+        100
       : 0;
 
     const costPercentage = statusInfo?.cost
@@ -80,17 +85,23 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
       : 0;
 
     const headerStyle: React.CSSProperties = {
-      borderColor: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-border)',
-      backgroundColor: isSelected ? 'var(--color-chat-secondary)' : 'var(--color-chat-header-bg)',
-      color: 'var(--color-chat-header-text)'
+      borderColor: isSelected
+        ? "var(--color-chat-primary)"
+        : "var(--color-chat-border)",
+      backgroundColor: isSelected
+        ? "var(--color-chat-secondary)"
+        : "var(--color-chat-header-bg)",
+      color: "var(--color-chat-header-text)",
     };
 
     const titleStyle: React.CSSProperties = {
-      color: isSelected ? 'var(--color-chat-primary)' : 'var(--color-chat-header-text)'
+      color: isSelected
+        ? "var(--color-chat-primary)"
+        : "var(--color-chat-header-text)",
     };
 
     const progressBarFillStyle: React.CSSProperties = {
-      backgroundColor: 'var(--color-chat-primary)'
+      backgroundColor: "var(--color-chat-primary)",
     };
 
     return (
@@ -106,7 +117,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
           <div className="flex items-center gap-1">
             <MessageCircle
               className="h-3 w-3 p-0.5"
-              style={{ color: 'var(--color-chat-header-text)' }}
+              style={{ color: "var(--color-chat-header-text)" }}
               aria-hidden="true"
             />
             <h2
@@ -123,7 +134,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                   "h-2 w-2",
                   errorInfo.severity === "warning"
                     ? "text-yellow-500" // Standard Tailwind class for warning
-                    : "text-red-500"    // Standard Tailwind class for error/destructive
+                    : "text-red-500", // Standard Tailwind class for error/destructive
                 )}
                 title={errorInfo.message}
               >
@@ -134,7 +145,12 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
 
           {statusInfo && (
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-2 w-2 p-0.5" style={{ color: 'var(--color-chat-header-text)' }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-2 w-2 p-0.5"
+                style={{ color: "var(--color-chat-header-text)" }}
+              >
                 {isStatusOpen ? (
                   <ChevronUp className="h-1.5 w-1.5" aria-hidden="true" />
                 ) : (
@@ -145,7 +161,13 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
           )}
         </div>
 
-        <CollapsibleContent className="px-1.5 py-0.5 space-y-0.5 text-[10px]" style={{ backgroundColor: 'var(--color-chat-background)', color: 'var(--color-chat-foreground)' }}>
+        <CollapsibleContent
+          className="px-1.5 py-0.5 space-y-0.5 text-[10px]"
+          style={{
+            backgroundColor: "var(--color-chat-background)",
+            color: "var(--color-chat-foreground)",
+          }}
+        >
           {statusInfo?.tokens && (
             <div className="space-y-0.5">
               <div className="flex justify-between text-[10px]">
@@ -153,13 +175,16 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                 <span>{statusInfo.tokens.used.toLocaleString()}</span>
               </div>
               {/* Progress bar bg-muted can be replaced by a CSS var if needed */}
-              <div 
+              <div
                 className="h-0.5 w-full rounded-full overflow-hidden"
-                style={{ backgroundColor: 'var(--color-chat-border)' }}
+                style={{ backgroundColor: "var(--color-chat-border)" }}
               >
                 <div
                   className="h-full transition-all"
-                  style={{ width: `${tokenPercentage}%`, ...progressBarFillStyle }}
+                  style={{
+                    width: `${tokenPercentage}%`,
+                    ...progressBarFillStyle,
+                  }}
                 />
               </div>
             </div>
@@ -174,13 +199,16 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
                   {statusInfo.cost.limit.toLocaleString()}
                 </span>
               </div>
-              <div 
+              <div
                 className="h-0.5 w-full rounded-full overflow-hidden"
-                style={{ backgroundColor: 'var(--color-chat-border)' }}
+                style={{ backgroundColor: "var(--color-chat-border)" }}
               >
                 <div
                   className="h-full transition-all"
-                  style={{ width: `${costPercentage}%`, ...progressBarFillStyle }}
+                  style={{
+                    width: `${costPercentage}%`,
+                    ...progressBarFillStyle,
+                  }}
                 />
               </div>
             </div>

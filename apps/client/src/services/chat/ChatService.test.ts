@@ -1,9 +1,7 @@
 import { describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import {
-  WebSocketError,
-} from "../websocket/WebSocketService";
+import { WebSocketError } from "../websocket/WebSocketService";
 import { ChatService } from "./ChatService";
 import { ChatState } from "./ChatServiceApi";
 import {

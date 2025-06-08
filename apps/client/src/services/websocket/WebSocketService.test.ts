@@ -77,7 +77,7 @@ describe("WebSocketService", () => {
             type: "USER_MESSAGE" as const,
             text: "Hello, world!",
             timestamp: new Date().toISOString(),
-            metadata: { chatId: "test-chat-id-123", agentId: "test-agent-001" }
+            metadata: { chatId: "test-chat-id-123", agentId: "test-agent-001" },
           };
           const envelope = createWebSocketEnvelope(message);
 
@@ -100,12 +100,17 @@ describe("WebSocketService", () => {
 
           yield* Effect.try({
             try: () =>
-              service.send(createWebSocketEnvelope({
-                type: "USER_MESSAGE" as const,
-                text: "Should fail",
-                timestamp: new Date().toISOString(),
-                metadata: { chatId: "test-chat-id-123", agentId: "test-agent-001" }
-              })),
+              service.send(
+                createWebSocketEnvelope({
+                  type: "USER_MESSAGE" as const,
+                  text: "Should fail",
+                  timestamp: new Date().toISOString(),
+                  metadata: {
+                    chatId: "test-chat-id-123",
+                    agentId: "test-agent-001",
+                  },
+                }),
+              ),
             catch: (error) => {
               expect(error).toEqual({
                 code: "SEND_ERROR",

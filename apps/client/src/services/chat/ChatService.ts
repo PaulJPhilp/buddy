@@ -121,7 +121,10 @@ export class ChatService extends Effect.Service<ExtendedChatStateApi>()(
             // Send message to WebSocket
             const protocolMessage = createUserMessage(text);
             yield* ws.send(protocolMessage);
-            console.log("[ChatService] Message sent to WebSocket:", protocolMessage);
+            console.log(
+              "[ChatService] Message sent to WebSocket:",
+              protocolMessage,
+            );
 
             const newState: ChatState = {
               ...currentState,
@@ -178,7 +181,10 @@ export class ChatService extends Effect.Service<ExtendedChatStateApi>()(
             };
             yield* Ref.set(stateRef, newState);
 
-            console.log("[ChatService] Added assistant message:", assistantMessage);
+            console.log(
+              "[ChatService] Added assistant message:",
+              assistantMessage,
+            );
             return assistantMessage;
           }),
         setTyping: (isTyping: boolean) =>
@@ -251,5 +257,5 @@ export class ChatService extends Effect.Service<ExtendedChatStateApi>()(
       return service;
     }),
     dependencies: [WebSocketService.Default],
-  }
-) { }
+  },
+) {}

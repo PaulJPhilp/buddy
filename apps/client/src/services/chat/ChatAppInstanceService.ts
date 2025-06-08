@@ -9,7 +9,7 @@ import {
 import type {
   Cents,
   TimestampedAgentError,
-  TokenUsage
+  TokenUsage,
 } from "./chatInstanceTypes";
 
 // Define the interface for our service
@@ -54,15 +54,22 @@ export function makeChatAppInstanceService(
 ): Effect.Effect<ChatAppInstanceService, never> {
   return Effect.gen(function* () {
     // Initialize Refs
-    const messagesRef = yield* Ref.make(Chunk.empty<ChatState["messages"][0]>());
+    const messagesRef = yield* Ref.make(
+      Chunk.empty<ChatState["messages"][0]>(),
+    );
     const isTypingRef = yield* Ref.make(false);
     const isSendingRef = yield* Ref.make(false);
     const currentErrorRef = yield* Ref.make(Option.none<string>());
     const agentsRef = yield* Ref.make(Chunk.empty<Agent>());
     const selectedAgentRef = yield* Ref.make(""); // Default or require initial
     const attachmentsRef = yield* Ref.make(Chunk.empty<AttachmentFile>());
-    const tokenCostRef = yield* Ref.make<TokenUsage>({ totalTokens: 0, totalCost: 0 as Cents });
-    const agentErrorHistoryRef = yield* Ref.make(Chunk.empty<TimestampedAgentError>());
+    const tokenCostRef = yield* Ref.make<TokenUsage>({
+      totalTokens: 0,
+      totalCost: 0 as Cents,
+    });
+    const agentErrorHistoryRef = yield* Ref.make(
+      Chunk.empty<TimestampedAgentError>(),
+    );
     const threadTitleRef = yield* Ref.make(Option.none<string>());
 
     // Placeholder for ChatService, will be injected
@@ -128,7 +135,9 @@ export function makeChatAppInstanceService(
         const optimisticMessage = makeOptimisticUserMessage(text, files);
         yield* Ref.update(messagesRef, Chunk.append(optimisticMessage));
 
-        const result = yield* Effect.either(chatService.sendMessage(text, files));
+        const result = yield* Effect.either(
+          chatService.sendMessage(text, files),
+        );
 
         if (result._tag === "Left") {
           // Error
@@ -140,7 +149,10 @@ export function makeChatAppInstanceService(
             message: `Failed to send message: ${error.message}`,
             context: "sendMessage",
           };
-          yield* Ref.update(agentErrorHistoryRef, Chunk.append(timestampedError));
+          yield* Ref.update(
+            agentErrorHistoryRef,
+            Chunk.append(timestampedError),
+          );
           // Optionally remove optimistic message or mark as failed
           yield* Ref.update(messagesRef, (msgs) =>
             Chunk.filter(msgs, (msg) => msg.id !== optimisticMessage.id),

@@ -1,23 +1,66 @@
 "use client";
 
+import {
+  ChatAppTheme,
+  defaultChatTheme,
+} from "@/features/chat/themes/themeTypes";
 import { Menu } from "lucide-react";
-import React from "react";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "next-themes";
+import React, { useState, useEffect } from "react";
 
 interface AppToolbarProps {
   onToggleSidebarAction: () => void;
 }
 
 export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
-  const { getChatStyle } = useTheme();
-  const themeStyles = getChatStyle('shell');
+  const { theme: rawTheme } = useTheme();
+  const [currentTheme, setCurrentTheme] =
+    useState<ChatAppTheme>(defaultChatTheme);
+
+  // Parse theme in an effect to avoid infinite loops
+  useEffect(() => {
+    // Safely parse theme with error handling
+    let parsedTheme = defaultChatTheme;
+    try {
+      if (rawTheme) {
+        // Handle special theme names like 'system', 'dark', 'light'
+        if (
+          typeof rawTheme === "string" &&
+          !["system", "dark", "light"].includes(rawTheme)
+        ) {
+          parsedTheme = JSON.parse(rawTheme) as ChatAppTheme;
+        } else if (typeof rawTheme === "object") {
+          parsedTheme = rawTheme as ChatAppTheme;
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing theme in AppToolbar:", error);
+      // Fall back to default theme on parsing error
+    }
+
+    setCurrentTheme(parsedTheme);
+  }, [rawTheme]); // Only re-run when rawTheme changes
+
+  // Compute theme styles
+  const themeStyles = {
+    "--color-chat-header-bg":
+      currentTheme.header?.background ||
+      defaultChatTheme.header?.background ||
+      "#f8fafc",
+    "--color-chat-header-text":
+      currentTheme.header?.text || defaultChatTheme.header?.text || "#000000",
+    "--color-chat-border":
+      currentTheme.borders?.color ||
+      defaultChatTheme.borders?.color ||
+      "#e2e8f0",
+  } as React.CSSProperties;
   return (
-    <header 
-      className="flex items-center h-6 px-4 border-b" 
+    <header
+      className="flex items-center h-6 px-4 border-b"
       style={{
-        backgroundColor: 'var(--color-chat-header-bg)',
-        color: 'var(--color-chat-header-text)',
-        borderColor: 'var(--color-chat-border)'
+        backgroundColor: "var(--color-chat-header-bg)",
+        color: "var(--color-chat-header-text)",
+        borderColor: "var(--color-chat-border)",
       }}
     >
       <button
@@ -34,4 +77,4 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
       </div>
     </header>
   );
-} 
+}

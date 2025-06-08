@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XState v5 Test</title>
+  <!-- Load XState directly with specific version -->
+  <script src="https://cdn.jsdelivr.net/npm/xstate@5.5.1/dist/xstate.umd.production.min.js"></script>
+  
+  <!-- Check if XState loaded correctly -->
+  <script>
+    console.log('Initial XState check:', typeof XState);
+    
+    // Try to load XState again if it failed
+    if (typeof XState === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/xstate@5/dist/xstate.umd.production.min.js';
+      script.onload = function() {
+        console.log('XState loaded from unpkg:', typeof XState);
+        initializeApp();
+      };
+      document.head.appendChild(script);
+    }
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    .state-display {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .message {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+    }
+    .user-message {
+      background-color: #e3f2fd;
+      margin-left: 20px;
+    }
+    .assistant-message {
+      background-color: #f1f8e9;
+      margin-right: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>XState v5 Chat Machine Test</h1>
+  <p>This is a simple test of the XState v5 chat machine functionality.</p>
+  
+  <div>
+    <button id="sendBtn">Send Message</button>
+    <button id="receiveBtn">Receive Message</button>
+    <button id="typingBtn">Toggle Typing</button>
+    <button id="errorBtn">Simulate Error</button>
+    <button id="clearBtn">Clear Error</button>
+  </div>
+  
+  <div class="state-display">
+    <h3>Current State</h3>
+    <pre id="stateOutput">Loading...</pre>
+  </div>
+  
+  <div class="state-display">
+    <h3>Messages</h3>
+    <div id="messages"></div>
+  </div>
+  
+  <script>
+    // Function to initialize the app once XState is loaded
+    function initializeApp() {
+      console.log('Initializing app with XState:', typeof XState);
+      
+      // Check if XState loaded correctly
+      if (typeof XState === 'undefined') {
+        document.getElementById('stateOutput').textContent = 'Error: XState not loaded!';
+        return;
+      }
+      
+      // Log XState version
+      console.log('XState version:', XState.version);
+      
+      // Create a simple chat machine
+      const chatMachine = XState.createMachine({
+        id: 'chat',
+        initial: 'idle',
+        context: {
+          messages: [
+            {
+              id: 'system-1',
+              role: 'system',
+              content: 'This is a test of the chat machine.',
+              timestamp: new Date().toISOString()
+            }
+          ],
+          error: null,
+          isTyping: false
+        },
+        states: {
+          idle: {
+            on: {
+              SEND: {
+                target: 'sending',
+                actions: 'addUserMessage'
+              },
+              RECEIVE: {
+                actions: 'addMessage'
+              },
+              SET_TYPING: {
+                actions: 'setTyping'
+              }
+            }
+          },
+          sending: {
+            entry: 'setTyping',
+            after: {
+              // Auto-transition after 1.5 seconds to simulate response
+              1500: {
+                target: 'idle',
+                actions: 'addResponseMessage'
+              }
+            },
+            on: {
+              ERROR: {
+                target: 'error',
+                actions: 'setError'
+              }
+            }
+          },
+          error: {
+            on: {
+              CLEAR_ERROR: {
+                target: 'idle',
+                actions: 'clearError'
+              },
+              SEND: {
+                target: 'sending',
+                actions: ['clearError', 'addUserMessage']
+              }
+            }
+          }
+        }
+      }, {
+        actions: {
+          addUserMessage: XState.assign({
+            messages: ({ context, event }) => [
+              ...context.messages,
+              {
+                id: `user-${Date.now()}`,
+                role: 'user',
+                content: event.content || 'Test user message',
+                timestamp: new Date().toISOString()
+              }
+            ]
+          }),
+          addResponseMessage: XState.assign({
+            messages: ({ context }) => [
+              ...context.messages,
+              {
+                id: `assistant-${Date.now()}`,
+                role: 'assistant',
+                content: 'This is a simulated response.',
+                timestamp: new Date().toISOString()
+              }
+            ],
+            isTyping: false
+          }),
+          addMessage: XState.assign({
+            messages: ({ context, event }) => [
+              ...context.messages,
+              event.message
+            ]
+          }),
+          setTyping: XState.assign({
+            isTyping: (_, event) => event.type === 'SET_TYPING' ? event.value : true
+          }),
+          setError: XState.assign({
+            error: (_, event) => event.error || { message: 'An unknown error occurred' }
+          }),
+          clearError: XState.assign({
+            error: null
+          })
+        }
+      });
+      
+      // Create an interpreter
+      const chatService = XState.createActor(chatMachine);
+      chatService.start();
+      
+      // Update UI when state changes
+      chatService.subscribe((state) => {
+        // Update state display
+        document.getElementById('stateOutput').textContent = 
+          JSON.stringify({
+            value: state.value,
+            context: {
+              messages: state.context.messages.length,
+              isTyping: state.context.isTyping,
+              error: state.context.error
+            }
+          }, null, 2);
+        
+        // Update messages
+        const messagesEl = document.getElementById('messages');
+        messagesEl.innerHTML = '';
+        
+        state.context.messages.forEach(msg => {
+          const msgEl = document.createElement('div');
+          msgEl.className = `message ${msg.role}-message`;
+          
+          const roleEl = document.createElement('strong');
+          roleEl.textContent = msg.role;
+          
+          const contentEl = document.createElement('div');
+          contentEl.textContent = msg.content;
+          
+          const timeEl = document.createElement('small');
+          timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString();
+          timeEl.style.color = '#666';
+          
+          msgEl.appendChild(roleEl);
+          msgEl.appendChild(contentEl);
+          msgEl.appendChild(timeEl);
+          messagesEl.appendChild(msgEl);
+        });
+      });
+      
+      // Button event handlers
+      document.getElementById('sendBtn').addEventListener('click', () => {
+        chatService.send({ type: 'SEND', content: 'User message at ' + new Date().toLocaleTimeString() });
+      });
+      
+      document.getElementById('receiveBtn').addEventListener('click', () => {
+        chatService.send({ 
+          type: 'RECEIVE', 
+          message: {
+            id: `received-${Date.now()}`,
+            role: 'assistant',
+            content: 'This is a manually received message.',
+            timestamp: new Date().toISOString()
+          }
+        });
+      });
+      
+      document.getElementById('typingBtn').addEventListener('click', () => {
+        const currentState = chatService.getSnapshot();
+        chatService.send({ 
+          type: 'SET_TYPING', 
+          value: !currentState.context.isTyping 
+        });
+      });
+      
+      document.getElementById('errorBtn').addEventListener('click', () => {
+        chatService.send({ 
+          type: 'ERROR', 
+          error: { message: 'Simulated error at ' + new Date().toLocaleTimeString() } 
+        });
+      });
+      
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        chatService.send({ type: 'CLEAR_ERROR' });
+      });
+    }
+    
+    // Call initializeApp when the document is ready
+    document.addEventListener('DOMContentLoaded', initializeApp);
+  </script>
+</body>
+</html>

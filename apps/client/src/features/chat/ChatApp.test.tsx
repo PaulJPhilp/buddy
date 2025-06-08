@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatApp } from "./ChatAppWithUseChatInstance";
-import type { ChatAgentConfig } from "./types";
+import { ChatApp } from "./ChatApp";
 
 // Mock the useChatInstance hook
 vi.mock("@/hooks/useChatInstance", () => ({
@@ -32,7 +31,7 @@ vi.mock("@/hooks/useChatInstance", () => ({
 }));
 
 describe("ChatApp", () => {
-    const mockConfig: ChatAgentConfig = {
+    const mockConfig = {
         agentId: "test-agent",
         initialAgentName: "Test Agent",
     };
@@ -42,12 +41,7 @@ describe("ChatApp", () => {
     });
 
     it("should render chat interface with messages", () => {
-        render(
-            <ChatApp
-                chatId="test-chat"
-                agentConfig={mockConfig}
-            />
-        );
+        render(<ChatApp chatId="test-chat" />);
 
         // Check if messages are displayed
         expect(screen.getByText("Hello")).toBeInTheDocument();
@@ -61,12 +55,7 @@ describe("ChatApp", () => {
     });
 
     it("should render input field and send button", () => {
-        render(
-            <ChatApp
-                chatId="test-chat"
-                agentConfig={mockConfig}
-            />
-        );
+        render(<ChatApp chatId="test-chat" />);
 
         const input = screen.getByPlaceholderText("Type your message...");
         const sendButton = screen.getByText("Send");
@@ -92,12 +81,7 @@ describe("ChatApp", () => {
             dispatchAction: mockDispatchAction,
         });
 
-        render(
-            <ChatApp
-                chatId="test-chat"
-                agentConfig={mockConfig}
-            />
-        );
+        render(<ChatApp chatId="test-chat" />);
 
         const input = screen.getByPlaceholderText("Type your message...");
         const sendButton = screen.getByText("Send");
@@ -132,7 +116,7 @@ describe("ChatApp", () => {
             { status: "error", expected: "Error" },
         ];
 
-        states.forEach(({ status, expected }) => {
+        for (const { status, expected } of states) {
             vi.mocked(useChatInstance).mockReturnValue({
                 chatState: {
                     chatId: "test-chat",
@@ -145,17 +129,12 @@ describe("ChatApp", () => {
                 dispatchAction: vi.fn(),
             });
 
-            const { rerender } = render(
-                <ChatApp
-                    chatId="test-chat"
-                    agentConfig={mockConfig}
-                />
-            );
+            const { rerender } = render(<ChatApp chatId="test-chat" />);
 
             expect(screen.getByText(expected)).toBeInTheDocument();
 
             rerender(<div />); // Clean up for next iteration
-        });
+        }
     });
 
     it("should display runtime error when present", () => {
@@ -173,12 +152,7 @@ describe("ChatApp", () => {
             dispatchAction: vi.fn(),
         });
 
-        render(
-            <ChatApp
-                chatId="test-chat"
-                agentConfig={mockConfig}
-            />
-        );
+        render(<ChatApp chatId="test-chat" />);
 
         expect(screen.getByText("Error: Connection failed")).toBeInTheDocument();
     });
@@ -198,12 +172,7 @@ describe("ChatApp", () => {
             dispatchAction: vi.fn(),
         });
 
-        render(
-            <ChatApp
-                chatId="test-chat"
-                agentConfig={mockConfig}
-            />
-        );
+        render(<ChatApp chatId="test-chat" />);
 
         const sendButton = screen.getByText("Send");
         expect(sendButton).toBeDisabled();
@@ -224,13 +193,8 @@ describe("ChatApp", () => {
             dispatchAction: vi.fn(),
         });
 
-        render(
-            <ChatApp
-                chatId="test-chat"
-                agentConfig={mockConfig}
-            />
-        );
+        render(<ChatApp chatId="test-chat" />);
 
         expect(screen.getByText("Test Agent is typing...")).toBeInTheDocument();
     });
-}); 
+});

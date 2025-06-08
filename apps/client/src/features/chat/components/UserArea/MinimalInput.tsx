@@ -43,30 +43,33 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
 
     const handleSubmit = () => {
       const trimmedText = text.trim();
-      console.log('[MinimalInput] handleSubmit called:', {
+      console.log("[MinimalInput] handleSubmit called:", {
         originalText: text,
         trimmedText,
         disabled,
         textLength: text.length,
-        trimmedLength: trimmedText.length
+        trimmedLength: trimmedText.length,
       });
 
       if (!trimmedText || disabled) {
-        console.log('[MinimalInput] Submit blocked:', {
+        console.log("[MinimalInput] Submit blocked:", {
           emptyText: !trimmedText,
           disabled,
-          reason: !trimmedText ? 'empty text' : 'input disabled'
+          reason: !trimmedText ? "empty text" : "input disabled",
         });
         return;
       }
 
-      console.log('[MinimalInput] Calling onSendMessage with text:', trimmedText);
+      console.log(
+        "[MinimalInput] Calling onSendMessage with text:",
+        trimmedText,
+      );
       onSendMessage(trimmedText);
-      console.log('[MinimalInput] onSendMessage called successfully');
+      console.log("[MinimalInput] onSendMessage called successfully");
 
-      if (ref && typeof ref !== 'function' && ref.current) {
+      if (ref && typeof ref !== "function" && ref.current) {
         ref.current.focus();
-        console.log('[MinimalInput] Input refocused after send');
+        console.log("[MinimalInput] Input refocused after send");
       }
     };
 
@@ -94,14 +97,14 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     const defaultToolbarItems: ToolBarItem[] = [
       ...(onFilesSelected
         ? [
-          {
-            id: "attach",
-            icon: <Icon name="Paperclip" size={20} />,
-            action: handleTriggerFileInput,
-            tooltip: "Attach files",
-            disabled: disabled,
-          } as ToolBarItem,
-        ]
+            {
+              id: "attach",
+              icon: <Icon name="Paperclip" size={20} />,
+              action: handleTriggerFileInput,
+              tooltip: "Attach files",
+              disabled: disabled,
+            } as ToolBarItem,
+          ]
         : []),
       { id: "spacer", type: "spacer-expand" } as ToolBarItem,
       {
@@ -122,12 +125,12 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       <div
         className={cn(
           "flex items-center w-full border rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-[var(--color-chat-primary)] transition-all duration-150 ease-in-out",
-          className
+          className,
         )}
         style={{
-          backgroundColor: 'var(--color-chat-background)',
-          borderColor: 'var(--color-chat-input-border)',
-          color: 'var(--color-chat-foreground)'
+          backgroundColor: "var(--color-chat-background)",
+          borderColor: "var(--color-chat-input-border)",
+          color: "var(--color-chat-foreground)",
         }}
       >
         <TextareaAutosize
@@ -142,10 +145,10 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
           disabled={disabled}
           className="flex-grow resize-none text-[7px] rounded overflow-auto pl-2 leading-[18px] transition-height duration-200 ease-in-out bg-transparent focus:outline-none min-h-[24px] max-h-[24px] h-[24px] flex items-center"
           style={{
-            color: 'var(--color-chat-foreground)',
-            paddingTop: '3px',
-            paddingBottom: '3px',
-            backgroundColor: 'transparent'
+            color: "var(--color-chat-foreground)",
+            paddingTop: "3px",
+            paddingBottom: "3px",
+            backgroundColor: "transparent",
           }}
           aria-label="Message input"
           ref={ref}

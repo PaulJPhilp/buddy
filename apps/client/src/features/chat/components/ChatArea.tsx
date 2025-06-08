@@ -85,11 +85,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         className={cn(
           "flex-1 overflow-y-auto p-4 space-y-4",
           isLoadingHistory && "opacity-80",
-          className
+          className,
         )}
         style={{
-          backgroundColor: 'var(--color-chat-background)',
-          color: 'var(--color-chat-foreground)'
+          backgroundColor: "var(--color-chat-background)",
+          color: "var(--color-chat-foreground)",
         }}
         role="log"
         aria-live="polite"
@@ -103,20 +103,46 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         )}
 
         {messages.map((msg) => {
-          const toolbarItems = msg.role === "assistant"
-            ? assistantMessageToolbarConfig?.(msg) || [
-              { id: `thumbs-up-${msg.id}`, icon: <Icon name="ThumbsUp" size={6} />, action: () => onMessageFeedback?.(msg.id, "thumbsUp"), tooltip: "Helpful", intent: "primary" },
-              { id: `thumbs-down-${msg.id}`, icon: <Icon name="ThumbsDown" size={6} />, action: () => onMessageFeedback?.(msg.id, "thumbsDown"), tooltip: "Not Helpful", intent: "secondary" },
-              { id: `spacer-${msg.id}`, type: "spacer-expand" },
-              { id: `copy-${msg.id}`, icon: <Icon name="Copy" size={6} />, action: () => onMessageCopy?.(msg.id), tooltip: "Copy" },
-              { id: `read-${msg.id}`, icon: <Icon name="Volume2" size={6} />, action: () => onMessageRead?.(msg.id), tooltip: "Read" },
-            ]
-            : [];
+          const toolbarItems =
+            msg.role === "assistant"
+              ? assistantMessageToolbarConfig?.(msg) || [
+                  {
+                    id: `thumbs-up-${msg.id}`,
+                    icon: <Icon name="ThumbsUp" size={6} />,
+                    action: () => onMessageFeedback?.(msg.id, "thumbsUp"),
+                    tooltip: "Helpful",
+                    intent: "primary",
+                  },
+                  {
+                    id: `thumbs-down-${msg.id}`,
+                    icon: <Icon name="ThumbsDown" size={6} />,
+                    action: () => onMessageFeedback?.(msg.id, "thumbsDown"),
+                    tooltip: "Not Helpful",
+                    intent: "secondary",
+                  },
+                  { id: `spacer-${msg.id}`, type: "spacer-expand" },
+                  {
+                    id: `copy-${msg.id}`,
+                    icon: <Icon name="Copy" size={6} />,
+                    action: () => onMessageCopy?.(msg.id),
+                    tooltip: "Copy",
+                  },
+                  {
+                    id: `read-${msg.id}`,
+                    icon: <Icon name="Volume2" size={6} />,
+                    action: () => onMessageRead?.(msg.id),
+                    tooltip: "Read",
+                  },
+                ]
+              : [];
 
           return (
             <div
               key={msg.id}
-              className={cn("group relative w-full flex", msg.role === "user" ? "justify-end" : "justify-start")}
+              className={cn(
+                "group relative w-full flex",
+                msg.role === "user" ? "justify-end" : "justify-start",
+              )}
             >
               <div className="relative max-w-[95%] flex items-center">
                 <div className="relative flex-1">
@@ -139,7 +165,12 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 </div>
                 {msg.timestamp && (
                   <div
-                    className={cn("flex items-center", msg.role === "user" ? "order-first pr-2" : "order-last pl-2")}
+                    className={cn(
+                      "flex items-center",
+                      msg.role === "user"
+                        ? "order-first pr-2"
+                        : "order-last pl-2",
+                    )}
                   >
                     <span className="text-[0.4rem] text-muted-foreground whitespace-nowrap opacity-70">
                       {new Date(msg.timestamp).toLocaleTimeString()}
@@ -152,11 +183,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         })}
         {isTyping && (
           <div className="flex justify-start">
-            <div 
+            <div
               className="text-sm px-3 py-2 rounded-xl"
               style={{
-                backgroundColor: 'var(--color-chat-bubble-agent)',
-                color: 'var(--color-chat-foreground)'
+                backgroundColor: "var(--color-chat-bubble-agent)",
+                color: "var(--color-chat-foreground)",
               }}
             >
               <div className="flex items-center space-x-2">
@@ -174,8 +205,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({
           size="icon"
           className="absolute bottom-4 right-4 rounded-full shadow-lg opacity-90 hover:opacity-100"
           style={{
-            backgroundColor: 'var(--color-chat-secondary)',
-            color: 'var(--color-chat-foreground)',
+            backgroundColor: "var(--color-chat-secondary)",
+            color: "var(--color-chat-foreground)",
           }}
           onClick={scrollToBottom}
         >

@@ -1,27 +1,54 @@
-export interface ChatAppColors {
-  primary: string; // Tailwind color name, e.g., "blue-500"
-  secondary: string; // Tailwind color name, e.g., "gray-700"
-  accent?: string; // Tailwind color name, e.g., "green-500"
-  background?: string; // Tailwind color name for the main chat area background (default: "white")
-  text?: string; // Tailwind color name for default text on main background (default: "gray-800")
+// Use the canonical ThemeColor type for all chat theme color objects
+export type ThemeColor = string; // e.g., '#fff', 'rgb(255,255,255)', 'var(--color-primary)'
 
-  // Contrast-derived text colors (internal, not directly set by user but derived)
-  // We'll strive to derive these, but might need overrides in complex themes
-  // textOnPrimary?: string;
-  // textOnSecondary?: string;
-  // textOnAccent?: string;
+/**
+ * Canonical typography settings for chat themes.
+ * Add more fields as needed for richer font control.
+ */
+export interface ThemeTypography {
+  /** Main font family for all text */
+  fontFamily: string;
+  /** Base font size (e.g., '16px') */
+  fontSize: string;
+  /** Base font weight (e.g., '400') */
+  fontWeight?: string;
+  /** Font family for headings (optional) */
+  headingFamily?: string;
+  /** Font weight for headings (optional) */
+  headingWeight?: string;
+  /** Monospace font family (optional) */
+  monospaceFamily?: string;
+  /** Line height (optional, e.g., '1.5') */
+  lineHeight?: string;
+  /** Letter spacing (optional, e.g., '0.01em') */
+  letterSpacing?: string;
 }
 
-export interface ChatAppBorders {
-  // For the main ChatApp container
-  color?: string; // Tailwind color name, e.g., "gray-300"
-  thickness?: string; // e.g., "1px", "2px", Tailwind: "border", "border-2"
-  radius?: string; // e.g., "0.5rem", Tailwind: "rounded-md", "rounded-lg"
+/**
+ * Section color structure for backgrounds, text, and borders.
+ */
+export interface SectionColors {
+  background: ThemeColor;
+  text?: ThemeColor;
+  border?: ThemeColor;
 }
 
-export interface ChatAppBubbleTheme {
-  background?: string; // Tailwind color name
-  text?: string; // Tailwind color name (or "auto" for contrast)
+/**
+ * Bubble color structure for user/agent bubbles.
+ */
+export interface BubbleColors {
+  background: ThemeColor;
+  text: ThemeColor;
+}
+
+/**
+ * Icon set for toolbars, attachments, etc.
+ */
+export interface IconSet {
+  color: ThemeColor;
+  size: string;
+  textColor?: ThemeColor;
+  textBackground?: ThemeColor;
   radius?: string; // Tailwind border radius class e.g. "rounded-xl"
 }
 
@@ -35,6 +62,50 @@ export interface ChatAppUserAreaTheme {
 export interface ChatAppHeaderTheme {
   background?: string; // Tailwind color name (default: primary)
   text?: string; // Tailwind color name (or "auto" for contrast)
+}
+
+export interface ChatAppColors {
+  primary?: string;
+  secondary?: string;
+  background?: string;
+  text?: string;
+  border?: string;
+  accent?: string;
+  error?: string;
+  success?: string;
+  warning?: string;
+}
+
+export interface ChatAppBubbleTheme {
+  background?: string;
+  text?: string;
+  border?: string;
+  borderRadius?: string;
+  radius?: string; // For backwards compatibility
+  padding?: string;
+}
+
+export interface ChatAppUserAreaTheme {
+  background?: string;
+  inputBackground?: string;
+  inputText?: string;
+  inputBorder?: string;
+  buttonBackground?: string;
+  buttonText?: string;
+}
+
+export interface ChatAppHeaderTheme {
+  background?: string;
+  text?: string;
+  border?: string;
+}
+
+export interface ChatAppBorders {
+  width?: string;
+  thickness?: string; // For backward compatibility
+  style?: string;
+  color?: string;
+  radius?: string;
 }
 
 export interface ChatAppTypography {
@@ -113,7 +184,11 @@ export const lightChatThemeExample: ChatAppTheme = {
   },
   bubbles: {
     user: { background: "colors.primary", text: "auto", radius: "rounded-xl" },
-    agent: { background: "colors.secondary", text: "auto", radius: "rounded-xl" },
+    agent: {
+      background: "colors.secondary",
+      text: "auto",
+      radius: "rounded-xl",
+    },
   },
   userArea: {
     background: "gray-50",
@@ -135,7 +210,7 @@ export const darkChatThemeExample: ChatAppTheme = {
     secondary: "slate-700", // Darker secondary for bubble backgrounds etc.
     accent: "sky-500",
     background: "slate-900", // Main background for dark mode
-    text: "slate-100",   // Light text for dark mode
+    text: "slate-100", // Light text for dark mode
   },
   borders: {
     color: "slate-600",
@@ -145,7 +220,7 @@ export const darkChatThemeExample: ChatAppTheme = {
   bubbles: {
     user: { background: "colors.primary", text: "auto", radius: "rounded-xl" },
     // Agent bubbles on dark theme might need a slightly lighter or distinct background than userArea
-    agent: { background: "slate-600", text: "auto", radius: "rounded-xl" }, 
+    agent: { background: "slate-600", text: "auto", radius: "rounded-xl" },
   },
   userArea: {
     background: "slate-800", // Darker user area
@@ -159,4 +234,4 @@ export const darkChatThemeExample: ChatAppTheme = {
     fontFamily: "Inter, sans-serif",
     fontSize: "1rem",
   },
-}; 
+};

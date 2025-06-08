@@ -59,26 +59,30 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     };
 
     const internalHandleSendMessage = () => {
-      console.log('[UserArea] internalHandleSendMessage called:', {
+      console.log("[UserArea] internalHandleSendMessage called:", {
         inputText,
         inputTextLength: inputText.length,
         trimmedLength: inputText.trim().length,
         attachmentsCount: currentAttachments.length,
-        hasAttachments: currentAttachments.length > 0
+        hasAttachments: currentAttachments.length > 0,
       });
 
       if (!inputText.trim() && currentAttachments.length === 0) {
-        console.log('[UserArea] Send blocked: no text and no attachments');
+        console.log("[UserArea] Send blocked: no text and no attachments");
         return;
       }
 
-      console.log('[UserArea] Calling onSendMessage with:', {
+      console.log("[UserArea] Calling onSendMessage with:", {
         text: inputText,
-        attachments: currentAttachments.map(f => ({ name: f.name, size: f.size, type: f.type }))
+        attachments: currentAttachments.map((f) => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+        })),
       });
 
       onSendMessage(inputText, currentAttachments);
-      console.log('[UserArea] onSendMessage called, clearing input text');
+      console.log("[UserArea] onSendMessage called, clearing input text");
       setInputText("");
     };
 
@@ -87,15 +91,14 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
         ref={ref}
         className={cn("w-full border-t", className)}
         style={{
-          backgroundColor: 'var(--color-chat-user-area)',
-          color: 'var(--color-chat-foreground)',
-          borderColor: 'var(--color-chat-user-area-border)'
+          backgroundColor: "var(--color-chat-user-area)",
+          color: "var(--color-chat-foreground)",
+          borderColor: "var(--color-chat-user-area-border)",
         }}
       >
         <div className="w-full max-w-4xl mx-auto px-4 py-3">
           {/* 3-Row Layout: AttachmentToolbar, MinimalInput, AgentToolbar */}
           <div className="flex flex-col space-y-2 w-full">
-
             {/* Row 1: AttachmentToolbar */}
             {currentAttachments.length > 0 && (
               <div className="w-full flex items-center min-h-[32px]">
@@ -134,7 +137,6 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
                 />
               </div>
             )}
-
           </div>
         </div>
       </div>
