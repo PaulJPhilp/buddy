@@ -1,13 +1,11 @@
 "use client";
 
-import { useActiveChat } from "@/contexts/ActiveChatContext";
-import { useSelectedChat } from "@/contexts/SelectedChatContext";
-import { ChatAppColors, ChatAppTheme } from "@/features/chat/themes/themeTypes";
-import { darkChatThemeExample as defaultTheme } from "@/features/chat/themes/themeTypes";
+import { ChatAppColors, darkChatThemeExample as defaultTheme } from "@/features/chat/themes/themeTypes";
 import {
   cssToThemeObject,
   themeToCss,
 } from "@/features/chat/themes/themeUtils";
+import { useAppShellStore } from "@/stores/appShellStore";
 import { Sidebar, SidebarSection } from "@ui/components/ui/sidebar";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -85,8 +83,7 @@ export function AppSidebar({ isOpen, onToggleAction }: AppSidebarProps) {
     };
     setTheme(JSON.stringify(updatedTheme));
   };
-  const { selectedChatId } = useSelectedChat();
-  const { activeChatId } = useActiveChat();
+  const { selectedChatId, activeChatId } = useAppShellStore();
   const [editingColors, setEditingColors] = useState<Record<string, string>>(
     {},
   );

@@ -7,7 +7,13 @@ import { create } from "zustand";
 export type MockThreadId = "thread1" | "thread2";
 
 interface AppShellState {
-  // Thread selection
+  // Chat selection (migrated from SelectedChatContext)
+  selectedChatId: string;
+  setSelectedChatId: (id: string) => void;
+  activeChatId: string | null;
+  setActiveChatId: (id: string) => void;
+
+  // Thread selection (legacy - can be removed later)
   selectedThreadId: MockThreadId | null;
   setSelectedThreadId: (threadId: MockThreadId) => void;
 
@@ -126,7 +132,13 @@ const generateMessageId = () =>
   `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export const useAppShellStore = create<AppShellState>((set, get) => ({
-  // Thread selection
+  // Chat selection (migrated from SelectedChatContext)
+  selectedChatId: "chat1",
+  setSelectedChatId: (id) => set({ selectedChatId: id }),
+  activeChatId: "chat1",
+  setActiveChatId: (id) => set({ activeChatId: id }),
+
+  // Thread selection (legacy - can be removed later)
   selectedThreadId: null,
   setSelectedThreadId: (threadId) => set({ selectedThreadId: threadId }),
 

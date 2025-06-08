@@ -8,10 +8,7 @@ import { Toaster } from "sonner";
 
 import { AppShell } from "@/components/app-shell/AppShell";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ActiveChatProvider } from "@/contexts/ActiveChatContext";
-import { AgentsProvider } from "@/contexts/AgentsContext";
 import { ChatRuntimeProvider } from "@/contexts/ChatRuntimeContext";
-import { SelectedChatProvider } from "@/contexts/SelectedChatContext";
 import { ErrorBoundary } from "@ui/components/ui/error-boundary";
 
 // Client-side only component wrapper
@@ -84,15 +81,9 @@ export function ClientLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <ChatRuntimeProvider>
-              <AgentsProvider>
-                <Toaster position="top-center" />
-                <SelectedChatProvider>
-                  <ActiveChatProvider>
-                    <AppShell>{children}</AppShell>
-                  </ActiveChatProvider>
-                </SelectedChatProvider>
-                <Analytics />
-              </AgentsProvider>
+              <Toaster position="top-center" />
+              <AppShell>{children}</AppShell>
+              <Analytics />
             </ChatRuntimeProvider>
           </ThemeProvider>
         </ErrorBoundary>
