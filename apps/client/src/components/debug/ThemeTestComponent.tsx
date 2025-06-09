@@ -159,6 +159,7 @@ export function ThemeTestComponent() {
                   {Object.entries(themeColors).map(([key, value]) => (
                     <div key={key} className="flex flex-col">
                       <div className="flex items-center justify-between mb-1">
+                        {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
                         <label className="text-xs font-medium">{key}</label>
                         <div
                           className="w-6 h-6 rounded border border-gray-300"

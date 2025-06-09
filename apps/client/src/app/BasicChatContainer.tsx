@@ -4,6 +4,7 @@ import type { ChatAppTheme } from "@/features/chat/themes/themeTypes";
 import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 import { ChatRuntimeService } from "@/services/chat-runtime/ChatRuntimeService";
 import { WebSocketService } from "@/services/websocket/WebSocketService";
+import { useParsedTheme } from "@/stores/themeStore";
 import { useSession } from "@clerk/nextjs";
 import { Effect, Fiber, Layer, Runtime } from "effect";
 import { useTheme } from "next-themes";
@@ -123,41 +124,9 @@ export const BasicChatContainer = React.memo<BasicChatContainerProps>(
       return () => clearTimeout(timer);
     }, [id, title]);
 
-    // Theme handling - simplified version from ChatContainer
-    const appliedTheme = useMemo(() => {
-      try {
-        if (propTheme && typeof propTheme === "object") return propTheme;
-        if (propTheme && typeof propTheme === "string") {
-          try {
-            return JSON.parse(propTheme);
-          } catch (e) {
-            console.error("Error parsing theme:", e);
-          }
-        }
-        if (rawTheme && typeof rawTheme === "object") return rawTheme;
-        if (
-          rawTheme &&
-          typeof rawTheme === "string" &&
-          !["system", "dark", "light"].includes(rawTheme)
-        ) {
-          try {
-            return JSON.parse(rawTheme);
-          } catch (e) {
-            console.error("Error parsing rawTheme:", e);
-          }
-        }
-      } catch (error) {
-        console.error("Theme processing error:", error);
-      }
-      return {
-        colors: {
-          primary: "blue-500",
-          secondary: "gray-100",
-          background: "white",
-          text: "gray-900",
-        },
-      };
-    }, [propTheme, rawTheme]);
+    // Use centralized theme (no more duplication!)
+    const centralizedTheme = useParsedTheme();
+    const appliedTheme = propTheme || centralizedTheme;
 
     // Apply theme styles
     const containerStyle = {

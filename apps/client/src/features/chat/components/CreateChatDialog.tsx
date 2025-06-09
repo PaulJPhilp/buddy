@@ -87,10 +87,10 @@ export function CreateChatDialog({
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <div className="flex flex-col space-y-1.5 text-center sm:text-left mb-4">
           <h2 className="text-lg font-semibold leading-none tracking-tight">
-            Create New Chat
+            Create New Test Container
           </h2>
           <p className="text-sm text-muted-foreground">
-            Create a new chat by filling out the form below.
+            Create a new test container by filling out the form below.
           </p>
         </div>
 
@@ -98,14 +98,14 @@ export function CreateChatDialog({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="app-name" className="text-right">
-                App Name
+                Container ID
               </Label>
               <div className="col-span-3">
                 <Input
                   id="app-name"
                   value={appName}
                   onChange={(e) => setAppName(e.target.value)}
-                  placeholder="chat-1"
+                  placeholder="test-container-1"
                   className={errors.appName ? "border-red-500" : ""}
                 />
                 {errors.appName && (
@@ -122,7 +122,7 @@ export function CreateChatDialog({
                   id="display-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="My Chat"
+                  placeholder="My Test Container"
                   className={errors.displayName ? "border-red-500" : ""}
                 />
                 {errors.displayName && (
@@ -147,13 +147,14 @@ export function CreateChatDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Chat"}
+              {isSubmitting ? "Creating..." : "Create Container"}
             </Button>
           </div>
         </form>
 
         {/* Close button in the top-right corner */}
         <button
+          type="button"
           onClick={() => {
             console.log("Close button clicked");
             onCloseAction();
@@ -172,8 +173,9 @@ export function CreateChatDialog({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <path d="M14 9l-5 5m0 0l5 5m-5-5h12" />
           </svg>
         </button>
       </div>

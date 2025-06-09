@@ -1,8 +1,8 @@
 "use client";
 
 import type { ChatAppTheme } from "@/features/chat/themes/themeTypes";
+import { useParsedTheme } from "@/stores/themeStore";
 import { useSession } from "@clerk/nextjs";
-import { useTheme } from "next-themes";
 import { useMemo } from "react";
 import { useChatRuntime } from "../contexts/ChatRuntimeContext";
 
@@ -24,7 +24,8 @@ export default function ChatContainer({
   // Use the chat runtime context
   const runtime = useChatRuntime();
 
-  const { theme: rawTheme } = useTheme();
+  // Get centralized theme (no more duplication!)
+  const centralizedTheme = useParsedTheme();
   const { session } = useSession();
 
   const sessionData = useMemo(
@@ -35,34 +36,8 @@ export default function ChatContainer({
     [session?.user?.id, session?.user?.fullName],
   );
 
-  // Theme handling - simplified
-  const appliedTheme = useMemo(() => {
-    try {
-      if (theme && typeof theme === "object") return theme;
-      if (theme && typeof theme === "string") {
-        try {
-          return JSON.parse(theme);
-        } catch (e) {
-          console.error("Error parsing theme:", e);
-        }
-      }
-      if (rawTheme && typeof rawTheme === "object") return rawTheme;
-      if (
-        rawTheme &&
-        typeof rawTheme === "string" &&
-        !["system", "dark", "light"].includes(rawTheme)
-      ) {
-        try {
-          return JSON.parse(rawTheme);
-        } catch (e) {
-          console.error("Error parsing rawTheme:", e);
-        }
-      }
-    } catch (error) {
-      console.error("Theme processing error:", error);
-    }
-    return {};
-  }, [theme, rawTheme]);
+  // Use prop theme if provided, otherwise use centralized theme
+  const appliedTheme = theme || centralizedTheme;
 
   return (
     <div className="h-full w-full p-4">

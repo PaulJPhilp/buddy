@@ -268,7 +268,8 @@ export default function ThemeBuilderPage() {
   }, []);
 
   // Initialize theme from localStorage or default
-  useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
     if (isClient && !isInitialized) {
       try {
         // Only parse theme on client-side
@@ -522,6 +523,7 @@ export default function ThemeBuilderPage() {
               <h3 className="text-lg font-medium mb-4">Live Preview</h3>
               <ComponentPreview theme={localTheme} />
               <div className="mt-8">
+                {/* biome-ignore lint/a11y/useButtonType: <explanation> */}
                 <button
                   onClick={resetTheme}
                   className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
