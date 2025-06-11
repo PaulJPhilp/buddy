@@ -5,7 +5,7 @@
 
 import type { Message } from "@/features/chat/types";
 import { MdxService, type MdxServiceApi } from "@/services/mdx";
-import type { ProtocolMessage } from "@buddy/protocol";
+import type { WebSocketMessage } from "@buddy/protocol";
 import { Data, Effect } from "effect";
 
 // Error types
@@ -16,14 +16,14 @@ export class MessageProcessingError extends Data.TaggedError("MessageProcessingE
 
 export class MessageConversionError extends Data.TaggedError("MessageConversionError")<{
     readonly message: string;
-    readonly protocolMessage: ProtocolMessage;
+    readonly protocolMessage: WebSocketMessage;
     readonly cause?: unknown;
 }> { }
 
 // Service API interface
 export interface ChatInstanceServiceApi {
     readonly convertProtocolMessageToUIMessage: (
-        protocolMessage: ProtocolMessage
+        protocolMessage: WebSocketMessage
     ) => Effect.Effect<Message | null, MessageConversionError, MdxServiceApi>;
 
     readonly createUserMessage: (
@@ -52,7 +52,7 @@ export class ChatInstanceService extends Effect.Service<ChatInstanceServiceApi>(
             const mdxService = yield* MdxService;
 
             const convertProtocolMessageToUIMessage = (
-                protocolMessage: ProtocolMessage
+                protocolMessage: WebSocketMessage
             ): Effect.Effect<Message | null, MessageConversionError, MdxServiceApi> =>
                 Effect.gen(function* () {
                     try {
@@ -204,6 +204,6 @@ export class ChatInstanceService extends Effect.Service<ChatInstanceServiceApi>(
                 finalizeStreamingMessage,
             };
         }),
-        dependencies: [MdxService.Default],
+        dependencies: [MdxService],
     }
 ) { } 

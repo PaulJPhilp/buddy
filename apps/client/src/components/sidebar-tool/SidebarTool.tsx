@@ -1,7 +1,5 @@
 "use client";
 
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { appLayoutStore, useAppLayoutStore } from "@/stores/appLayoutStore";
 import { sidebarToolStore, useSidebarToolStore } from "@/stores/sidebarToolStore";
 import { Badge } from "@ui/components/ui/badge";
@@ -9,6 +7,8 @@ import { Button } from "@ui/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Label } from "@ui/components/ui/label";
 import { Separator } from "@ui/components/ui/separator";
+import { Slider } from "@ui/components/ui/slider";
+import { Switch } from "@ui/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/ui/tabs";
 import { ChevronLeft, ChevronRight, Monitor, RotateCcw, Sidebar, Smartphone, Tablet, X } from "lucide-react";
 

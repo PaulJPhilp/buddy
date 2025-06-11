@@ -1,7 +1,7 @@
 import { GripVertical } from "lucide-react";
 import * as React from "react";
 
-import { cn } from "../../utils/cn";
+import { cn } from "../../lib/utils";
 
 interface ExtendableDrawerProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultWidth?: number;

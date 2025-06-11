@@ -14,7 +14,7 @@
  * const message = yield* chatService.sendMessage("Hello!");
  * ```
  */
-import { type Effect } from "effect";
+import { type Effect, Stream } from "effect";
 
 export const MAX_MESSAGE_LENGTH = 2000;
 export const MIN_MESSAGE_LENGTH = 1;
@@ -145,4 +145,16 @@ export interface ChatStateApi {
    * @returns An Effect yielding void.
    */
   readonly clearHistory: () => Effect.Effect<void>;
+
+  /**
+   * Cleans up resources (WebSocket connections, streams, etc.).
+   * @returns An Effect yielding void.
+   */
+  readonly cleanup: () => Effect.Effect<void>;
+
+  /**
+   * A stream of incoming messages for real-time updates.
+   * This stream emits new messages as they arrive from the server.
+   */
+  readonly messageStream: Stream.Stream<MessageApi>;
 }

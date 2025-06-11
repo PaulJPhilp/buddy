@@ -1,9 +1,9 @@
 /**
- * @file Example usage of useChatInstanceV2 hook
+ * @file Example usage of useChatInstance hook
  * @module hooks/chat-instance/example
  */
 
-import { useChatInstanceV2 } from "./useChatInstanceV2";
+import { useChatInstance } from "./useChatInstance";
 
 // Example component showing how to use the new hook
 export function ChatInstanceExample() {
@@ -53,9 +53,12 @@ export function ChatInstanceExample() {
                     </div>
                 ))}
             </div>
-
             <div className="actions">
-                <button onClick={handleSendMessage} disabled={chatState.status !== "connected"}>
+                <button 
+                    type="button"
+                    onClick={handleSendMessage} 
+                    disabled={chatState.status !== "connected"}
+                >
                     Send Test Message
                 </button>
             </div>

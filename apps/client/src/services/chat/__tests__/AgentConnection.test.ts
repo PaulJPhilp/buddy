@@ -1,14 +1,17 @@
-import { Effect, Stream, TestContext } from "effect";
+import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
+import { AgentConnectionService } from "../AgentConnection";
 
-describe("AgentConnection", () => {
-  it("should handle message stream", () =>
+describe("AgentConnectionService", () => {
+  const TestLayer = AgentConnectionService.Default;
+
+  it("should track connection state", () =>
     Effect.gen(function* () {
-      const messageStream = Stream.make({ text: "Hello, world!" });
-      const firstMessage = yield* messageStream.pipe(
-        Stream.runHead,
-        Effect.map((msg) => (msg._tag === "Some" ? msg.value : undefined)),
-      );
-      expect(firstMessage).toEqual({ text: "Hello, world!" });
-    }).pipe(Effect.provide(TestContext.TestContext), Effect.runPromise));
+      const service = yield* AgentConnectionService;
+      
+      // Initially not connected
+      const isConnected = yield* service.isConnected;
+      expect(isConnected).toBe(false);
+      
+    }).pipe(Effect.provide(TestLayer)));
 });

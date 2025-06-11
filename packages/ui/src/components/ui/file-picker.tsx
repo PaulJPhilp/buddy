@@ -1,7 +1,7 @@
 import { UploadIcon, XIcon } from "lucide-react";
 import { type DropzoneOptions, useDropzone } from "react-dropzone";
 
-import { cn } from "../../utils/cn";
+import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
 export interface FilePickerProps extends Omit<DropzoneOptions, "disabled"> {

@@ -9,6 +9,8 @@ const config: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
+    // Disable Fast Refresh (Hot Reloading)
+    fastRefresh: false,
     serverActions: {
       allowedOrigins: ["localhost:3000"],
     },

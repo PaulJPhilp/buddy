@@ -5,8 +5,8 @@
 
 import type { AgentSession } from "@/services/chat-runtime/ChatRuntimeService";
 import { type AgentRuntimeError, ChatRuntimeService } from "@/services/chat-runtime/ChatRuntimeService";
-import type { ProtocolMessage } from "@buddy/protocol";
-import { createUserMessage } from "@buddy/protocol";
+import type { WebSocketMessage } from "@buddy/protocol";
+import { createMessage } from "@buddy/protocol";
 import { Data, Duration, Effect, Schedule, Stream } from "effect";
 
 // Error types
@@ -42,7 +42,7 @@ export interface AgentCommunicationServiceApi {
 
     readonly createIncomingMessageStream: (
         session: AgentSession
-    ) => Stream.Stream<ProtocolMessage, never>;
+    ) => Stream.Stream<WebSocketMessage, never>;
 
     readonly createStatusStream: (
         session: AgentSession
@@ -110,14 +110,22 @@ export class AgentCommunicationService extends Effect.Service<AgentCommunication
                 attachments?: Array<{ name: string }>
             ): Effect.Effect<void, MessageSendError> =>
                 Effect.gen(function* () {
-                    const protocolMessage = createUserMessage(text, {
-                        timestamp: new Date().toISOString(),
-                        metadata: {
-                            chatId,
-                            sessionId: session.id,
-                            attachments: attachments?.map((att) => att.name),
+                    const protocolMessage = createMessage(
+                        "COMMAND",
+                        {
+                            command: "userMessage",
+                            data: {
+                                text,
+                                attachments,
+                                chatId,
+                                sessionId: session.id,
+                            },
+                            __tag: "CommandPayload"
                         },
-                    });
+                        session.id,
+                        Date.now(),
+                        { processed: false, __tag: "Metadata" }
+                    );
 
                     yield* Effect.logDebug(
                         `[AgentCommunicationService] Sending message for ${chatId}`,
@@ -137,7 +145,7 @@ export class AgentCommunicationService extends Effect.Service<AgentCommunication
 
             const createIncomingMessageStream = (
                 session: AgentSession
-            ): Stream.Stream<ProtocolMessage, never> =>
+            ): Stream.Stream<WebSocketMessage, never> =>
                 session.incomingMessages$.pipe(
                     Stream.tap((message) =>
                         Effect.logDebug(
@@ -166,6 +174,6 @@ export class AgentCommunicationService extends Effect.Service<AgentCommunication
                 createStatusStream,
             };
         }),
-        dependencies: [ChatRuntimeService.Default],
+        dependencies: [ChatRuntimeService],
     }
 ) { } 

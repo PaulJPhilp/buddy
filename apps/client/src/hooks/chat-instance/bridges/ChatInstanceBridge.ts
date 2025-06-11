@@ -4,7 +4,7 @@
  */
 
 import type { AgentSession } from "@/services/chat-runtime/ChatRuntimeService";
-import type { ProtocolMessage } from "@buddy/protocol";
+import type { WebSocketMessage } from "@buddy/protocol";
 import { Effect, Fiber, Stream } from "effect";
 
 // Import services
@@ -138,7 +138,7 @@ export class ChatInstanceBridge extends Effect.Service<ChatInstanceBridgeApi>()(
                     const messageStream = agentCommunicationService.createIncomingMessageStream(session);
 
                     const fiber = yield* Effect.forkDaemon(
-                        Stream.runForEach(messageStream, (protocolMessage: ProtocolMessage) =>
+                        Stream.runForEach(messageStream, (protocolMessage: WebSocketMessage) =>
                             Effect.gen(function* () {
                                 yield* Effect.logDebug(
                                     "[ChatInstanceBridge] Processing incoming message",

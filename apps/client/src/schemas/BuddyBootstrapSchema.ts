@@ -1,5 +1,5 @@
 // Import the ChatAppTheme type but not the schema
-import { ChatAppTheme } from "@/features/chat/themes/themeTypes";
+import { ChatAppTheme } from "@/themes/themeTypes";
 import { Schema } from "effect";
 import { AgentConfigSchema } from "./AgentConfigSchema";
 import { ChatAppConfigSchema } from "./ChatAppConfigSchema";

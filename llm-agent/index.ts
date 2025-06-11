@@ -1,18 +1,8 @@
 import { google } from '@ai-sdk/google';
-import {
-  type UserMessage,
-  type WebSocketEnvelope,
-  createAckMessage,
-  createErrorMessage,
-  createLLMStreamMessage,
-  createThinkingMessage,
-  createWebSocketEnvelope,
-  createWelcomeMessage,
-  isClientMessage,
-  parseWebSocketMessage
-} from '@buddy/protocol';
+import { WebSocketMessage, createMessage, parseMessage } from '@buddy/protocol';
 import { streamText } from 'ai';
 import { config } from 'dotenv';
+import { Effect } from 'effect';
 import { WebSocket, WebSocketServer } from 'ws';
 
 // Load environment variables from .env file
@@ -28,6 +18,24 @@ if (!GOOGLE_GENERATIVE_AI_API_KEY) {
 
 // We don't directly need genAI instance if using the Vercel SDK's google adapter for streamText
 // const genAI = new GoogleGenerativeAI(GOOGLE_GENERATIVE_AI_API_KEY);
+
+// Simple message interface for server responses
+interface SimpleMessage {
+  text: string;
+  timestamp: string;
+}
+
+// Add missing types and functions
+interface UserMessage {
+  type: string;
+  text: string;
+  metadata?: any;
+}
+
+// Add missing isClientMessage function
+const isClientMessage = (message: any): boolean => {
+  return message && (message.type === 'USER_MESSAGE' || message.type === 'COMMAND');
+};
 
 // Store conversation history per WebSocket connection
 const conversationHistory = new WeakMap<WebSocket, Array<{ role: 'user' | 'assistant' | 'system', content: string }>>();
@@ -68,6 +76,20 @@ const example = "formatted code";
 
 Always respond with well-structured, visually appealing markdown that showcases various formatting elements.`;
 
+// Helper to create simple protocol message
+function createSimpleMessage(messageType: string, content?: string): SimpleMessage {
+  const message = createMessage('RESPONSE' as any, {
+    type: messageType,
+    content: content || '',
+    __tag: 'ResponsePayload'
+  });
+  
+  return {
+    text: JSON.stringify(message),
+    timestamp: new Date().toISOString()
+  };
+}
+
 // Define the callLLM function
 async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
   console.log(`[LLM] Calling LLM with input: "${inputText}" for chatId: ${chatId || 'default'}`);
@@ -91,17 +113,13 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
   });
 
   // Send acknowledgment
-  const ackMessage = createAckMessage('PROCESSING', {
-    message: 'Processing your message...'
-  });
-  const ackEnvelope = createWebSocketEnvelope(ackMessage);
-  ws.send(ackEnvelope.text);
+  const ackMessage = createSimpleMessage('PROCESSING', 'Processing your message...');
+  ws.send(ackMessage.text);
   console.log('[LLM] Sent ACK message');
 
   // Send thinking state
-  const thinkingMessage = createThinkingMessage(true);
-  const thinkingEnvelope = createWebSocketEnvelope(thinkingMessage);
-  ws.send(thinkingEnvelope.text);
+  const thinkingMessage = createSimpleMessage('THINKING', 'true');
+  ws.send(thinkingMessage.text);
   console.log('[LLM] Sent thinking state on');
 
   try {
@@ -135,9 +153,8 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
 
       // Send thinking state off on first chunk
       if (!thinkingStateSent) {
-        const thinkingOffMessage = createThinkingMessage(false);
-        const thinkingOffEnvelope = createWebSocketEnvelope(thinkingOffMessage);
-        ws.send(thinkingOffEnvelope.text);
+        const thinkingOffMessage = createSimpleMessage('THINKING', 'false');
+        ws.send(thinkingOffMessage.text);
         console.log('[LLM] Sent thinking state off (streaming started)');
         thinkingStateSent = true;
       }
@@ -146,30 +163,15 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
       fullContent += delta;
 
       // Send stream chunk with chatId
-      const streamMessage = createLLMStreamMessage(delta, false, {
-        streamId,
-        metadata: {
-          model: 'gemini-1.5-flash-latest',
-          chunkIndex: chunkIndex++,
-          chatId: chatId // Include chatId for routing
-        } as any // Temporary fix for type issue
-      });
-      const streamEnvelope = createWebSocketEnvelope(streamMessage);
-      ws.send(streamEnvelope.text);
+      const streamMessage = createSimpleMessage('LLM_STREAM', delta);
+      ws.send(streamMessage.text);
       console.log(`[LLM] Sent stream chunk ${chunkIndex} for chatId ${chatId || 'default'}: "${delta}"`);
+      chunkIndex++;
     }
 
     // Send completion message with chatId
-    const completionMessage = createLLMStreamMessage('', true, {
-      streamId,
-      metadata: {
-        model: 'gemini-1.5-flash-latest',
-        chunkIndex: chunkIndex,
-        chatId: chatId // Include chatId for routing
-      } as any // Temporary fix for type issue
-    });
-    const completionEnvelope = createWebSocketEnvelope(completionMessage);
-    ws.send(completionEnvelope.text);
+    const completionMessage = createSimpleMessage('LLM_RESPONSE', fullContent);
+    ws.send(completionMessage.text);
     console.log(`[LLM] Sent completion message for chatId ${chatId || 'default'}`);
 
     // Add assistant response to history
@@ -184,14 +186,12 @@ async function callLLM(inputText: string, ws: WebSocket, chatId?: string) {
     console.error('[LLM] Error during streaming:', error);
 
     // Send error message
-    const errorMessage = createErrorMessage('LLM_ERROR', 'Failed to generate response');
-    const errorEnvelope = createWebSocketEnvelope(errorMessage);
-    ws.send(errorEnvelope.text);
+    const errorMessage = createSimpleMessage('LLM_ERROR', 'Failed to generate response');
+    ws.send(errorMessage.text);
 
     // Send thinking state off
-    const thinkingOffMessage = createThinkingMessage(false);
-    const thinkingOffEnvelope = createWebSocketEnvelope(thinkingOffMessage);
-    ws.send(thinkingOffEnvelope.text);
+    const thinkingOffMessage = createSimpleMessage('THINKING', 'false');
+    ws.send(thinkingOffMessage.text);
   }
 }
 
@@ -204,10 +204,9 @@ try {
 
     // Send welcome message
     try {
-      const welcomeMessage = createWelcomeMessage('Connected to Buddy LLM Server');
-      const welcomeEnvelope = createWebSocketEnvelope(welcomeMessage);
-      ws.send(welcomeEnvelope.text);
-      console.log('[Server] Sent welcome message:', welcomeMessage);
+      const welcomeMessage = createSimpleMessage('WELCOME', 'Connected to Buddy LLM Server');
+      ws.send(welcomeMessage.text);
+      console.log('[Server] Sent welcome message');
     } catch (error) {
       console.error('[Server] Error sending welcome message:', error);
     }
@@ -226,25 +225,20 @@ try {
         const messageString = message.toString();
         console.log('[Server] Raw message received:', messageString);
 
-        // The client sends envelope.text, which is the JSON string of the protocol message
-        // So we need to create an envelope wrapper for parsing
-        const envelope: WebSocketEnvelope = {
-          text: messageString,
-          timestamp: new Date().toISOString()
-        };
-        console.log('[Server] Created envelope for parsing:', envelope);
+        // Parse the incoming message using Effect's parseMessage
+        const parseEffect = parseMessage(messageString);
+        const result = await Effect.runPromise(parseEffect.pipe(
+          Effect.catchAll((error) => Effect.succeed(null))
+        ));
 
-        // Parse the protocol message from the envelope
-        const parseResult = parseWebSocketMessage(envelope);
-        if (!parseResult.message) {
-          console.error('[Server] Failed to parse protocol message:', parseResult.validation.errors);
-          const errorMessage = createErrorMessage('PARSE_ERROR', 'Invalid message format');
-          const errorEnvelope = createWebSocketEnvelope(errorMessage);
-          ws.send(errorEnvelope.text);
+        if (!result) {
+          console.error('[Server] Failed to parse protocol message');
+          const errorMessage = createSimpleMessage('PARSE_ERROR', 'Invalid message format');
+          ws.send(errorMessage.text);
           return;
         }
 
-        const protocolMessage = parseResult.message;
+        const protocolMessage = result;
         console.log('[Server] Parsed protocol message:', protocolMessage);
 
         // Validate it's a client message
@@ -254,14 +248,11 @@ try {
         }
 
         // Send acknowledgment
-        const ackMessage = createAckMessage('RECEIVED', {
-          message: 'Message received, processing...'
-        });
-        const ackEnvelope = createWebSocketEnvelope(ackMessage);
-        ws.send(ackEnvelope.text);
-        console.log('[Server] Sent acknowledgment:', ackMessage);
+        const ackMessage = createSimpleMessage('RECEIVED', 'Message received, processing...');
+        ws.send(ackMessage.text);
+        console.log('[Server] Sent acknowledgment');
 
-        // Handle USER_MESSAGE
+        // Handle USER_MESSAGE or COMMAND
         if (protocolMessage.type === 'USER_MESSAGE') {
           const userMessage = protocolMessage as UserMessage;
           if (userMessage.text && userMessage.text.trim() !== '') {
@@ -270,9 +261,20 @@ try {
             await callLLM(userMessage.text, ws, chatId);
           } else {
             console.log('[Server] User message has no text content:', userMessage);
-            const errorMessage = createErrorMessage('VALIDATION_ERROR', 'Message must contain text');
-            const errorEnvelope = createWebSocketEnvelope(errorMessage);
-            ws.send(errorEnvelope.text);
+            const errorMessage = createSimpleMessage('VALIDATION_ERROR', 'Message must contain text');
+            ws.send(errorMessage.text);
+          }
+        } else if (protocolMessage.type === 'COMMAND') {
+          // Handle COMMAND type messages
+          const payload = protocolMessage.payload as any;
+          if (payload.command === 'userMessage' && payload.data?.text) {
+            const chatId = payload.data.chatId;
+            console.log(`[Server] Processing command message for chatId: ${chatId || 'default'}`);
+            await callLLM(payload.data.text, ws, chatId);
+          } else {
+            console.log('[Server] Unknown command:', payload.command);
+            const errorMessage = createSimpleMessage('UNSUPPORTED_COMMAND', `Unknown command: ${payload.command}`);
+            ws.send(errorMessage.text);
           }
         } else {
           console.log('[Server] Unhandled message type:', protocolMessage.type);
@@ -281,9 +283,8 @@ try {
       } catch (error) {
         console.error('[Server] Error handling message:', error);
         try {
-          const errorMessage = createErrorMessage('PROCESSING_ERROR', 'Failed to process message');
-          const errorEnvelope = createWebSocketEnvelope(errorMessage);
-          ws.send(errorEnvelope.text);
+          const errorMessage = createSimpleMessage('PROCESSING_ERROR', 'Failed to process message');
+          ws.send(errorMessage.text);
         } catch (sendError) {
           console.error('[Server] Error sending error message:', sendError);
         }

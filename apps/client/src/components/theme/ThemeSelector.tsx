@@ -3,7 +3,7 @@
 import {
   ChatAppTheme,
   defaultChatTheme,
-} from "@/features/chat/themes/themeTypes";
+} from "@/themes/themeTypes";
 import { SidebarItem, SidebarSection } from "@ui/components/ui/sidebar";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";

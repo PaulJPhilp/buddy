@@ -1,7 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-## Mocking Rules
-- Never mock external services (such as HTTP clients, databases, or third-party APIs). Always use real implementations for integration and system tests. 

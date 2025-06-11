@@ -1,6 +1,6 @@
-import { ProtocolMessage, createWebSocketEnvelope } from "@buddy/protocol";
+import { ProtocolMessage, createMessage } from "@buddy/protocol";
 // Ensure all necessary Effect modules are imported directly
-import { Data, Effect, Queue, Stream } from "effect"; // Removed Layer, Context from general import, Added Scope
+import { Data, Effect, Layer, Queue, Stream } from "effect"; // Added Layer back
 import { Scope } from "effect/Scope";
 import {
   WebSocketError as BaseWebSocketError,
@@ -99,8 +99,11 @@ export interface ChatRuntimeServiceApi {
   readonly establishSession: (
     agentId: string,
     chatId: string,
-    // The Scope requirement comes from the fact that the implementation uses Effect.scoped
   ) => Effect.Effect<AgentSession, AgentRuntimeError, Scope>;
+  readonly start: () => Effect.Effect<void, AgentRuntimeError>;
+  readonly stop: () => Effect.Effect<void, never>;
+  readonly sendMessage: (text: string) => Effect.Effect<void, AgentRuntimeError>;
+  readonly getState: Stream.Stream<{ status: string; message?: string }, never>;
 }
 
 // --- Service Definition and Implementation ---
@@ -111,10 +114,8 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
     scoped: Effect.gen(function* () {
       const resolver = yield* AgentEndpointResolverService; // Dependency injection
       const wsService = yield* WebSocketService; // Dependency injection
-
-      // This variable is used to store the resolvedUrl in a wider scope
-      // to be accessible in the tapError block for logging.
-      let resolvedUrlForErrorLogging: string | undefined = undefined;
+      const stateQueue = yield* Queue.sliding<{ status: string; message?: string }>(10);
+      let currentSession: AgentSession | null = null;
 
       // The actual implementation of establishSession
       function establishSessionImpl(
@@ -130,16 +131,10 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
           const resolvedUrl = yield* resolver
             .resolveEndpoint(agentId, chatId)
             .pipe(
-              Effect.map((url) => {
-                resolvedUrlForErrorLogging = url;
-                return url;
-              }),
               Effect.mapError((err) =>
                 mapToAgentRuntimeError(err, { agentId, chatId }),
               ),
             );
-
-          resolvedUrlForErrorLogging = resolvedUrl; // Ensure it's set for the current attempt
 
           yield* statusQueue.offer(
             AgentSessionStatus.Connecting(1, resolvedUrl),
@@ -184,9 +179,14 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
           const send = (
             message: ProtocolMessage,
           ): Effect.Effect<void, AgentRuntimeError> => {
-            // Pass ProtocolMessage object directly to createWebSocketEnvelope
-            const envelope = createWebSocketEnvelope(message);
-            return wsService.send(envelope).pipe(
+            // Construct canonical WebSocketMessage using createMessage
+            // Assume message is a CommandPayload or similar
+            const wsMessage = createMessage(
+              message.type as any, // Should be MessageType
+              message.payload,
+              message.metadata
+            );
+            return wsService.send(wsMessage).pipe(
               Effect.mapError((err) =>
                 mapToAgentRuntimeError(err, {
                   agentId,
@@ -209,9 +209,11 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
                 ),
               );
               yield* Queue.shutdown(statusQueue);
+              yield* wsService.disconnect().pipe(Effect.orDie);
+              return; // Explicitly return void
             }).pipe(Effect.orDie);
 
-          return {
+          const session = {
             id: sessionId,
             agentId,
             chatId,
@@ -223,29 +225,75 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
             ),
             close: closeSession,
           } satisfies AgentSession;
-        }).pipe(
-          Effect.tapError((error) => {
-            // Log failure of the entire establishSessionImpl attempt
-            const urlForError = resolvedUrlForErrorLogging;
-            return Effect.logError(
-              `Failed to establish agent session for agentId: ${agentId}, chatId: ${chatId}, url: ${urlForError ?? "unknown"}`,
-              error,
-            );
-          }),
-          Effect.scoped, // This makes the whole Effect<AgentSession,...> a scoped resource
-        );
+
+          currentSession = session;
+          return session;
+        }).pipe(Effect.scoped);
       }
 
-      // Return the API implementation, conforming to ChatRuntimeServiceApi
       return {
         establishSession: (agentId: string, chatId: string) =>
           establishSessionImpl(agentId, chatId),
+
+        start: (): Effect.Effect<void, AgentRuntimeError> =>
+          Effect.gen(function* () {
+            yield* Effect.logInfo("Starting session");
+            if (currentSession) {
+              return yield* Effect.fail(
+                new AgentRuntimeError({
+                  message: "Session already started",
+                  code: "ALREADY_STARTED",
+                }),
+              );
+            }
+
+            yield* stateQueue.offer({ status: "connecting" });
+            const session = yield* Effect.scoped(establishSessionImpl("default", "default"));
+            yield* stateQueue.offer({ status: "connected" });
+            currentSession = session;
+            return; // Explicitly return void
+          }),
+
+        stop: (): Effect.Effect<void, never> =>
+          Effect.gen(function* () {
+            if (currentSession) {
+              yield* currentSession.close(true);
+              currentSession = null;
+            }
+            yield* stateQueue.offer({ status: "disconnected" });
+            return; // Explicitly return void
+          }),
+
+        sendMessage: (text: string): Effect.Effect<void, AgentRuntimeError> =>
+          Effect.gen(function* () {
+            if (!currentSession) {
+              return yield* Effect.fail(
+                new AgentRuntimeError({
+                  message: "WebSocket not connected",
+                  code: "SEND_ERROR",
+                }),
+              );
+            }
+
+            yield* stateQueue.offer({ status: "thinking" });
+
+            const message = createMessage(
+              "COMMAND",
+              {
+                command: "userMessage",
+                data: { text },
+                __tag: "CommandPayload",
+              },
+            );
+
+            yield* currentSession.send(message);
+            yield* stateQueue.offer({ status: "idle", message: text });
+            return; // Explicitly return void
+          }),
+
+        getState: Stream.fromQueue(stateQueue),
       } satisfies ChatRuntimeServiceApi;
     }),
-    // Define dependencies for this service using .Default as required by these specific services
-    dependencies: [
-      AgentEndpointResolverService.Default,
-      WebSocketService.Default,
-    ],
+    dependencies: [AgentEndpointResolverService.Default, WebSocketService.Default], // Explicitly declare dependencies
   },
-) { }
+) {}

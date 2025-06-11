@@ -1,23 +1,28 @@
-import { resolve } from "node:path";
-/// <reference types="vitest" />
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react"
+import tsconfigPaths from "vite-tsconfig-paths"
+import { defineConfig } from "vitest/config"
 
 export default defineConfig({
-  plugins: [react()] as any,
+  plugins: [react(), tsconfigPaths()],
   test: {
+    environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
     globals: true,
-    environment: "happy-dom",
-    setupFiles: ["./src/tests/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    css: true,
-    deps: {
-      inline: ["@testing-library/user-event"],
+    include: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
+    coverage: {
+      reporter: ["text", "json", "html"],
+      exclude: [
+        "coverage/**",
+        "dist/**",
+        "**/[.]**",
+        "packages/*/test{,s}/**",
+        "**/*.d.ts",
+        "test{,s}/**",
+        "test{,-*}.{js,cjs,mjs,ts,tsx,jsx}",
+        "**/*{.,-}test.{js,cjs,mjs,ts,tsx,jsx}",
+        "**/__tests__/**",
+        "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress}.*",
+      ],
     },
   },
-  resolve: {
-    alias: {
-      "@": resolve(__dirname, "./src"),
-    },
-  },
-});
+})

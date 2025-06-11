@@ -12,8 +12,8 @@
 import { parseJsonEffect } from "@/utils/effectUtils";
 import { Effect, Ref } from "effect";
 
-import { ChatAppTheme } from "@/features/chat/themes/themeTypes";
-import { isValidChatAppTheme } from "@/features/chat/themes/themeUtils";
+import { ChatAppTheme } from "@/themes/themeTypes";
+import { isValidChatAppTheme } from "@/themes/themeUtils";
 
 // Migration: Convert legacy flat ChatAppTheme object to canonical ChatAppTheme
 function migrateFlatThemeToChatAppTheme(flat: any): ChatAppTheme {
@@ -393,4 +393,4 @@ export class ThemesService extends Effect.Service<ThemesServiceApi>()(
     }),
     dependencies: [],
   },
-) { }
+) {}

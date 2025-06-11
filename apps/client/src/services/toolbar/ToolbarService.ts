@@ -9,7 +9,7 @@
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  */
 
-import { Chunk, Effect, Layer, Option, Ref, Schema } from "effect";
+import { Chunk, Effect, Option, Ref, Schema } from "effect";
 import {
   ToolbarConfig,
   ToolbarConfigSchema,
@@ -75,6 +75,4 @@ export class ToolbarService extends Effect.Service<ToolbarServiceApi>()(
     }),
     dependencies: [],
   },
-) { }
-
-export const ToolbarServiceLive = Layer.scoped(ToolbarService);
+) {}

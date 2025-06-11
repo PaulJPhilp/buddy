@@ -1,8 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
 import {
     type LogLevel,
     type LogSource,
@@ -17,7 +14,9 @@ import {
     CardHeader,
     CardTitle
 } from "@ui/components/ui/card";
+import { Input } from "@ui/components/ui/input";
 import { Label } from "@ui/components/ui/label";
+import { ScrollArea } from "@ui/components/ui/scroll-area";
 import {
     Select,
     SelectContent,
@@ -26,6 +25,7 @@ import {
     SelectValue,
 } from "@ui/components/ui/select";
 import { Separator } from "@ui/components/ui/separator";
+import { Switch } from "@ui/components/ui/switch";
 import {
     Tabs,
     TabsContent,

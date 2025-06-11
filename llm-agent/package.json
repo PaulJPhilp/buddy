@@ -1,13 +1,27 @@
 {
   "name": "llm-agent",
+  "version": "1.0.0",
+  "description": "LLM-powered WebSocket server with rich Markdown/MDX formatting support",
+  "main": "index.ts",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
     "start": "node --import tsx index.ts",
     "start:legacy": "node --loader ts-node/esm index.ts",
-    "start:bun": "bun run index.ts"
+    "start:bun": "bun run index.ts",
+    "start:server": "bun run start-llm-server.ts",
+    "dev": "bun run --watch index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
   },
+  "keywords": [
+    "llm",
+    "websocket",
+    "ai",
+    "chat",
+    "markdown"
+  ],
   "devDependencies": {
     "@types/bun": "latest",
     "bun-types": "latest",

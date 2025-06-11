@@ -1,13 +1,9 @@
 import { HttpApi } from "@effect/platform";
-import { Prompt, PromptApiGroup } from "./src/PromptSchema";
-import { PromptVoice, PromptVoiceApiGroup } from "./src/PromptVoiceSchema";
 import {
-  AuthToken,
-  User,
+  PromptApiGroup,
+  PromptVoiceApiGroup,
   UserApiGroup,
-  UserCreate,
-  UserLogin,
-} from "./src/UserSchema";
+} from "./src/groups";
 
 export const ServerApi = Object.assign(
   HttpApi.make("server-api")
@@ -16,19 +12,11 @@ export const ServerApi = Object.assign(
     .add(UserApiGroup),
   {
     [HttpApi.TypeId]: HttpApi.TypeId,
-    _tag: "ServerApi" as const
-  }
-)
+  },
+);
 
-export {
-  AuthToken,
-  Prompt,
-  PromptApiGroup,
-  PromptVoice,
-  PromptVoiceApiGroup,
-  User,
-  UserApiGroup,
-  UserCreate,
-  UserLogin
-};
+// Export all schemas
+export * from "./src/schemas";
 
+// Export all API groups
+export * from "./src/groups";

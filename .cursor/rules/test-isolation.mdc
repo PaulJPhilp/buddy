@@ -1,0 +1,125 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Test Isolation and Application Code Protection Rules
+
+## 🚨 CRITICAL RULE: NEVER MODIFY APPLICATION CODE FOR TESTS
+
+### Absolute Prohibitions
+
+1. **NEVER modify service files** (`*.service.ts`) to make tests pass
+2. **NEVER change application interfaces** to match test expectations  
+3. **NEVER alter business logic** to accommodate test requirements
+4. **NEVER modify working production code** for test compatibility
+5. **NEVER delete or rename** existing service methods for tests
+
+### Test Adaptation Requirements
+
+Tests **MUST** adapt to the application, not the reverse:
+
+1. **Read the actual service interface** before writing tests
+2. **Test the methods that actually exist** on the service
+3. **Mock dependencies correctly** using Effect Layers
+4. **Handle the actual return types** and error cases
+5. **Write tests for the real behavior** of the service
+
+### Correct Test Writing Process
+
+```typescript
+// ✅ CORRECT: Read service first, then write tests
+// 1. Read the actual service interface
+export interface WebSocketServiceApi {
+  connect(url: string): Effect.Effect<void, WebSocketError>
+  disconnect(): Effect.Effect<void, WebSocketError>
+  send(message: UserMessage): Effect.Effect<void, WebSocketError>
+  receive(): Stream.Stream<ProtocolMessage, WebSocketError, never>
+}
+
+// 2. Write tests that match the actual interface
+describe("WebSocketService", () => {
+  it("should connect to WebSocket URL", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* WebSocketService;
+        const result = yield* Effect.either(service.connect("ws://localhost:8080"));
+        // Test the actual behavior
+      }).pipe(Effect.provide(WebSocketService))
+    );
+  });
+});
+```
+
+### Anti-patterns to Avoid
+
+```typescript
+// ❌ WRONG: Changing service to match test expectations
+// DON'T DO THIS - modifying WebSocketService.ts to add methods tests expect
+
+// ❌ WRONG: Writing tests for non-existent methods
+it("should create WebSocket instance", () => {
+  // Testing service.createSocket() when it doesn't exist
+});
+
+// ❌ WRONG: Expecting different return types
+const socket = service.connect(url); // Expecting WebSocket object
+// When service actually returns Effect<void, WebSocketError>
+```
+
+### Enforcement Guidelines
+
+1. **Before writing any test:**
+   - Read the actual service file completely
+   - Understand the real interface and behavior
+   - Note all dependencies and their types
+
+2. **When tests fail:**
+   - Fix the test logic, never the service
+   - Adjust test expectations to match reality
+   - Improve mocking and setup, not the application
+
+3. **When interfaces don't match:**
+   - The test is wrong, not the service
+   - Rewrite tests to match actual service API
+   - Never modify working production code
+
+### Test Quality Standards
+
+1. **Test Real Behavior:**
+   - Test actual service methods
+   - Use correct parameter types
+   - Expect actual return types
+   - Handle real error cases
+
+2. **Proper Mocking:**
+   - Mock dependencies with Effect Layers
+   - Don't mock the service under test
+   - Provide realistic mock implementations
+   - Test both success and failure paths
+
+3. **Effect Composition:**
+   - Use `Effect.runPromise` for async tests
+   - Handle Effect errors with `Effect.either`
+   - Provide proper Layer dependencies
+   - Test Effect composition correctly
+
+### Violation Consequences
+
+Breaking these rules results in:
+- ❌ **Broken production code**
+- ❌ **False test confidence** 
+- ❌ **Maintenance nightmares**
+- ❌ **Integration failures**
+- ❌ **Loss of working functionality**
+
+### Success Criteria
+
+Tests are correctly written when:
+- ✅ **Zero application code changes** needed for tests to pass
+- ✅ **Tests match actual service interfaces** exactly
+- ✅ **All dependencies properly mocked** with Layers
+- ✅ **Real behavior tested** including error cases
+- ✅ **Production code remains untouched** and functional
+
+## Remember: Tests serve the application, not the reverse!

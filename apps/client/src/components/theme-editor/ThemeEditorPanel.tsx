@@ -1,8 +1,8 @@
 "use client";
 
-import { ChatAppColors } from "@/features/chat/themes/themeTypes";
-import { cssToThemeObject, themeToCss } from "@/features/chat/themes/themeUtils";
 import { themeStore, useThemeStore } from "@/stores/themeStore";
+import { ChatAppColors } from "@/themes/themeTypes";
+import { cssToThemeObject, themeToCss } from "@/themes/themeUtils";
 import { Button } from "@ui/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";

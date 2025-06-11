@@ -75,6 +75,3 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
     dependencies: [],
   },
 ) { }
-
-import { Layer } from "effect";
-export const AgentServiceLive = Layer.scoped(AgentService);

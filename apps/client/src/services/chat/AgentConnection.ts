@@ -1,4 +1,4 @@
-import type { JsonObject } from "@/types";
+import type { JsonObject } from "@/types/utils";
 import { Chunk, Data, Effect, Option, Ref, Stream } from "effect";
 
 // Errors
@@ -25,23 +25,23 @@ export class WebSocketMessageError extends Data.TaggedError(
 export interface AgentConnectionApi {
   readonly connect: (
     url: string,
-  ) => Effect.Effect<WebSocket, WebSocketConnectionError, never>;
+  ) => Effect.Effect<WebSocket, WebSocketConnectionError>;
   readonly sendMessage: (
     message: unknown,
-  ) => Effect.Effect<void, WebSocketSendError, never>;
+  ) => Effect.Effect<void, WebSocketSendError>;
   readonly receiveMessages: () => Stream.Stream<
     JsonObject,
-    WebSocketMessageError,
-    never
+    WebSocketMessageError
   >;
-  readonly close: () => Effect.Effect<void, never, never>;
+  readonly close: () => Effect.Effect<void>;
+  readonly isConnected: Effect.Effect<boolean>;
 }
 
 // Service Definition
 export class AgentConnectionService extends Effect.Service<AgentConnectionApi>()(
   "AgentConnectionService",
   {
-    effect: Effect.gen(function* (_) {
+    effect: Effect.gen(function* () {
       const connectionRef = yield* Ref.make<WebSocket | null>(null);
       const isConnectingRef = yield* Ref.make(false);
 
@@ -118,7 +118,7 @@ export class AgentConnectionService extends Effect.Service<AgentConnectionApi>()
           }),
 
         receiveMessages: () =>
-          Stream.async<JsonObject, WebSocketMessageError, never>((emit) => {
+          Stream.async<JsonObject, WebSocketMessageError>((emit) => {
             Effect.runSync(
               Effect.gen(function* () {
                 const ws = yield* Ref.get(connectionRef);
@@ -189,6 +189,11 @@ export class AgentConnectionService extends Effect.Service<AgentConnectionApi>()
             );
           }),
 
+        isConnected: Effect.gen(function* () {
+          const ws = yield* Ref.get(connectionRef);
+          return ws !== null && ws.readyState === WebSocket.OPEN;
+        }),
+
         close: () =>
           Effect.gen(function* () {
             const ws = yield* Ref.get(connectionRef);
@@ -201,7 +206,7 @@ export class AgentConnectionService extends Effect.Service<AgentConnectionApi>()
               yield* Ref.set(connectionRef, null);
             }
           }),
-      };
+      } satisfies AgentConnectionApi;
     }),
     dependencies: [],
   },

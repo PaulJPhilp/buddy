@@ -1,4 +1,5 @@
 // Toolbar Service exports
 export {
-    ToolbarService, ToolbarServiceLive, type ToolbarServiceApi
+  ToolbarService,
+  type ToolbarServiceApi,
 } from "./ToolbarService";

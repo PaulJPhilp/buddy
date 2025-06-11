@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import matter from "gray-matter";
 import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
@@ -97,3 +97,60 @@ export class MdxService extends Effect.Service<MdxServiceApi>()("MdxService", {
   }),
   dependencies: [],
 }) {}
+
+// Create the layer for dependency injection
+export const MdxServiceLive = Layer.effect(
+  MdxService,
+  Effect.succeed({
+    compile: (mdxContent: string, options?: MdxCompileOptions) =>
+      Effect.gen(function* () {
+        // Parse frontmatter
+        const { content, data: frontmatter } = yield* Effect.try({
+          try: () => matter(mdxContent),
+          catch: (err) =>
+            new MdxParsingError({
+              underlyingError: err,
+              details: "Failed to parse frontmatter",
+            }),
+        });
+
+        // Create unified processor pipeline for markdown to HTML with GFM support
+        const processor = unified()
+          .use(remarkParse) // Parse markdown
+          .use(remarkGfm) // Add GitHub Flavored Markdown support (tables, strikethrough, etc.)
+          .use(remarkRehype) // Convert to HTML AST
+          .use(rehypeStringify); // Stringify to HTML
+
+        // Process the markdown content
+        const result = yield* Effect.tryPromise({
+          try: () => processor.process(content),
+          catch: (err) =>
+            new MdxCompilationError({
+              underlyingError: err,
+              details: "Markdown to HTML compilation failed",
+            }),
+        });
+
+        const htmlOutput = String(result.value);
+
+        return {
+          compiledSource: htmlOutput,
+          frontmatter,
+          metadata: result.data || {},
+        };
+      }).pipe(
+        Effect.tapError((e) =>
+          Effect.logDebug(`MDX processing error: ${e._tag}`),
+        ),
+      ),
+
+    compileFile: () =>
+      Effect.fail(
+        new MdxCompilationError({
+          underlyingError: new Error("compileFile not supported in browser"),
+          details:
+            "File system operations are not available in the browser environment",
+        }),
+      ),
+  })
+);

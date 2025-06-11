@@ -1,11 +1,11 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { type ErrorCategory, type ErrorSeverity, errorManagerSelectors, errorManagerStore, useErrorManagerStore } from "@/stores/errorManagerStore";
 import { Badge } from "@ui/components/ui/badge";
 import { Button } from "@ui/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { Input } from "@ui/components/ui/input";
+import { ScrollArea } from "@ui/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@ui/components/ui/select";
 import { Separator } from "@ui/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/ui/tabs";

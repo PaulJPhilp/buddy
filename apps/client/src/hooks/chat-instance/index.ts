@@ -13,4 +13,4 @@ export * from "./bridges";
 export * from "./types";
 
 // Export hooks
-export { useChatInstanceV2, type ChatInstanceHookState } from "./useChatInstanceV2";
+export { useChatInstance, type ChatInstanceHookState } from "./useChatInstance";

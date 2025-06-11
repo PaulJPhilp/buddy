@@ -3,7 +3,7 @@
 import {
   ChatAppTheme,
   defaultChatTheme,
-} from "@/features/chat/themes/themeTypes";
+} from "@/themes/themeTypes";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 

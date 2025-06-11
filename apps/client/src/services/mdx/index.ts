@@ -6,5 +6,5 @@ export {
   MdxParsingError,
 } from "./errors";
 export type { MdxError } from "./errors";
-export { MdxService } from "./service";
+export { MdxService, MdxServiceLive } from "./service";
 export type { MdxCompilationResult, MdxCompileOptions } from "./types";

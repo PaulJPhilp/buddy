@@ -1,5 +1,5 @@
-import { Icon, type IconName } from "@ui/components/Icon";
 import React from "react";
+import { Icon, type IconName } from "./Icon";
 
 export interface IconElementConfig {
   type: "iconCommand";

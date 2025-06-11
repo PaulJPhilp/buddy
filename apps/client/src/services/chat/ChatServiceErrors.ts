@@ -24,3 +24,12 @@ export class StateUpdateError extends Error {
   description = "Error updating chat state";
   method = "setState";
 }
+
+export class MessageStreamError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MessageStreamError";
+  }
+  description = "Error in real-time message stream";
+  method = "messageStream";
+}

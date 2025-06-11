@@ -1,4 +1,4 @@
 // Agent Service exports
 export {
-    AgentService, AgentServiceLive, type AgentServiceApi
+    AgentService, type AgentServiceApi
 } from "./AgentService";

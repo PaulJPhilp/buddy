@@ -2,7 +2,7 @@
 
 import { ChatApp } from "@/features/chat/ChatApp";
 import type { ProtocolMessage as ChatProtocolMessage } from "@/features/chat/ChatApp";
-import { useAgentSession } from "@/hooks/useAgentSession";
+import { useAgentSession } from "@/hooks/agent-session";
 import { useState } from "react";
 
 export function ThemeTestComponent() {

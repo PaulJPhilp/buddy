@@ -3,7 +3,7 @@
 import {
   ChatAppTheme,
   defaultChatTheme,
-} from "@/features/chat/themes/themeTypes";
+} from "@/themes/themeTypes";
 import { Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useState, useEffect } from "react";

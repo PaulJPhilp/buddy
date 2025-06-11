@@ -1,8 +1,8 @@
-import WebSocket from 'isomorphic-ws';
-import { Effect, pipe, Option } from 'effect';
+import { CommandPayloadSchema, WebSocketMessage, createMessage, parseMessage } from '@buddy/protocol';
 import * as S from '@effect/schema';
 import { Schema } from '@effect/schema';
-import { WebSocketMessage, parseMessage, createMessage, CommandPayloadSchema } from './src/schemas/WebSocketMessage';
+import { Effect, Option, pipe } from 'effect';
+import WebSocket from 'isomorphic-ws';
 
 // Add type for the class instance
 type EffectClientType = {
