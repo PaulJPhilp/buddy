@@ -10,6 +10,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        xxs: ["0.625rem", { lineHeight: "1rem" }], // 10px
+      },
       colors: {
         // Chat theme colors using CSS variables
         "chat-background": "var(--color-chat-background, #ffffff)",

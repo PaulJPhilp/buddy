@@ -92,6 +92,7 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
         ? "var(--color-chat-secondary)"
         : "var(--color-chat-header-bg)",
       color: "var(--color-chat-header-text)",
+      borderBottom: "1px solid var(--color-chat-border)",
     };
 
     const titleStyle: React.CSSProperties = {

@@ -1,0 +1,77 @@
+{
+  "agents": [
+    {
+      "id": "default-agent",
+      "initialAgentName": "Default Agent"
+    }
+  ],
+  "toolbars": [
+    {
+      "id": "default-toolbar",
+      "name": "Default Toolbar",
+      "tools": []
+    }
+  ],
+  "themes": {
+    "default-theme": {
+      "colors": {
+        "primary": "indigo-600",
+        "secondary": "gray-100",
+        "accent": "pink-500",
+        "background": "white",
+        "text": "gray-900"
+      },
+      "borders": {
+        "color": "indigo-200",
+        "thickness": "2px",
+        "radius": "0.75rem"
+      },
+      "bubbles": {
+        "user": {
+          "background": "indigo-500",
+          "text": "white",
+          "radius": "rounded-lg",
+          "border": "1px solid indigo-300",
+          "padding": "0.5rem 0.75rem"
+        },
+        "agent": {
+          "background": "gray-100",
+          "text": "gray-900",
+          "radius": "rounded-lg",
+          "border": "1px solid indigo-100",
+          "padding": "0.5rem 0.75rem"
+        }
+      },
+      "userArea": {
+        "background": "gray-50",
+        "inputRingColor": "indigo-500",
+        "padding": "0.5rem"
+      },
+      "header": {
+        "background": "indigo-600",
+        "text": "white",
+        "borderBottom": "1px solid indigo-200",
+        "padding": "0.5rem 1rem"
+      },
+      "chatArea": {
+        "background": "white",
+        "border": "2px solid indigo-200",
+        "radius": "0.75rem",
+        "padding": "0.75rem"
+      },
+      "typography": {
+        "fontFamily": "Inter, sans-serif",
+        "fontSize": "0.95rem"
+      }
+    }
+  },
+  "chatApps": [
+    {
+      "id": "default-chat",
+      "name": "Default Chat",
+      "agentId": "default-agent",
+      "toolbarId": "default-toolbar",
+      "themeId": "default-theme"
+    }
+  ]
+}

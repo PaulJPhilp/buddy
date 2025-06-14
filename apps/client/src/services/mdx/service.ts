@@ -81,9 +81,10 @@ export class MdxService extends Effect.Service<MdxServiceApi>()("MdxService", {
           metadata: result.data || {},
         };
       }).pipe(
-        Effect.tapError((e) =>
-          Effect.logDebug(`MDX processing error: ${e._tag}`),
-        ),
+        Effect.tapError((e) => {
+          console.log(`MDX processing error: ${e._tag}`);
+          return Effect.succeed(undefined);
+        }),
       ),
 
     compileFile: () =>
@@ -139,9 +140,10 @@ export const MdxServiceLive = Layer.effect(
           metadata: result.data || {},
         };
       }).pipe(
-        Effect.tapError((e) =>
-          Effect.logDebug(`MDX processing error: ${e._tag}`),
-        ),
+        Effect.tapError((e) => {
+          console.log(`MDX processing error: ${e._tag}`);
+          return Effect.succeed(undefined);
+        }),
       ),
 
     compileFile: () =>
@@ -152,5 +154,5 @@ export const MdxServiceLive = Layer.effect(
             "File system operations are not available in the browser environment",
         }),
       ),
-  })
+  }),
 );

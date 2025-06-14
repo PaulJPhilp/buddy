@@ -1,596 +1,400 @@
-# React Hooks
+# Hooks Directory
 
-This directory contains React hooks that bridge **Effect.js services** with **React components**. These hooks follow the four-layer architecture pattern and provide the React ↔ Effect.js integration layer.
+This directory contains React hooks that bridge **Effect.js services** and **xState stores** with **React components**. Each hook serves a specific purpose in the chat application architecture.
 
-## Current Hooks
+## Hook Overview
 
-### ✅ useChatAppRuntime.ts (114 lines)
-
-**Purpose**: Composite hook that combines config, toolbar, theme, and agent session for a chat app.
-
-**Pattern**: Composite data fetching + service integration
-```typescript
-export function useChatAppRuntime(chatAppId: string, themeOverride?: ChatAppTheme) {
-  // Fetches: AppService + ToolbarService + ThemesService
-  // Integrates: useAgentSession for live chat
-  // Returns: Combined runtime state
-}
-```
-
-**Why it exists**:
-- Combines multiple services (App, Toolbar, Themes) 
-- Integrates with agent session lifecycle
-- Provides unified runtime state for chat apps
-- Supports theme overrides for live preview
-
-**Consumers**: Chat app components that need full runtime context
+| Hook | Purpose | Pattern | Status |
+|------|---------|---------|--------|
+| `useAgentSession` | Agent session lifecycle management | Service lifecycle + stream management | ✅ Active |
+| `useChatAppRuntime` | Composite runtime state for chat apps | Composite data fetching + service integration | ✅ Active |
+| `useChatInstance` | Complex chat state management | State machine + stream processing | ✅ Active |
+| `useChatTheme` | Theme processing and merging | Pure computation | ✅ Active |
+| `useDynamicToolbar` | Toolbar state synchronization | Store synchronization | ✅ Active |
+| `useThemeIntegration` | next-themes integration | Store synchronization | ✅ Active |
 
 ---
 
-### ✅ useChatRuntimeService.ts (65 lines)
+## Individual Hook Documentation
 
-**Purpose**: Manages ChatRuntimeService lifecycle for React components.
+### 🔌 useAgentSession
 
-**Pattern**: Service lifecycle management
+**File**: `agent-session/useAgentSession.ts` (89 lines)
+
+**Purpose**: Manages the lifecycle of individual agent sessions with real-time message streaming.
+
+**Responsibilities**:
+- Establishes WebSocket connections to LLM agents via `ChatRuntimeService`
+- Manages session lifecycle (initialization → connected → cleanup)
+- Subscribes to real-time status and message streams
+- Provides imperative methods for sending messages and closing sessions
+- Handles fiber cleanup and error recovery
+
+**Interface**:
 ```typescript
-export function useChatRuntimeService(): ChatRuntimeServiceState {
-  // Initializes ChatRuntimeService with Effect.js
-  // Manages fiber lifecycle and cleanup
-  // Provides status: "initializing" | "ready" | "error"
+function useAgentSession(agentId: string, chatId: string): {
+  status: string;           // "initializing" | "connected" | "error"
+  messages: ProtocolMessage[];  // Real-time message stream
+  error: string | null;     // Connection/session errors
+  sendMessage: (msg: ProtocolMessage) => void;  // Imperative send
+  closeSession: () => void; // Imperative close
 }
 ```
 
-**Why it exists**:
-- ChatRuntimeService manages WebSocket connections (needs cleanup)
-- Has complex initialization states
-- Used by ChatRuntimeContext for state sharing
+**Key Operations**:
+1. **Session Establishment**: Creates scoped Effect.js program that establishes agent session
+2. **Stream Subscription**: Subscribes to status and message streams using Effect streams
+3. **Lifecycle Management**: Manages fiber lifecycle with proper cleanup on unmount
+4. **Error Handling**: Catches and surfaces connection/session errors to UI
 
-**Consumers**: `ChatRuntimeContext.tsx`
+**Usage Pattern**:
+```typescript
+const { status, messages, sendMessage, error } = useAgentSession('agent-1', 'chat-123');
+
+// Send a message
+sendMessage({
+  type: 'COMMAND',
+  payload: { command: 'userMessage', data: { text: 'Hello' } }
+});
+```
 
 ---
 
-### ✅ useAgentSession.ts (89 lines)
+### 🚀 useChatAppRuntime
 
-**Purpose**: Manages individual agent session lifecycle and message streams.
+**File**: `chat-app-runtime/useChatAppRuntime.ts` (114 lines)
 
-**Pattern**: Session lifecycle + stream management
+**Purpose**: Composite hook that provides complete runtime state for chat applications.
+
+**Responsibilities**:
+- Fetches chat app configuration from `AppService`
+- Loads associated toolbar configuration from `ToolbarService`
+- Retrieves theme configuration from `ThemesService`
+- Integrates with `useAgentSession` for live chat functionality
+- Supports theme overrides for live preview/testing
+- Combines all runtime data into unified state object
+
+**Interface**:
 ```typescript
-export function useAgentSession(agentId: string, chatId: string) {
-  // Establishes agent session via ChatRuntimeService
-  // Subscribes to status and message streams
-  // Provides imperative sendMessage/closeSession methods
+function useChatAppRuntime(
+  chatAppId: string,
+  themeOverride?: ChatAppTheme
+): {
+  config: ChatAppConfig | null;        // App configuration
+  toolbar: ToolbarConfig | null;       // Toolbar configuration  
+  theme: ChatAppTheme | null;          // Theme configuration
+  loading: boolean;                    // Loading state
+  error: string | null;                // Any loading errors
+  status: string;                      // Agent session status
+  messages: ProtocolMessage[];         // Live messages
+  sendMessage: (msg: ProtocolMessage) => void; // Send to agent
 }
 ```
 
-**Why it exists**:
-- Agent sessions have complex lifecycle (establish → stream → cleanup)
-- Manages real-time message streams
-- Provides imperative API for sending messages
-- Handles session cleanup on unmount
+**Key Operations**:
+1. **Configuration Loading**: Parallel fetching of app config, toolbar, and theme
+2. **Service Coordination**: Orchestrates multiple Effect.js services (App, Toolbar, Themes)
+3. **Live Integration**: Establishes agent session based on app configuration
+4. **State Composition**: Combines static config with live runtime state
+5. **Theme Override**: Supports runtime theme replacement for testing
 
-**Consumers**: `useChatAppRuntime.ts`, chat components
+**Usage Pattern**:
+```typescript
+const runtime = useChatAppRuntime('app-123', optionalThemeOverride);
+
+if (runtime.loading) return <LoadingSpinner />;
+if (runtime.error) return <ErrorDisplay error={runtime.error} />;
+
+// Use complete runtime state
+return <ChatApp config={runtime.config} theme={runtime.theme} />;
+```
 
 ---
 
-### ✅ useChatInstance.ts (489 lines) ⚠️ **LARGE**
+### 💬 useChatInstance
 
-**Purpose**: Comprehensive chat instance state management with reconnection logic.
+**File**: `chat-instance/useChatInstance.ts` (227 lines)
 
-**Pattern**: Complex state machine + stream processing
+**Purpose**: Comprehensive chat instance management with advanced state handling.
+
+**Responsibilities**:
+- Manages complex chat state machine (initializing → connecting → connected → error)
+- Handles message streaming and accumulation from multiple sources
+- Implements reconnection logic with exponential backoff
+- Converts protocol messages to UI messages with MDX compilation
+- Bridges Effect.js services with xState stores
+- Provides imperative action dispatch interface
+
+**Architecture**:
+- Uses **3 xState stores**: `chatInstanceStore`, `agentStore`, `connectionStore`
+- Integrates **ChatInstanceBridge** for Effect.js ↔ xState communication
+- Manages complex service layer with proper cleanup
+
+**Interface**:
 ```typescript
-export function useChatInstance(
-  chatId: string, 
+function useChatInstance(
+  chatId: string,
   agentConfigData: ChatAgentConfig,
   injectedLayer?: Layer.Layer<any, any, any>
-) {
-  // Manages chat state machine
-  // Handles message streaming and accumulation  
-  // Implements reconnection logic
-  // Processes protocol messages → UI messages
+): {
+  chatState: ChatInstanceHookState;     // Combined chat state
+  runtimeError: AgentRuntimeError | null; // Runtime errors
+  dispatchAction: (action: ChatInstanceAction) => void; // Action dispatch
 }
 ```
 
-**Why it exists**:
-- Complex chat state management (messages, typing, status)
-- Handles streaming message accumulation
-- Implements reconnection with exponential backoff
-- Converts protocol messages to UI messages with MDX compilation
+**Key Operations**:
+1. **State Machine Management**: Coordinates multiple xState stores for different concerns
+2. **Service Integration**: Initializes complex Effect.js service layer
+3. **Bridge Coordination**: Uses ChatInstanceBridge for Effect ↔ xState communication
+4. **Message Processing**: Handles streaming message accumulation and MDX compilation
+5. **Error Recovery**: Implements sophisticated error handling and recovery logic
 
-**Size concern**: 489 lines suggests potential for refactoring into smaller hooks
+**Usage Pattern**:
+```typescript
+const { chatState, dispatchAction, runtimeError } = useChatInstance(
+  'chat-123',
+  { agentId: 'agent-1', initialAgentName: 'Assistant' }
+);
 
-**Consumers**: Chat interface components
+// Dispatch actions
+dispatchAction({ type: 'SEND_MESSAGE', payload: { text: 'Hello' } });
+dispatchAction({ type: 'CLEAR_MESSAGES' });
+```
 
 ---
 
-### ✅ useChatTheme.ts (64 lines)
+### 🎨 useChatTheme
 
-**Purpose**: Pure utility hook for theme processing and merging.
+**File**: `chat-theme/useChatTheme.ts` (61 lines)
 
-**Pattern**: Pure computation hook
+**Purpose**: Pure utility hook for theme processing, parsing, and merging.
+
+**Responsibilities**:
+- Handles string theme parsing (JSON strings, named themes)
+- Performs deep merging of partial themes with defaults
+- Supports named themes ('system', 'dark', 'light')
+- Provides memoized theme computation for performance
+- Error recovery for malformed theme data
+
+**Interface**:
 ```typescript
-export function useChatTheme(theme?: Partial<ChatAppTheme> | string): ChatAppTheme {
-  // Handles string themes (JSON parsing, named themes)
-  // Deep merges partial themes with defaults
-  // Returns fully resolved theme object
-}
+function useChatTheme(
+  theme?: Partial<ChatAppTheme> | string
+): ChatAppTheme
 ```
 
-**Why it exists**:
-- Theme processing logic is complex (string parsing, deep merge)
-- Memoized for performance
-- Reusable across theme-aware components
+**Key Operations**:
+1. **String Parsing**: Handles JSON string themes and named theme strings
+2. **Deep Merging**: Recursively merges partial theme objects with defaults
+3. **Named Theme Support**: Recognizes and processes built-in theme names
+4. **Error Recovery**: Falls back to default theme on parse errors
+5. **Memoization**: Optimized recalculation only when input changes
 
-**Consumers**: Theme-aware chat components
+**Usage Pattern**:
+```typescript
+// Object theme
+const theme1 = useChatTheme({ 
+  colors: { primary: '#ff0000' } 
+});
+
+// JSON string theme
+const theme2 = useChatTheme('{"colors":{"primary":"#00ff00"}}');
+
+// Named theme
+const theme3 = useChatTheme('dark');
+```
 
 ---
 
-### ❌ useToolbars.ts **REMOVED** ✅
+### 🔧 useDynamicToolbar
 
-**Was**: CRUD operations wrapper for ToolbarService (99 lines).
+**File**: `dynamic-toolbar/useDynamicToolbar.ts` (71 lines)
 
-**Why it was removed**:
-- **No consumers**: Not imported or used anywhere
-- **Anti-pattern**: Wrapped simple CRUD operations in React state
-- **Duplicated service**: ToolbarService already provided all functionality
+**Purpose**: Synchronizes toolbar button states with application store state.
 
-**Migration**: Use `ToolbarService` directly for CRUD operations.
+**Responsibilities**:
+- Subscribes to multiple xState stores for UI state
+- Updates toolbar button active states based on store state
+- Provides reactive toolbar configuration
+- Maintains store reactivity through `useSelector`
+- Maps store state to toolbar command states
 
-## Hook Patterns
+**Monitored Stores**:
+- `appLayoutStore` - Sidebar open/closed state
+- `themeStore` - Theme editor visibility
+- `clerkAdminStore` - Admin panel visibility
+- `sidebarToolStore` - Sidebar tool visibility
+- `errorManagerStore` - Error manager visibility
+- `debugToolStore` - Debug tool visibility
 
-### ✅ **Service Lifecycle Management**
+**Interface**:
 ```typescript
-// Pattern: Manage Effect.js service lifecycle in React
-export function useServiceLifecycle() {
-  useEffect(() => {
-    const fiber = Effect.runFork(ServiceEffect);
-    return () => Fiber.interrupt(fiber); // Cleanup!
-  }, []);
+function useDynamicToolbar(baseConfig: ToolbarConfig): ToolbarConfig
+```
+
+**Key Operations**:
+1. **Store Subscription**: Uses `useSelector` for reactive store subscriptions
+2. **State Mapping**: Maps store state to toolbar button active states
+3. **Configuration Update**: Creates updated toolbar config with current states
+4. **Memoization**: Optimized recalculation based on store state changes
+
+**Usage Pattern**:
+```typescript
+const baseToolbarConfig = { items: [...] };
+const dynamicConfig = useDynamicToolbar(baseToolbarConfig);
+
+// dynamicConfig.items will have updated active states
+return <Toolbar config={dynamicConfig} />;
+```
+
+---
+
+### 🌈 useThemeIntegration
+
+**File**: `theme-integration/useThemeIntegration.ts` (23 lines)
+
+**Purpose**: Bridges next-themes with internal theme store state.
+
+**Responsibilities**:
+- Subscribes to next-themes theme changes
+- Updates internal `themeStore` when next-themes changes
+- Maintains synchronization between external and internal theme state
+- Provides raw theme value for consumption
+
+**Interface**:
+```typescript
+function useThemeIntegration(): {
+  rawTheme: string | undefined;
 }
 ```
-**Examples**: `useChatRuntimeService`, `useAgentSession`
 
-### ✅ **Composite Data Fetching**
+**Key Operations**:
+1. **Theme Subscription**: Listens to next-themes theme changes
+2. **Store Synchronization**: Updates `themeStore` with raw theme values
+3. **Integration Bridge**: Connects external theme provider to internal state
+
+**Usage Pattern**:
 ```typescript
-// Pattern: Combine multiple services for unified state
-export function useCompositeData() {
+// Usually used in root layout or theme provider
+function ThemeProvider({ children }) {
+  useThemeIntegration(); // Automatic synchronization
+  
+  return <NextThemesProvider>{children}</NextThemesProvider>;
+}
+```
+
+---
+
+## Architecture Patterns
+
+### 🏗️ Service Lifecycle Management
+Hooks like `useAgentSession` and `useChatInstance` manage Effect.js service lifecycles:
+```typescript
+useEffect(() => {
   const program = Effect.gen(function* () {
-    const service1 = yield* Service1;
-    const service2 = yield* Service2;
-    return { data1: yield* service1.getData(), data2: yield* service2.getData() };
-  });
-}
-```
-**Examples**: `useChatAppRuntime`
-
-### ✅ **Pure Computation**
-```typescript
-// Pattern: Memoized computation without side effects
-export function usePureComputation(input: T): R {
-  return useMemo(() => computeResult(input), [input]);
-}
-```
-**Examples**: `useChatTheme`
-
-### ❌ **CRUD Wrapper Anti-pattern**
-```typescript
-// ❌ DON'T: Wrap simple service operations in hooks
-export function useCRUDWrapper() {
-  const [items, setItems] = useState([]);
-  const create = useCallback((item) => {
-    // Just wrapping service calls in React state
-  }, []);
-}
-```
-**Examples**: `useToolbars` (should be removed)
-
-## Cleanup Recommendations
-
-### 1. ✅ Removed Dead Code: useToolbars.ts 
-**Completed**: Removed 99 lines of dead code that followed anti-pattern.
-
-### 2. Consider Refactoring: useChatInstance.ts ⚠️
-**Size**: 489 lines suggests complexity that could be broken down:
-
-**Potential splits**:
-- `useChatState.ts` - Core chat state management
-- `useChatStreaming.ts` - Message streaming logic  
-- `useChatReconnection.ts` - Reconnection logic
-- `useProtocolMessageConverter.ts` - Protocol → UI message conversion
-
-**Benefits**:
-- Easier testing of individual concerns
-- Better reusability
-- Clearer separation of responsibilities
-
-## When to Create New Hooks
-
-### ✅ **DO create hooks for**:
-- **Service lifecycle management** (initialization, cleanup, error states)
-- **Complex state machines** (chat sessions, connection states)
-- **Stream processing** (real-time data, message accumulation)
-- **Composite data fetching** (combining multiple services)
-- **Pure computations** (theme processing, data transformation)
-
-### ❌ **DON'T create hooks for**:
-- **Simple CRUD operations** (use services directly)
-- **One-off service calls** (use Effect.runPromise directly)
-- **UI state management** (use Zustand stores)
-- **Static data** (use constants or config files)
-
-## Architecture Separation Principles
-
-### 🎯 **Clean Layer Separation**
-
-Our architecture maintains strict separation between Effect.js, xState/store, and React:
-
-```
-┌─────────────────┐    Events    ┌──────────────────┐    State    ┌─────────────────┐
-│   Effect.js     │─────────────▶│   xState/store   │────────────▶│     React       │
-│  (Services)     │              │   (Pure State)   │             │ (UI Components) │
-│                 │              │                  │             │                 │
-│ • ChatRuntime   │              │ • chatInstance   │             │ • useChatInst.. │
-│ • MdxService    │              │ • streaming      │             │ • ChatContainer │
-│ • AgentSession  │              │ • connection     │             │ • MessageList   │
-└─────────────────┘              └──────────────────┘             └─────────────────┘
-       ▲                                                                    │
-       │                                                                    │
-       └────────────────────────── Commands ──────────────────────────────┘
-```
-
-### ✅ **Effect.js Layer** (Pure Business Logic)
-```typescript
-// src/services/chat-instance/ChatInstanceService.ts  
-export class ChatInstanceService extends Effect.Service<ChatInstanceServiceApi>() {
-  // Pure Effect.js business logic
-  processIncomingMessage: (message: ProtocolMessage) => Effect.Effect<Message, never>
-  handleReconnection: (attempts: number) => Effect.Effect<void, ConnectionError>
-  // ✅ No React, no hooks, no DOM, no xState/store
-}
-```
-
-**Effect.js NEVER touches**:
-- React hooks (`useState`, `useEffect`, etc.)
-- React components or JSX
-- DOM manipulation
-- xState/store instances
-- React-specific patterns
-
-### ✅ **xState/store Layer** (Pure State Management)
-```typescript
-// src/stores/chatInstanceStore.ts
-import { createStore } from '@xstate/store';
-
-export const chatInstanceStore = createStore({
-  context: {
-    chatId: '',
-    messages: [] as Message[],
-    status: 'initializing' as ChatStatus,
-    // ✅ Pure state - no Effect.js, no React
-  },
-  on: {
-    messageReceived: (context, event: { message: Message }) => ({
-      ...context,
-      messages: [...context.messages, event.message]
-    }),
-    // ✅ Pure state transitions - no side effects
-  }
-});
-```
-
-**xState/store NEVER touches**:
-- Effect.js services directly
-- Async operations or side effects
-- Network calls or file system
-- React hooks or components
-
-### ✅ **React Bridge Layer** (Integration Only)
-```typescript
-// src/hooks/useChatInstance.ts
-export function useChatInstance(chatId: string, agentConfig: ChatAgentConfig) {
-  // ✅ React hook that bridges Effect.js ↔ xState/store
-  
-  useEffect(() => {
-    const program = Effect.gen(function* () {
-      const chatService = yield* ChatInstanceService;
-      
-      // Effect.js handles business logic
-      yield* Stream.runForEach(
-        runtime.incomingMessages$,
-        (protocolMessage) => Effect.gen(function* () {
-          const uiMessage = yield* chatService.processIncomingMessage(protocolMessage);
-          
-          // Bridge to React state via xState/store
-          return Effect.sync(() => {
-            chatInstanceStore.send({ 
-              type: 'messageReceived', 
-              message: uiMessage 
-            });
-          });
-        })
-      );
-    });
-    
-    const fiber = Effect.runFork(program);
-    return () => Fiber.interrupt(fiber);
-  }, [chatId]);
-  
-  // React state selection
-  const chatState = useSelector(chatInstanceStore, (state) => state.context);
-  return { chatState };
-}
-```
-
-**React NEVER touches**:
-- WebSocket connections directly
-- Protocol message parsing
-- Business logic validation
-- Stream processing
-- Service orchestration
-
-## Architecture Examples
-
-### ✅ Good: Clean Separation Pattern
-```typescript
-// Effect.js Service (Pure business logic)
-export class NotificationService extends Effect.Service<NotificationServiceApi>() {
-  sendEmail: (to: string, subject: string) => Effect.Effect<void, EmailError>
-  // No React dependencies
-}
-
-// xState/store (Pure state management)
-export const notificationStore = createStore({
-  context: { notifications: [], unreadCount: 0 },
-  on: {
-    notificationAdded: (context, event) => ({
-      ...context,
-      notifications: [...context.notifications, event.notification],
-      unreadCount: context.unreadCount + 1
-    })
-  }
-});
-
-// React Hook (Bridge layer only)
-export function useNotifications() {
-  useEffect(() => {
-    const program = Effect.gen(function* () {
-      const service = yield* NotificationService;
-      // Effect.js handles the logic
-      const notification = yield* service.createNotification();
-      // Bridge to React via store
-      return Effect.sync(() => {
-        notificationStore.send({ type: 'notificationAdded', notification });
-      });
-    });
-    
-    Effect.runFork(program);
-  }, []);
-  
-  return useSelector(notificationStore, (state) => state.context);
-}
-```
-
-### ❌ Bad: Mixed Concerns
-```typescript
-// ❌ Don't mix Effect.js with React state
-export function useBadExample() {
-  const [state, setState] = useState([]); // React state
-  
-  const fetchData = useCallback(() => {
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const service = yield* DataService;
-        const data = yield* service.getData();
-        setState(data); // ❌ Effect.js directly updating React state
-      })
-    );
-  }, []);
-  
-  return { state, fetchData };
-}
-
-// ✅ Do this instead - clear separation
-export function useGoodExample() {
-  useEffect(() => {
-    const program = Effect.gen(function* () {
-      const service = yield* DataService;
-      const data = yield* service.getData();
-      // Bridge through store
-      return Effect.sync(() => {
-        dataStore.send({ type: 'dataLoaded', data });
-      });
-    });
-    
-    Effect.runFork(program);
-  }, []);
-  
-  return useSelector(dataStore, (state) => state.context);
-}
-```
-
-## Benefits of Clean Separation
-
-### ✅ **Independent Testability**
-```typescript
-// Test Effect.js services in isolation
-test('ChatInstanceService processes messages correctly', async () => {
-  const result = await Effect.runPromise(
-    Effect.provide(
-      ChatInstanceService.processIncomingMessage(protocolMessage),
-      ChatInstanceService.Default
-    )
-  );
-  expect(result.text).toBe('Hello');
-});
-
-// Test xState/store in isolation  
-test('chatInstanceStore handles message events', () => {
-  const [nextState] = chatInstanceStore.transition(
-    initialState,
-    { type: 'messageReceived', message: testMessage }
-  );
-  expect(nextState.context.messages).toHaveLength(1);
-});
-
-// Test React integration separately
-test('useChatInstance hook integrates correctly', () => {
-  const { result } = renderHook(() => useChatInstance('chat1', config));
-  expect(result.current.chatState.status).toBe('initializing');
-});
-```
-
-### ✅ **Cross-Platform Reusability**
-- **Effect.js services**: Work in Node.js, workers, edge functions
-- **xState/store**: Works with Vue, Svelte, vanilla JS
-- **React hooks**: Only handle React-specific UI concerns
-
-### ✅ **Enhanced Debuggability**
-- **Effect.js**: Structured logging, error tracing, fiber inspection
-- **xState/store**: Event history, state transitions, time-travel debugging
-- **React**: Component tree, props, re-render tracking
-
-### ✅ **Maintainable Architecture**
-- Clear ownership of responsibilities
-- No circular dependencies
-- Easy to reason about data flow
-- Simple to onboard new developers
-
-## Testing Hooks
-
-### Service Integration Hooks
-```typescript
-// Test the hook behavior, not the service logic
-test("useAgentSession should manage session lifecycle", () => {
-  const { result } = renderHook(() => useAgentSession("agent1", "chat1"));
-  
-  expect(result.current.status).toBe("initializing");
-  // Test state transitions, not service implementation
-});
-```
-
-### Pure Computation Hooks
-```typescript
-// Test the computation logic
-test("useChatTheme should merge themes correctly", () => {
-  const { result } = renderHook(() => 
-    useChatTheme({ colors: { primary: "#ff0000" } })
-  );
-  
-  expect(result.current.colors.primary).toBe("#ff0000");
-  expect(result.current.colors.secondary).toBe(defaultChatTheme.colors.secondary);
-});
-```
-
-### xState/store Integration Hooks
-```typescript
-// Test store integration without Effect.js complexity
-test("useChatInstance should handle store events", () => {
-  const { result } = renderHook(() => useChatInstance('chat1', config));
-  
-  // Trigger store event directly
-  act(() => {
-    chatInstanceStore.send({ 
-      type: 'messageReceived', 
-      message: { id: '1', text: 'Hello', role: 'assistant', timestamp: Date.now() }
-    });
+    const service = yield* ServiceClass;
+    // Use service
   });
   
-  expect(result.current.chatState.messages).toHaveLength(1);
-  expect(result.current.chatState.messages[0].text).toBe('Hello');
-});
+  const fiber = Effect.runFork(program);
+  return () => Fiber.interrupt(fiber); // Cleanup
+}, [dependencies]);
 ```
 
-## Migration Strategy
-
-When refactoring existing hooks to use xState/store:
-
-### Phase 1: Create Stores
+### 🔄 Store Synchronization
+Hooks like `useDynamicToolbar` and `useThemeIntegration` sync external state:
 ```typescript
-// Create xState/store alongside existing hook
-export const chatInstanceStore = createStore({
-  context: { /* initial state */ },
-  on: { /* event handlers */ }
-});
+const storeValue = useSelector(store, selector);
+
+useEffect(() => {
+  externalSystem.update(storeValue);
+}, [storeValue]);
 ```
 
-### Phase 2: Extract Business Logic
+### 🧮 Pure Computation
+Hooks like `useChatTheme` provide memoized calculations:
 ```typescript
-// Move complex logic to Effect.js services
-export class ChatInstanceService extends Effect.Service<ChatInstanceServiceApi>() {
-  processMessage: (msg: ProtocolMessage) => Effect.Effect<Message, never>
-}
+const result = useMemo(() => {
+  return expensiveComputation(input);
+}, [input]);
 ```
 
-### Phase 3: Bridge Integration
+### 🌉 Effect.js ↔ xState Bridge
+Complex hooks like `useChatInstance` bridge Effect.js services with xState stores:
 ```typescript
-// Update hook to bridge Effect.js ↔ xState/store ↔ React
-export function useChatInstance() {
-  useEffect(() => {
-    // Effect.js program that updates store
-  }, []);
+// Effect.js handles business logic
+const program = Effect.gen(function* () {
+  const result = yield* businessLogic();
   
-  return useSelector(store, selector);
-}
+  // Bridge to xState store
+  return Effect.sync(() => {
+    store.send({ type: 'UPDATE', data: result });
+  });
+});
 ```
 
-### Phase 4: Maintain Compatibility
-```typescript
-// Keep same public API during migration
-export function useChatInstance(chatId: string, config: ChatAgentConfig) {
-  // Internal implementation changed, external API unchanged
-  return {
-    chatState,      // Same shape
-    sendMessage,    // Same function signature
-    // ... other exports
-  };
-}
-```
+---
 
-## Future Patterns
+## Usage Guidelines
 
-### Event-Driven Architecture
-```typescript
-// Prefer descriptive events over imperative actions
-store.send({ type: 'messageReceived', message, timestamp });
-store.send({ type: 'connectionLost', reason: 'network_error' });
-store.send({ type: 'reconnectionAttempted', attempt: 3 });
+### ✅ When to Use Each Hook
 
-// Instead of
-setState(prev => ({ ...prev, messages: [...prev.messages, message] }));
-```
+**useAgentSession**:
+- Direct agent communication needed
+- Real-time message streaming required
+- Session lifecycle management necessary
 
-### Store Composition
-```typescript
-// Compose multiple focused stores
-const chatState = useSelector(chatInstanceStore, s => s.context);
-const streamingState = useSelector(streamingStore, s => s.context);
-const connectionState = useSelector(connectionStore, s => s.context);
+**useChatAppRuntime**:
+- Building complete chat applications
+- Need unified config + runtime state
+- Composite data fetching required
 
-return { chatState, streamingState, connectionState };
-```
+**useChatInstance**:
+- Complex chat interfaces
+- Advanced state management needed
+- Multiple store coordination required
 
-### Effect.js Integration Patterns
-```typescript
-// Standard pattern for bridging Effect.js to stores
-const bridgeEffectToStore = <T>(
-  effect: Effect.Effect<T, any, any>,
-  onSuccess: (value: T) => void,
-  onError?: (error: any) => void
-) => {
-  Effect.runFork(
-    effect.pipe(
-      Effect.tap(value => Effect.sync(() => onSuccess(value))),
-      Effect.catchAll(error => Effect.sync(() => onError?.(error)))
-    )
-  );
-};
-```
+**useChatTheme**:
+- Theme processing and merging
+- Support for multiple theme formats
+- Performance-optimized theme computation
+
+**useDynamicToolbar**:
+- Toolbar with reactive button states
+- UI state synchronization needed
+- Multiple store dependencies
+
+**useThemeIntegration**:
+- Integrating with next-themes
+- Theme store synchronization needed
+- Root-level theme management
+
+### ❌ Anti-patterns to Avoid
+
+1. **Don't bypass hooks for direct service access** in React components
+2. **Don't mix Effect.js code directly in React** - use hooks as bridges
+3. **Don't create hooks for simple one-off operations** - use Effect.runPromise
+4. **Don't duplicate hook functionality** - compose existing hooks instead
+
+---
+
+## Testing Approach
+
+Each hook follows specific testing patterns:
+
+- **Service Integration Hooks**: Test lifecycle and state transitions
+- **Pure Computation Hooks**: Test calculation logic and edge cases  
+- **Store Synchronization Hooks**: Test reactive updates and store integration
+- **Bridge Hooks**: Test Effect.js ↔ React integration without testing service logic
+
+See individual `*.test.ts` files for comprehensive test examples.
+
+---
 
 ## Related Documentation
 
-- **Main Architecture**: `../README.md` - Four-layer pattern overview
-- **Services**: `../services/` - Effect.js service implementations  
-- **Contexts**: `../contexts/` - Service lifecycle contexts
-- **Stores**: `../stores/` - Zustand UI state management
-- **xState/store Docs**: [Official Documentation](https://stately.ai/docs/xstate-store)
-
-This architecture ensures clean separation between React concerns and business logic, with hooks serving as the bridge layer between Effect.js services and React components. The addition of xState/store provides event-driven state management that scales beautifully with complex application logic. 
+- **Services**: `../services/` - Effect.js service implementations
+- **Stores**: `../stores/` - xState store definitions
+- **Types**: `../types/` - TypeScript type definitions
+- **Components**: `../components/` - React components that consume these hooks 

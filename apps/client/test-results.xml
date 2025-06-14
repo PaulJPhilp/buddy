@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="13" assertions="8" failures="2" skipped="0" time="0.284501">
+  <testsuite name="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" tests="6" assertions="4" failures="1" skipped="0" time="0.004" hostname="Pauls-Mac-mini.local">
+    <testcase name="should have a valid .Default layer" classname="Service Structure &amp;gt; ChatInstanceService" time="0.00421" file="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" assertions="3">
+      <failure type="AssertionError" />
+    </testcase>
+    <testcase name="should be able to provide the service layer" classname="Service Structure &amp;gt; ChatInstanceService" time="0.000976" file="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" assertions="1" />
+    <testcase name="should create user messages" classname="ChatInstanceService" time="0" file="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" assertions="0" />
+    <testcase name="should create streaming messages" classname="ChatInstanceService" time="0.00001" file="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" assertions="0" />
+    <testcase name="should finalize streaming messages" classname="ChatInstanceService" time="0.000007" file="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" assertions="0" />
+    <testcase name="should convert protocol messages" classname="ChatInstanceService" time="0.000019" file="src/services/chat-instance/__tests__/ChatInstanceService.test.ts" assertions="0" />
+  </testsuite>
+  <testsuite name="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" tests="7" assertions="4" failures="1" skipped="0" time="0.002" hostname="Pauls-Mac-mini.local">
+    <testcase name="should have a valid .Default layer" classname="Service Structure &amp;gt; AgentCommunicationService" time="0.001307" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="3">
+      <failure type="AssertionError" />
+    </testcase>
+    <testcase name="should be able to provide the service layer" classname="Service Structure &amp;gt; AgentCommunicationService" time="0.001959" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="1" />
+    <testcase name="should establish session successfully" classname="establishSession &amp;gt; AgentCommunicationService" time="0.000104" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="0" />
+    <testcase name="should handle empty agent ID" classname="establishSession &amp;gt; AgentCommunicationService" time="0.000016" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="0" />
+    <testcase name="should send message successfully" classname="sendMessage &amp;gt; AgentCommunicationService" time="0" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="0" />
+    <testcase name="should create incoming message stream" classname="createIncomingMessageStream &amp;gt; AgentCommunicationService" time="0.000064" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="0" />
+    <testcase name="should create status stream" classname="createStatusStream &amp;gt; AgentCommunicationService" time="0.000018" file="src/services/chat-instance/__tests__/AgentCommunicationService.test.ts" assertions="0" />
+  </testsuite>
+</testsuites>

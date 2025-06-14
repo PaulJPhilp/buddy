@@ -134,5 +134,6 @@ export type AgentEvent =
 export interface ChatAgentConfig {
   agentId: string;
   initialAgentName: string;
+  prompt?: string; // Optional system prompt for the agent
   agents?: Agent[]; // Optional array of available agents
 }

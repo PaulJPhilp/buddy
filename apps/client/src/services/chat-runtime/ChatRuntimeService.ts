@@ -50,7 +50,7 @@ export class AgentRuntimeError extends Data.TaggedError("AgentRuntimeError")<{
   readonly agentId?: string;
   readonly chatId?: string;
   readonly url?: string;
-}> { }
+}> {}
 
 function mapToAgentRuntimeError(
   error: unknown,
@@ -87,6 +87,7 @@ export interface AgentSession {
   readonly agentId: string;
   readonly chatId: string;
   readonly url: string;
+  readonly prompt?: string;
   readonly send: (
     message: ProtocolMessage,
   ) => Effect.Effect<void, AgentRuntimeError>;
@@ -99,10 +100,13 @@ export interface ChatRuntimeServiceApi {
   readonly establishSession: (
     agentId: string,
     chatId: string,
+    prompt?: string,
   ) => Effect.Effect<AgentSession, AgentRuntimeError, Scope>;
   readonly start: () => Effect.Effect<void, AgentRuntimeError>;
   readonly stop: () => Effect.Effect<void, never>;
-  readonly sendMessage: (text: string) => Effect.Effect<void, AgentRuntimeError>;
+  readonly sendMessage: (
+    text: string,
+  ) => Effect.Effect<void, AgentRuntimeError>;
   readonly getState: Stream.Stream<{ status: string; message?: string }, never>;
 }
 
@@ -114,13 +118,17 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
     scoped: Effect.gen(function* () {
       const resolver = yield* AgentEndpointResolverService; // Dependency injection
       const wsService = yield* WebSocketService; // Dependency injection
-      const stateQueue = yield* Queue.sliding<{ status: string; message?: string }>(10);
+      const stateQueue = yield* Queue.sliding<{
+        status: string;
+        message?: string;
+      }>(10);
       let currentSession: AgentSession | null = null;
 
       // The actual implementation of establishSession
       function establishSessionImpl(
         agentId: string,
         chatId: string,
+        prompt?: string,
       ): Effect.Effect<AgentSession, AgentRuntimeError, Scope> {
         // Scope from Effect.scoped
         return Effect.gen(function* () {
@@ -141,22 +149,20 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
           );
 
           // Connect to WebSocket, wsService.connect returns Effect<void, WebSocketError>
-          yield* wsService
-            .connect(resolvedUrl)
-            .pipe(
-              Effect.mapError((err) =>
-                mapToAgentRuntimeError(err, {
-                  agentId,
-                  chatId,
-                  url: resolvedUrl,
-                }),
-              ),
-            );
+          yield* wsService.connect(resolvedUrl).pipe(
+            Effect.mapError((err) =>
+              mapToAgentRuntimeError(err, {
+                agentId,
+                chatId,
+                url: resolvedUrl,
+              }),
+            ),
+          );
 
           yield* statusQueue.offer(AgentSessionStatus.Connected(resolvedUrl));
 
-          // Use wsService.receive() directly
-          const incomingMessages$ = wsService.receive().pipe(
+          // Use wsService.receive directly (it's a getter, not a function)
+          const incomingMessages$ = wsService.receive.pipe(
             Stream.catchAll((error) => {
               const runtimeError = mapToAgentRuntimeError(error, {
                 agentId,
@@ -184,7 +190,7 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
             const wsMessage = createMessage(
               message.type as any, // Should be MessageType
               message.payload,
-              message.metadata
+              message.metadata,
             );
             return wsService.send(wsMessage).pipe(
               Effect.mapError((err) =>
@@ -218,6 +224,7 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
             agentId,
             chatId,
             url: resolvedUrl,
+            prompt,
             send,
             incomingMessages$,
             status$: Stream.fromQueue(statusQueue).pipe(
@@ -227,13 +234,50 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
           } satisfies AgentSession;
 
           currentSession = session;
+
+          // Send system prompt if provided
+          if (prompt) {
+            yield* Effect.gen(function* () {
+              const systemMessage = createMessage("COMMAND", {
+                command: "systemPrompt",
+                data: {
+                  prompt,
+                  chatId,
+                  sessionId: session.id,
+                },
+                __tag: "CommandPayload",
+              });
+
+              yield* session.send(systemMessage).pipe(
+                Effect.mapError((err) =>
+                  mapToAgentRuntimeError(err, {
+                    agentId,
+                    chatId,
+                    url: resolvedUrl,
+                  }),
+                ),
+              );
+
+              yield* Effect.logInfo(
+                `[AgentSession ${sessionId}] System prompt sent: ${prompt.substring(0, 100)}...`,
+              );
+            }).pipe(
+              Effect.catchAll((error) => {
+                // Log error but don't fail session establishment
+                return Effect.logWarning(
+                  `[AgentSession ${sessionId}] Failed to send system prompt: ${error}`,
+                );
+              }),
+            );
+          }
+
           return session;
         }).pipe(Effect.scoped);
       }
 
       return {
-        establishSession: (agentId: string, chatId: string) =>
-          establishSessionImpl(agentId, chatId),
+        establishSession: (agentId: string, chatId: string, prompt?: string) =>
+          establishSessionImpl(agentId, chatId, prompt),
 
         start: (): Effect.Effect<void, AgentRuntimeError> =>
           Effect.gen(function* () {
@@ -248,7 +292,9 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
             }
 
             yield* stateQueue.offer({ status: "connecting" });
-            const session = yield* Effect.scoped(establishSessionImpl("default", "default"));
+            const session = yield* Effect.scoped(
+              establishSessionImpl("default", "default", undefined),
+            );
             yield* stateQueue.offer({ status: "connected" });
             currentSession = session;
             return; // Explicitly return void
@@ -277,14 +323,11 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
 
             yield* stateQueue.offer({ status: "thinking" });
 
-            const message = createMessage(
-              "COMMAND",
-              {
-                command: "userMessage",
-                data: { text },
-                __tag: "CommandPayload",
-              },
-            );
+            const message = createMessage("COMMAND", {
+              command: "userMessage",
+              data: { text },
+              __tag: "CommandPayload",
+            });
 
             yield* currentSession.send(message);
             yield* stateQueue.offer({ status: "idle", message: text });
@@ -294,6 +337,9 @@ export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
         getState: Stream.fromQueue(stateQueue),
       } satisfies ChatRuntimeServiceApi;
     }),
-    dependencies: [AgentEndpointResolverService.Default, WebSocketService.Default], // Explicitly declare dependencies
+    dependencies: [
+      AgentEndpointResolverService.Default,
+      WebSocketService.Default,
+    ], // Explicitly declare dependencies
   },
 ) {}

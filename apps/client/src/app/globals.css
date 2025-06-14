@@ -172,3 +172,29 @@
     text-wrap: balance;
   }
 }
+
+/* ===== CUSTOM ANIMATIONS ===== */
+@keyframes bounce {
+  0%,
+  20%,
+  53%,
+  80%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%,
+  43% {
+    transform: translate3d(0, -15px, 0);
+  }
+  70% {
+    transform: translate3d(0, -8px, 0);
+  }
+  90% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+html,
+body {
+  height: 100%;
+}

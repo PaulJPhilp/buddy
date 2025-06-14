@@ -1,7 +1,11 @@
 "use client";
 
-import { useThemeCSSVariables } from "@/stores/themeStore";
-import { Sidebar, SidebarSection } from "@ui/components/ui/sidebar";
+import { ThemeEditorPanel } from "@/components/theme-editor";
+import { useChatAppContext } from "@/contexts/ChatAppContext";
+import { appLayoutStore } from "@/stores/appLayoutStore";
+
+import { Sidebar } from "@ui/components/ui/sidebar";
+import { useSelector } from "@xstate/store/react";
 
 interface AppSidebarProps {
   isOpen: boolean;
@@ -9,50 +13,66 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ isOpen, onToggleAction }: AppSidebarProps) {
-  const cssVariables = useThemeCSSVariables();
+  const activeSidebarEditor = useSelector(
+    appLayoutStore,
+    (state) => state.context.activeSidebarEditor,
+  );
+
+  // Get chat app context (may be null if no chat app is active)
+  let chatAppContext = null;
+  try {
+    chatAppContext = useChatAppContext();
+  } catch {
+    // Context not available, which is fine
+  }
+
+  let editorContent: React.ReactNode = null;
+  if (activeSidebarEditor === "theme") {
+    if (chatAppContext?.activeChatAppConfig) {
+      editorContent = (
+        <ThemeEditorPanel
+          theme={chatAppContext.activeChatAppConfig.theme}
+          onThemeChange={chatAppContext.onThemeChange}
+          isOpen={true}
+          onClose={() =>
+            appLayoutStore.send({
+              type: "setActiveSidebarEditor",
+              editor: null,
+            })
+          }
+        />
+      );
+    } else {
+      editorContent = (
+        <div className="p-4 text-center text-muted-foreground">
+          <p className="mb-2">No chat app active</p>
+          <p className="text-sm">
+            The theme editor requires an active chat app to edit themes.
+          </p>
+        </div>
+      );
+    }
+  }
+  // Add more editors here as needed
+
+  // Determine sidebar width based on content
+  const sidebarWidth = activeSidebarEditor === "theme" ? "400px" : "200px";
+
+  // Only show sidebar if there's an active editor
+  const shouldShowSidebar = isOpen && activeSidebarEditor;
 
   return (
     <Sidebar
-      isCollapsed={!isOpen}
+      isCollapsed={!shouldShowSidebar}
       onToggle={onToggleAction}
-      expandedWidth="200px"
+      expandedWidth={sidebarWidth}
       collapsedWidth="0px"
-      className={
-        isOpen
-          ? "w-[200px] sm:w-[200px] lg:w-[200px] border-r h-screen"
-          : "w-0 hidden"
-      }
-      style={cssVariables}
+      className={shouldShowSidebar ? "border-r h-screen" : "w-0 hidden"}
+      style={{
+        width: shouldShowSidebar ? sidebarWidth : "0px",
+      }}
     >
-      <SidebarSection title="🧭 Navigation">
-        <div className="p-4 text-sm">
-          <p className="mb-2 font-medium">App Navigation</p>
-          <div className="space-y-2">
-            <button type="button" className="w-full text-left px-2 py-1 text-xs rounded hover:bg-accent">
-              Dashboard
-            </button>
-            <button type="button" className="w-full text-left px-2 py-1 text-xs rounded hover:bg-accent">
-              Chats
-            </button>
-            <button type="button" className="w-full text-left px-2 py-1 text-xs rounded hover:bg-accent">
-              Settings
-            </button>
-          </div>
-        </div>
-      </SidebarSection>
-
-      <SidebarSection title="ℹ️ Info">
-        <div className="p-4 text-sm">
-          <p className="text-xs text-muted-foreground mb-2">
-            Use the toolbar to access:
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Theme Editor (Palette icon)</li>
-            <li>• User Management (Users icon)</li>
-            <li>• Settings (Gear icon)</li>
-          </ul>
-        </div>
-      </SidebarSection>
+      {editorContent}
     </Sidebar>
   );
 }

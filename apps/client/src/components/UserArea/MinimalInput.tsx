@@ -4,7 +4,6 @@ import { cn } from "@/utils";
 import { Icon } from "@ui/components/Icon";
 import { ToolBar, type ToolBarItem } from "@ui/components/ui/toolbar";
 import React, { forwardRef, useRef } from "react";
-import TextareaAutosize from "react-textarea-autosize";
 
 export interface MinimalInputProps {
   text: string;
@@ -17,11 +16,9 @@ export interface MinimalInputProps {
   placeholder?: string;
   className?: string;
   toolbarConfig?: ToolBarItem[];
-  minRows?: number;
-  maxRows?: number;
 }
 
-const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
+const MinimalInput = forwardRef<HTMLInputElement, MinimalInputProps>(
   (
     {
       text,
@@ -34,8 +31,6 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       placeholder = "Select an agent...",
       className,
       toolbarConfig,
-      minRows = 1,
-      maxRows = 5,
     },
     ref,
   ) => {
@@ -73,7 +68,7 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
       }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSubmit();
@@ -124,16 +119,17 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
     return (
       <div
         className={cn(
-          "flex items-center w-full border rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-[var(--color-chat-primary)] transition-all duration-150 ease-in-out",
+          "flex items-center w-full border rounded-md px-2 py-0.5 transition-all duration-150 ease-in-out focus-within:border-2",
           className,
         )}
         style={{
           backgroundColor: "var(--color-chat-background)",
-          borderColor: "var(--color-chat-input-border)",
+          borderColor: "var(--color-chat-border)",
           color: "var(--color-chat-foreground)",
         }}
       >
-        <TextareaAutosize
+        <input
+          type="text"
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -143,23 +139,21 @@ const MinimalInput = forwardRef<HTMLTextAreaElement, MinimalInputProps>(
               : placeholder
           }
           disabled={disabled}
-          className="flex-grow resize-none text-[7px] rounded overflow-auto pl-2 leading-[18px] transition-height duration-200 ease-in-out bg-transparent focus:outline-none min-h-[24px] max-h-[24px] h-[24px] flex items-center"
+          className="block w-full text-[8px] rounded pl-1 leading-[10px] bg-transparent h-[12px] focus:outline-none"
           style={{
             color: "var(--color-chat-foreground)",
-            paddingTop: "3px",
-            paddingBottom: "3px",
+            paddingTop: "6px",
+            paddingBottom: "6px",
             backgroundColor: "transparent",
           }}
           aria-label="Message input"
-          ref={ref}
-          minRows={1}
-          maxRows={1}
+          ref={ref as any}
         />
         <div className="flex items-center justify-center h-full">
           <ToolBar
             commands={toolbarItems}
             variant="tiny"
-            className="justify-start h-6 text-[4px] pointer-events-auto [&_button]:p-0 [&_button]:mx-1 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-6 [&_svg.lucide]:!h-3 [&_svg.lucide]:!w-3"
+            className="justify-start h-3 text-xs pointer-events-auto [&_button]:p-0 [&_button]:mx-0.5 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-3 [&_svg.lucide]:!h-3 [&_svg.lucide]:!w-3"
             ariaLabel="Message input toolbar"
           />
         </div>

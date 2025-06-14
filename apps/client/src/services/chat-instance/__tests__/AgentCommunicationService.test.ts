@@ -17,12 +17,44 @@ describe("AgentCommunicationService", () => {
   const testChatId = "test-chat";
   const testMessage = "Hello, world!";
 
+  describe("Service Structure", () => {
+    it("should have a valid .Default layer", () => {
+      expect(AgentCommunicationService.Default).toBeDefined();
+      expect(typeof AgentCommunicationService.Default).toBe("object");
+      // Check that it's a proper Layer by verifying it has layer properties
+      expect(AgentCommunicationService.Default).toHaveProperty("pipe");
+    });
+
+    it("should be able to provide the service layer", () => {
+      const testEffect = Effect.gen(function* () {
+        const service = yield* AgentCommunicationService;
+        return "success";
+      });
+
+      expect(() =>
+        testEffect.pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              WebSocketService.Default,
+              AgentEndpointResolverService.Default,
+              ChatRuntimeService.Default,
+              AgentCommunicationService.Default,
+            ),
+          ),
+        ),
+      ).not.toThrow();
+    });
+  });
+
   describe("establishSession", () => {
     it("should establish session successfully", () =>
       Effect.gen(function* () {
         const service = yield* AgentCommunicationService;
-        const session = yield* service.establishSession(testAgentId, testChatId);
-        
+        const session = yield* service.establishSession(
+          testAgentId,
+          testChatId,
+        );
+
         expect(typeof session.id).toBe("string");
         expect(typeof session.url).toBe("string");
         expect(typeof session.send).toBe("function");
@@ -34,16 +66,16 @@ describe("AgentCommunicationService", () => {
             WebSocketService.Default,
             AgentEndpointResolverService.Default,
             ChatRuntimeService.Default,
-            AgentCommunicationService.Default
-          )
-        )
+            AgentCommunicationService.Default,
+          ),
+        ),
       ));
 
     it("should handle empty agent ID", () =>
       Effect.gen(function* () {
         const service = yield* AgentCommunicationService;
         const session = yield* service.establishSession("", testChatId);
-        
+
         expect(typeof session.id).toBe("string");
       }).pipe(
         Effect.provide(
@@ -51,9 +83,9 @@ describe("AgentCommunicationService", () => {
             WebSocketService.Default,
             AgentEndpointResolverService.Default,
             ChatRuntimeService.Default,
-            AgentCommunicationService.Default
-          )
-        )
+            AgentCommunicationService.Default,
+          ),
+        ),
       ));
   });
 
@@ -61,10 +93,13 @@ describe("AgentCommunicationService", () => {
     it("should send message successfully", () =>
       Effect.gen(function* () {
         const service = yield* AgentCommunicationService;
-        const session = yield* service.establishSession(testAgentId, testChatId);
-        
+        const session = yield* service.establishSession(
+          testAgentId,
+          testChatId,
+        );
+
         yield* service.sendMessage(session, testMessage, testChatId);
-        
+
         // If we reach here, the message was sent successfully
         expect(true).toBe(true);
       }).pipe(
@@ -73,9 +108,9 @@ describe("AgentCommunicationService", () => {
             WebSocketService.Default,
             AgentEndpointResolverService.Default,
             ChatRuntimeService.Default,
-            AgentCommunicationService.Default
-          )
-        )
+            AgentCommunicationService.Default,
+          ),
+        ),
       ));
   });
 
@@ -83,10 +118,13 @@ describe("AgentCommunicationService", () => {
     it("should create incoming message stream", () =>
       Effect.gen(function* () {
         const service = yield* AgentCommunicationService;
-        const session = yield* service.establishSession(testAgentId, testChatId);
-        
+        const session = yield* service.establishSession(
+          testAgentId,
+          testChatId,
+        );
+
         const stream = service.createIncomingMessageStream(session);
-        
+
         // Verify stream is created (it should be the same as session.incomingMessages$)
         expect(stream).toBe(session.incomingMessages$);
       }).pipe(
@@ -95,9 +133,9 @@ describe("AgentCommunicationService", () => {
             WebSocketService.Default,
             AgentEndpointResolverService.Default,
             ChatRuntimeService.Default,
-            AgentCommunicationService.Default
-          )
-        )
+            AgentCommunicationService.Default,
+          ),
+        ),
       ));
   });
 
@@ -105,10 +143,13 @@ describe("AgentCommunicationService", () => {
     it("should create status stream", () =>
       Effect.gen(function* () {
         const service = yield* AgentCommunicationService;
-        const session = yield* service.establishSession(testAgentId, testChatId);
-        
+        const session = yield* service.establishSession(
+          testAgentId,
+          testChatId,
+        );
+
         const stream = service.createStatusStream(session);
-        
+
         // Verify stream is created (it should be the same as session.status$)
         expect(stream).toBe(session.status$);
       }).pipe(
@@ -117,9 +158,9 @@ describe("AgentCommunicationService", () => {
             WebSocketService.Default,
             AgentEndpointResolverService.Default,
             ChatRuntimeService.Default,
-            AgentCommunicationService.Default
-          )
-        )
+            AgentCommunicationService.Default,
+          ),
+        ),
       ));
   });
-}); 
+});

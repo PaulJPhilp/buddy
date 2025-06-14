@@ -10,7 +10,7 @@ import { ToolbarConfigSchema } from "./ToolbarConfigSchema";
  * - agents: array of agent configs
  * - toolbars: array of toolbar configs
  * - themes: record of themeId -> theme object
- * - chatApps: array of ChatAppConfig
+ * - chatApps: array of ChatAppConfig (optional)
  */
 // Define the schema for the BuddyBootstrap configuration
 export const BuddyBootstrapSchema = Schema.Struct({
@@ -19,7 +19,7 @@ export const BuddyBootstrapSchema = Schema.Struct({
   // Use Schema.Any for themes to avoid compatibility issues
   // This will still allow the runtime to process the themes correctly
   themes: Schema.Any,
-  chatApps: Schema.Array(ChatAppConfigSchema),
+  chatApps: Schema.optional(Schema.Array(ChatAppConfigSchema)),
 });
 
 // Define the type explicitly to ensure it matches what the BuddyBootstrapLoader expects
@@ -27,5 +27,5 @@ export interface BuddyBootstrapConfig {
   agents: Array<Schema.Schema.Type<typeof AgentConfigSchema>>;
   toolbars: Array<Schema.Schema.Type<typeof ToolbarConfigSchema>>;
   themes: Record<string, ChatAppTheme>;
-  chatApps: Array<Schema.Schema.Type<typeof ChatAppConfigSchema>>;
+  chatApps?: Array<Schema.Schema.Type<typeof ChatAppConfigSchema>>;
 }

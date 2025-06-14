@@ -16,6 +16,10 @@
     "plugins": [
       {
         "name": "next"
+
+      },
+      {
+        "name": "@effect/language-server"
       }
     ],
     "baseUrl": ".",

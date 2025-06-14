@@ -68,25 +68,43 @@ const AgentToolBar: React.FC<AgentToolBarProps> = ({
     >
       <Select value={selectedAgentId ?? ""} onValueChange={onSelectAgent}>
         <SelectTrigger
-          className="w-[60px] rounded-md text-[6px] leading-none px-2 py-1 text-center overflow-hidden whitespace-nowrap focus:ring-1 focus:ring-ring h-3"
+          className="w-[60px] rounded-md text-[6px] leading-none px-2 py-1 text-center overflow-hidden whitespace-nowrap focus:ring-1 h-3"
+          style={{
+            borderColor: "var(--color-chat-bubble-user)",
+            color: "var(--color-chat-bubble-user)",
+            backgroundColor: "#ffffff",
+            "--tw-ring-color": "var(--color-chat-bubble-user)",
+          }}
           aria-label="Select agent"
           data-testid="agent-select"
         >
           <SelectValue
             placeholder="Select agent"
             className="text-[6px] leading-none text-center whitespace-nowrap"
+            style={{
+              color: "var(--color-chat-bubble-user)",
+            }}
           >
             {selectedAgentId
               ? agents.find((a) => a.id === selectedAgentId)?.name
               : "Select agent"}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="text-[6px] leading-none min-w-[60px]">
+        <SelectContent
+          className="text-[6px] leading-none min-w-[60px]"
+          style={{
+            borderColor: "var(--color-chat-bubble-user)",
+            backgroundColor: "#ffffff",
+          }}
+        >
           {agents.map((agent) => (
             <SelectItem
               key={agent.id}
               value={agent.id}
-              className="text-[6px] leading-none py-0.5 hover:bg-accent hover:text-accent-foreground whitespace-nowrap flex items-center"
+              className="text-[6px] leading-none py-0.5 whitespace-nowrap flex items-center"
+              style={{
+                color: "var(--color-chat-bubble-user)",
+              }}
               data-testid={`agent-option-${agent.id}`}
             >
               {agent.name}

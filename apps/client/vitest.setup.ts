@@ -4,6 +4,8 @@ import "@testing-library/jest-dom";
 import { Effect, Runtime } from "effect";
 import { JSDOM } from "jsdom";
 
+console.log("🔧 Vitest setup file is loading...");
+
 // Create a JSDOM instance
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
   url: "http://localhost",
@@ -11,11 +13,11 @@ const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
 });
 
 // Set up global variables
-global.window = dom.window;
-global.document = dom.window.document;
-global.navigator = dom.window.navigator;
-global.Element = dom.window.Element;
-global.HTMLElement = dom.window.HTMLElement;
+global.window = dom.window as any;
+global.document = dom.window.document as any;
+global.navigator = dom.window.navigator as any;
+global.Element = dom.window.Element as any;
+global.HTMLElement = dom.window.HTMLElement as any;
 global.HTMLDivElement = dom.window.HTMLDivElement;
 global.Node = dom.window.Node;
 global.NodeList = dom.window.NodeList;
@@ -63,7 +65,7 @@ Object.defineProperty(global.window, "crypto", {
 
 // Mock requestAnimationFrame
 global.window.requestAnimationFrame = (callback) => {
-  return setTimeout(callback, 0);
+  return setTimeout(callback, 0) as any;
 };
 
 // Mock cancelAnimationFrame
@@ -83,7 +85,7 @@ global.window.IntersectionObserver = class IntersectionObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-};
+} as any;
 
 // Mock MutationObserver
 global.window.MutationObserver = class MutationObserver {
@@ -169,19 +171,22 @@ global.WebSocket = class MockWebSocket {
     if (event.type === "open" && this.onopen) {
       this.onopen(event);
       return true;
-    }if (event.type === "close" && this.onclose) {
+    }
+    if (event.type === "close" && this.onclose) {
       this.onclose(event as CloseEvent);
       return true;
-    }if (event.type === "message" && this.onmessage) {
+    }
+    if (event.type === "message" && this.onmessage) {
       this.onmessage(event as MessageEvent);
       return true;
-    }if (event.type === "error" && this.onerror) {
+    }
+    if (event.type === "error" && this.onerror) {
       this.onerror(event);
       return true;
     }
     return false;
   }
-};
+} as any;
 
 // Also add to global scope
 global.window.WebSocket = global.WebSocket;
@@ -196,7 +201,7 @@ const localStorageMock = {
   key: vi.fn(() => null),
 };
 
-Object.defineProperty(global.window, 'localStorage', {
+Object.defineProperty(global.window, "localStorage", {
   value: localStorageMock,
   writable: true,
 });

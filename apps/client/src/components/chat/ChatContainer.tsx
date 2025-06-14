@@ -1,79 +1,51 @@
 "use client";
 
-import { ChatApp } from "@/components/ChatApp"
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema"
-import { useEffect, useState } from "react"
+import { ChatApp } from "@/components/ChatApp";
+import { useApplyChatContainerStyle } from "@/hooks/chat-style/useApplyChatContainerStyle";
+import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 
 function NoChatApps() {
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="text-center">
-        <h2 className="text-lg font-medium">No Active Chats</h2>
-        <p className="text-sm text-muted-foreground">
-          There are no chat applications configured yet.
+        <div className="text-6xl mb-6">💬</div>
+        <h2 className="text-2xl font-bold mb-4">Welcome to Buddy Chat</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">
+          No chat applications are configured yet. Run the setup to create your
+          first chat app.
         </p>
+        <div className="space-y-3">
+          <a
+            href="/setup"
+            className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            🚀 Run Setup
+          </a>
+          <div className="text-sm text-muted-foreground">
+            This will create a default chat app configuration
+          </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default function ChatContainer() {
-  const [apps, setApps] = useState<readonly ChatAppConfig[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface ChatContainerProps {
+  config: ChatAppConfig;
+}
 
-  useEffect(() => {
-    // TODO: Replace with proper React hook that bridges to Effect services
-    // For now, create mock data to demonstrate the layout
-    const mockApps: ChatAppConfig[] = [
-      {
-        id: "default-chat",
-        name: "Default Chat",
-        agentId: "default-agent",
-        toolbarId: "default-toolbar", 
-        themeId: "default-theme"
-      }
-    ]
-    
-    setTimeout(() => {
-      setApps(mockApps)
-      setIsLoading(false)
-    }, 100)
-  }, [])
+export default function ChatContainer({ config }: ChatContainerProps) {
+  console.log("[ChatContainer] Mounted with config:", config);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <div className="text-lg font-semibold">Loading Chats...</div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-center text-red-500">
-          <h2 className="text-lg font-medium">Error Loading Chats</h2>
-          <p className="text-sm">{error}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (apps.length === 0) {
-    return <NoChatApps />
-  }
-
-  // For now, we will just render the first app.
-  // In the future, we might add a way to switch between apps or render multiple apps.
-  const app = apps[0]
+  // Apply this config's style to this container only
+  const containerRef = useApplyChatContainerStyle(config.theme);
 
   return (
-    <div className="h-full w-full">
-      <ChatApp config={app} />
+    <div
+      ref={containerRef}
+      className={`h-full my-2 mx-6 border rounded-lg overflow-hidden border-[var(--color-chat-border)] flex flex-col min-h-0 bg-[var(--color-chat-background)]`}
+    >
+      <ChatApp config={config} />
     </div>
-  )
+  );
 }

@@ -1,0 +1,72 @@
+{
+  "id": "pink-chat",
+  "name": "Pink Chat",
+  "agentId": "pink-agent",
+  "toolbarId": "default-toolbar",
+  "themeId": "pink-theme",
+  "description": "A pink-themed chat application",
+  "version": "1.0.0",
+
+  "agent": {
+    "id": "pink-agent",
+    "initialAgentName": "Pink Agent"
+  },
+
+  "toolbar": {
+    "id": "default-toolbar",
+    "name": "Default Toolbar",
+    "tools": []
+  },
+
+  "theme": {
+    "colors": {
+      "primary": "#db2777",
+      "secondary": "#fce7f3",
+      "accent": "#ec4899",
+      "background": "white",
+      "text": "gray-900"
+    },
+    "borders": {
+      "color": "#fbcfe8",
+      "thickness": "2px",
+      "radius": "0.75rem"
+    },
+    "bubbles": {
+      "user": {
+        "background": "#ec4899",
+        "text": "white",
+        "radius": "rounded-lg",
+        "border": "1px solid #f9a8d4",
+        "padding": "0.5rem 0.75rem"
+      },
+      "agent": {
+        "background": "#fce7f3",
+        "text": "gray-900",
+        "radius": "rounded-lg",
+        "border": "1px solid #fbcfe8",
+        "padding": "0.5rem 0.75rem"
+      }
+    },
+    "userArea": {
+      "background": "#fdf2f8",
+      "inputRingColor": "pink-500",
+      "padding": "0.5rem"
+    },
+    "header": {
+      "background": "#db2777",
+      "text": "white",
+      "borderBottom": "1px solid #fbcfe8",
+      "padding": "0.5rem 1rem"
+    },
+    "chatArea": {
+      "background": "white",
+      "border": "2px solid #fbcfe8",
+      "radius": "0.75rem",
+      "padding": "0.75rem"
+    },
+    "typography": {
+      "fontFamily": "Inter, sans-serif",
+      "fontSize": "0.95rem"
+    }
+  }
+}

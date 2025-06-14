@@ -34,6 +34,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.2.19",
     "@buddy/protocol": "workspace:*",
+    "@effect/language-service": "^0.20.1",
     "@google/generative-ai": "^0.24.1",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",

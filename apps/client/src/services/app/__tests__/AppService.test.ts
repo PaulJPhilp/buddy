@@ -7,6 +7,26 @@ import { AppService } from "../AppService";
 
 // --- Test Suite ---
 describe("AppService", () => {
+  describe("Service Structure", () => {
+    it("should have a valid .Default layer", () => {
+      expect(AppService.Default).toBeDefined();
+      expect(typeof AppService.Default).toBe("object");
+      // Check that it's a proper Layer by verifying it has layer properties
+      expect(AppService.Default).toHaveProperty("pipe");
+    });
+
+    it("should be able to provide the service layer", () => {
+      const testEffect = Effect.gen(function* () {
+        const service = yield* AppService;
+        return "success";
+      });
+
+      expect(() =>
+        testEffect.pipe(Effect.provide(AppService.Default)),
+      ).not.toThrow();
+    });
+  });
+
   const mockChatApp = {
     id: "test-app",
     name: "Test App",
@@ -44,7 +64,7 @@ describe("AppService", () => {
     AgentService,
     AgentService.of({
       getAll: () => Effect.succeed([mockAgent]),
-      getById: (id: string) => 
+      getById: (id: string) =>
         Effect.succeed(id === "test-agent" ? mockAgent : undefined),
       create: () => Effect.succeed(undefined),
       update: () => Effect.succeed(undefined),
@@ -56,7 +76,7 @@ describe("AppService", () => {
     ToolbarService,
     ToolbarService.of({
       getAll: () => Effect.succeed([mockToolbar]),
-      getById: (id: string) => 
+      getById: (id: string) =>
         Effect.succeed(id === "test-toolbar" ? mockToolbar : undefined),
       create: () => Effect.succeed(undefined),
       update: () => Effect.succeed(undefined),
@@ -67,7 +87,7 @@ describe("AppService", () => {
   const mockThemesService = Layer.succeed(
     ThemesService,
     ThemesService.of({
-      getTheme: (id: string) => 
+      getTheme: (id: string) =>
         Effect.succeed(id === "test-theme" ? mockTheme : undefined),
       setTheme: () => Effect.succeed(undefined),
       deleteTheme: () => Effect.succeed(undefined),
@@ -171,12 +191,16 @@ describe("AppService", () => {
           ...mockChatApp,
           agentId: "invalid-agent",
         };
-        
+
         // This should not throw but should log a warning and not add the app
         yield* appService.create(invalidApp);
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
-      }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServicesWithInvalidRefs)))));
+      }).pipe(
+        Effect.provide(
+          AppService.pipe(Layer.provide(mockServicesWithInvalidRefs)),
+        ),
+      ));
 
     it("should handle creation with invalid toolbar reference", () =>
       Effect.gen(function* () {
@@ -185,11 +209,15 @@ describe("AppService", () => {
           ...mockChatApp,
           toolbarId: "invalid-toolbar",
         };
-        
+
         yield* appService.create(invalidApp);
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
-      }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServicesWithInvalidRefs)))));
+      }).pipe(
+        Effect.provide(
+          AppService.pipe(Layer.provide(mockServicesWithInvalidRefs)),
+        ),
+      ));
 
     it("should handle creation with invalid theme reference", () =>
       Effect.gen(function* () {
@@ -198,11 +226,15 @@ describe("AppService", () => {
           ...mockChatApp,
           themeId: "invalid-theme",
         };
-        
+
         yield* appService.create(invalidApp);
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
-      }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServicesWithInvalidRefs)))));
+      }).pipe(
+        Effect.provide(
+          AppService.pipe(Layer.provide(mockServicesWithInvalidRefs)),
+        ),
+      ));
 
     it("should handle creation with invalid schema", () =>
       Effect.gen(function* () {
@@ -211,7 +243,7 @@ describe("AppService", () => {
           // Missing required fields
           id: "incomplete-app",
         } as any;
-        
+
         yield* appService.create(invalidApp);
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
@@ -225,7 +257,7 @@ describe("AppService", () => {
           id: "test-app-2",
           name: "Test App 2",
         };
-        
+
         yield* appService.create(mockChatApp);
         yield* appService.create(app2);
         const apps = yield* appService.getAll();
@@ -238,10 +270,10 @@ describe("AppService", () => {
       Effect.gen(function* () {
         const appService = yield* AppService;
         yield* appService.create(mockChatApp);
-        
+
         const updates = { name: "Updated App Name" };
         yield* appService.update("test-app", updates);
-        
+
         const app = yield* appService.getById("test-app");
         expect(app?.name, "Updated App Name");
         expect(app?.description, mockChatApp.description);
@@ -251,13 +283,13 @@ describe("AppService", () => {
       Effect.gen(function* () {
         const appService = yield* AppService;
         yield* appService.create(mockChatApp);
-        
+
         const updates = {
           name: "New Name",
           description: "New Description",
         };
         yield* appService.update("test-app", updates);
-        
+
         const app = yield* appService.getById("test-app");
         expect(app?.name, "New Name");
         expect(app?.description, "New Description");
@@ -271,15 +303,15 @@ describe("AppService", () => {
           id: "test-app-2",
           name: "Test App 2",
         };
-        
+
         yield* appService.create(mockChatApp);
         yield* appService.create(app2);
-        
+
         yield* appService.update("test-app", { name: "Updated Name" });
-        
+
         const updatedApp = yield* appService.getById("test-app");
         const unchangedApp = yield* appService.getById("test-app-2");
-        
+
         expect(updatedApp?.name, "Updated Name");
         expect(unchangedApp?.name, "Test App 2");
       }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServices)))));
@@ -287,10 +319,10 @@ describe("AppService", () => {
     it("should handle update of non-existent app", () =>
       Effect.gen(function* () {
         const appService = yield* AppService;
-        
+
         // This should not throw
         yield* appService.update("non-existent", { name: "New Name" });
-        
+
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
       }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServices)))));
@@ -301,12 +333,12 @@ describe("AppService", () => {
       Effect.gen(function* () {
         const appService = yield* AppService;
         yield* appService.create(mockChatApp);
-        
+
         let apps = yield* appService.getAll();
         expect(apps.length).toBe(1);
-        
+
         yield* appService.delete("test-app");
-        
+
         apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
       }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServices)))));
@@ -319,12 +351,12 @@ describe("AppService", () => {
           id: "test-app-2",
           name: "Test App 2",
         };
-        
+
         yield* appService.create(mockChatApp);
         yield* appService.create(app2);
-        
+
         yield* appService.delete("test-app");
-        
+
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(1);
         expect(apps[0].id, "test-app-2");
@@ -333,10 +365,10 @@ describe("AppService", () => {
     it("should handle deletion of non-existent app", () =>
       Effect.gen(function* () {
         const appService = yield* AppService;
-        
+
         // This should not throw
         yield* appService.delete("non-existent");
-        
+
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
       }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServices)))));
@@ -344,11 +376,11 @@ describe("AppService", () => {
     it("should handle deletion from empty collection", () =>
       Effect.gen(function* () {
         const appService = yield* AppService;
-        
+
         yield* appService.delete("test-app");
-        
+
         const apps = yield* appService.getAll();
         expect(apps.length).toBe(0);
       }).pipe(Effect.provide(AppService.pipe(Layer.provide(mockServices)))));
   });
-}); 
+});

@@ -1,0 +1,64 @@
+{
+  "agents": [
+    {
+      "id": "default-agent",
+      "initialAgentName": "Default Agent"
+    }
+  ],
+  "toolbars": [
+    {
+      "id": "default-toolbar",
+      "name": "Default Toolbar",
+      "tools": []
+    }
+  ],
+  "themes": {
+    "default-theme": {
+      "colors": {
+        "primary": "blue-500",
+        "secondary": "gray-200",
+        "accent": "blue-600",
+        "background": "white",
+        "text": "gray-800"
+      },
+      "borders": {
+        "color": "gray-300",
+        "thickness": "1px",
+        "radius": "0.5rem"
+      },
+      "bubbles": {
+        "user": {
+          "background": "blue-500",
+          "text": "white",
+          "radius": "rounded-xl"
+        },
+        "agent": {
+          "background": "gray-200",
+          "text": "gray-800",
+          "radius": "rounded-xl"
+        }
+      },
+      "userArea": {
+        "background": "gray-50",
+        "inputRingColor": "blue-600"
+      },
+      "header": {
+        "background": "blue-500",
+        "text": "white"
+      },
+      "typography": {
+        "fontFamily": "sans-serif",
+        "fontSize": "1rem"
+      }
+    }
+  },
+  "chatApps": [
+    {
+      "id": "default-chat",
+      "name": "Default Chat",
+      "agentId": "default-agent",
+      "toolbarId": "default-toolbar",
+      "themeId": "default-theme"
+    }
+  ]
+}

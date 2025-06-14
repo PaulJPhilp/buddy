@@ -51,6 +51,16 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
   ) => {
     const [inputText, setInputText] = useState("");
 
+    // Debug wrapper for setInputText
+    const handleTextChange = (newText: string) => {
+      console.log("[UserArea] Text change:", {
+        oldText: inputText,
+        newText,
+        disabled,
+      });
+      setInputText(newText);
+    };
+
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
       if (onAddAttachments) {
@@ -89,19 +99,19 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     return (
       <div
         ref={ref}
-        className={cn("w-full border-t", className)}
+        className={cn("w-full border-t h-12", className)}
         style={{
           backgroundColor: "var(--color-chat-user-area)",
           color: "var(--color-chat-foreground)",
-          borderColor: "var(--color-chat-user-area-border)",
+          borderColor: "var(--color-chat-border)",
         }}
       >
-        <div className="w-full max-w-4xl mx-auto px-4 py-3">
+        <div className="w-full max-w-4xl mx-auto px-1 py-0.5 space-y-0.5">
           {/* 3-Row Layout: AttachmentToolbar, MinimalInput, AgentToolbar */}
-          <div className="flex flex-col space-y-2 w-full">
+          <div className="flex flex-col space-y-1 w-1/2 mx-auto text-xs">
             {/* Row 1: AttachmentToolbar */}
             {currentAttachments.length > 0 && (
-              <div className="w-full flex items-center min-h-[32px]">
+              <div className="w-full flex items-center h-3">
                 <AttachmentRow
                   files={currentAttachments}
                   onRemoveFile={onRemoveAttachment}
@@ -111,10 +121,10 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
             )}
 
             {/* Row 2: MinimalInput */}
-            <div className="w-full flex items-center min-h-[40px]">
+            <div className="w-full flex items-center h-6">
               <MinimalInput
                 text={inputText}
-                onTextChange={setInputText}
+                onTextChange={handleTextChange}
                 onSendMessage={internalHandleSendMessage}
                 onFilesSelected={onAddAttachments}
                 disabled={disabled}
@@ -127,7 +137,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
 
             {/* Row 3: AgentToolbar */}
             {agents.length > 0 && (
-              <div className="w-full flex items-center min-h-[32px]">
+              <div className="w-full flex items-center h-3">
                 <AgentToolBar
                   agents={agents}
                   selectedAgentId={selectedAgent}

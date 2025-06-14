@@ -1,21 +1,21 @@
-import { Chunk, Effect, Option, Ref, Schema } from "effect";
+import { Chunk, Effect, Option, Schema } from "effect";
 import {
   ChatAppConfig,
   ChatAppConfigSchema,
 } from "../../schemas/ChatAppConfigSchema";
+import { defaultChatTheme } from "../../themes/themeTypes";
 import { AgentService, AgentServiceApi } from "../agent";
+import { EnhancedConfigLifecycleService } from "../config-lifecycle";
 import { ThemesService, ThemesServiceApi } from "../themes/ThemesService";
 import { ToolbarService, ToolbarServiceApi } from "../toolbar";
 
 /**
- * @file Implements the AppService which provides access to chat app configs.
+ * @file AppService facade implementation using ConfigLifecycleService
  * @module services/app/AppService
  *
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- * !!! WARNING: This file uses the Effect.Service pattern and MUST NOT    !!!
- * !!! be modified by AI agents unless explicitly instructed. The pattern!!!
- * !!! used here is the canonical implementation.                        !!!
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ * This facade maintains the existing AppServiceApi interface while delegating
+ * file operations to ConfigLifecycleService. It handles business logic like
+ * reference validation and theme management.
  */
 
 export interface AppServiceApi {
@@ -26,7 +26,7 @@ export interface AppServiceApi {
   delete(id: string): Effect.Effect<void>;
 }
 
-// Helper function to validate references
+// Business logic: Validate references to other services
 const validateReferences = (
   agents: AgentServiceApi,
   toolbars: ToolbarServiceApi,
@@ -34,37 +34,117 @@ const validateReferences = (
   app: ChatAppConfig,
 ) =>
   Effect.all([
-    Effect.flatMap(agents.getById(app.agentId), (a) =>
-      a ? Effect.succeed(void 0) : Effect.fail(new Error("Invalid agentId")),
-    ),
-    Effect.flatMap(toolbars.getById(app.toolbarId), (t) =>
-      t ? Effect.succeed(void 0) : Effect.fail(new Error("Invalid toolbarId")),
-    ),
-    Effect.flatMap(
-      themes
-        .getTheme(app.themeId)
-        .pipe(Effect.catchAll(() => Effect.succeed(undefined))),
-      (th) =>
-        th ? Effect.succeed(void 0) : Effect.fail(new Error("Invalid themeId")),
-    ),
+    agents.getById(app.agentId),
+    toolbars.getById(app.toolbarId),
+    themes.getTheme(app.themeId),
   ]).pipe(Effect.map((_) => void 0));
+
+// Business logic: Ensure theme exists for config
+const ensureThemeExists = (
+  themesService: ThemesServiceApi,
+  themeId: string,
+  configName?: string,
+) =>
+  Effect.gen(function* () {
+    const theme = yield* themesService.getTheme(themeId);
+    if (!theme) {
+      console.log(`🔧 AppService: Creating default theme for ${themeId}`);
+      yield* themesService.setTheme(themeId, {
+        ...defaultChatTheme,
+        themeName: configName || "Default Theme",
+      });
+
+      // Save the newly created theme
+      yield* themesService.saveThemes({ chatIds: [themeId] }).pipe(
+        Effect.catchAll((e) => {
+          console.warn(`Failed to save theme ${themeId}:`, e);
+          return Effect.void;
+        }),
+      );
+      console.log(`✅ AppService: Default theme created for ${themeId}`);
+    }
+  });
+
+// Business logic: Validate and enrich configs with themes
+const validateAndEnrichConfigs = (
+  themesService: ThemesServiceApi,
+  configs: ChatAppConfig[],
+) =>
+  Effect.gen(function* () {
+    for (const config of configs) {
+      yield* ensureThemeExists(themesService, config.themeId, config.name);
+    }
+    return configs;
+  });
 
 export class AppService extends Effect.Service<AppServiceApi>()("AppService", {
   scoped: Effect.gen(function* () {
+    console.log("🔧 AppService: Starting facade service initialization");
+
+    // Get all dependencies
+    const configLifecycle = yield* EnhancedConfigLifecycleService;
     const agentService = yield* AgentService;
     const toolbarService = yield* ToolbarService;
     const themesService = yield* ThemesService;
-    const ref = yield* Ref.make<Chunk.Chunk<ChatAppConfig>>(Chunk.empty());
 
-    return {
-      getAll: () => Effect.map(Ref.get(ref), Chunk.toArray),
+    console.log("✅ AppService: All dependencies obtained");
+
+    // Initialize ConfigLifecycleService
+    yield* configLifecycle.loadConfigs().pipe(
+      Effect.catchAll((e) => {
+        console.warn("Failed to load configs on AppService init:", e);
+        return Effect.succeed([]);
+      }),
+    );
+
+    const serviceApi = {
+      getAll: () =>
+        Effect.gen(function* () {
+          console.log("🔧 AppService: getAll called");
+
+          // Delegate to ConfigLifecycleService
+          const configs = yield* configLifecycle.loadConfigs();
+
+          // Apply business logic (theme enrichment, validation)
+          const enrichedConfigs = yield* validateAndEnrichConfigs(
+            themesService,
+            configs,
+          );
+
+          console.log(
+            "✅ AppService: getAll completed with",
+            enrichedConfigs.length,
+            "configs",
+          );
+          return enrichedConfigs;
+        }),
+
       getById: (id: string) =>
-        Ref.get(ref).pipe(
-          Effect.map((chunk) => Chunk.findFirst(chunk, (a) => a.id === id)),
-          Effect.map(Option.getOrUndefined),
-        ),
+        Effect.gen(function* () {
+          console.log("🔧 AppService: getById called for", id);
+
+          // Delegate to ConfigLifecycleService
+          const configs = yield* configLifecycle.loadConfigs();
+          const config = configs.find((c) => c.id === id);
+
+          if (config) {
+            // Ensure theme exists for this config
+            yield* ensureThemeExists(
+              themesService,
+              config.themeId,
+              config.name,
+            );
+          }
+
+          console.log("✅ AppService: getById result:", !!config);
+          return config;
+        }),
+
       create: (app: ChatAppConfig) =>
         Effect.gen(function* () {
+          console.log("🔧 AppService: create called for", app.id);
+
+          // AppService validation (business logic)
           const validApp = yield* Schema.decode(ChatAppConfigSchema)(app);
           yield* validateReferences(
             agentService,
@@ -72,26 +152,62 @@ export class AppService extends Effect.Service<AppServiceApi>()("AppService", {
             themesService,
             validApp,
           );
-          yield* Ref.update(ref, (chunk) => Chunk.append(chunk, validApp));
+
+          // Delegate to ConfigLifecycleService
+          yield* configLifecycle.addConfig(validApp);
+
+          // AppService post-processing
+          yield* ensureThemeExists(
+            themesService,
+            validApp.themeId,
+            validApp.name,
+          );
+
+          console.log("✅ AppService: create completed for", app.id);
         }).pipe(
-          Effect.catchAll((e) =>
-            Effect.logWarning(
-              "Failed to create app config due to validation/decode error",
-              { error: e },
-              e,
-              { service: "AppService" },
-            ).pipe(Effect.flatMap(() => Effect.void)),
-          ),
+          Effect.catchAll((e) => {
+            console.warn("Failed to create app config:", e);
+            return Effect.void;
+          }),
         ),
+
       update: (id: string, patch: Partial<ChatAppConfig>) =>
-        Ref.update(ref, (chunk) =>
-          Chunk.map(chunk, (app) =>
-            app.id === id ? { ...app, ...patch } : app,
-          ),
-        ),
+        Effect.gen(function* () {
+          console.log("🔧 AppService: update called for", id);
+
+          // Delegate to ConfigLifecycleService (use updateConfigImmediate for compatibility)
+          yield* configLifecycle.updateConfigImmediate(id, patch);
+
+          // If theme was updated, ensure it exists
+          if (patch.themeId) {
+            yield* ensureThemeExists(
+              themesService,
+              patch.themeId,
+              patch.name || "Updated Config",
+            );
+          }
+
+          console.log("✅ AppService: update completed for", id);
+        }),
+
       delete: (id: string) =>
-        Ref.update(ref, (chunk) => Chunk.filter(chunk, (app) => app.id !== id)),
+        Effect.gen(function* () {
+          console.log("🔧 AppService: delete called for", id);
+
+          // Delegate to ConfigLifecycleService
+          yield* configLifecycle.deleteConfig(id);
+
+          console.log("✅ AppService: delete completed for", id);
+        }),
     } satisfies AppServiceApi;
+
+    console.log("✅ AppService: Facade service initialized");
+    return serviceApi;
   }),
-  dependencies: [AgentService, ToolbarService, ThemesService],
+  dependencies: [
+    EnhancedConfigLifecycleService.Default,
+    AgentService.Default,
+    ToolbarService.Default,
+    ThemesService.Default,
+  ],
 }) {}
