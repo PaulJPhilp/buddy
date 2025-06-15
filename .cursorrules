@@ -1,0 +1,270 @@
+# Service Pattern Check Rule
+
+**IMPORTANT**: Before making ANY changes to services or starting ANY commands related to services:
+
+1. MUST review `src/docs/service-pattern.md` in full
+2. MUST understand the current Effect.Service pattern (v3.14+)
+3. MUST NOT use Context.Tag pattern (banned)
+4. MUST follow single service class implementation with:
+   - Extends Effect.Service
+   - Has both identifier and implementation in one place
+   - No inheritance or separate implementation classes
+   - Proper effect and dependencies defined
+
+## Key Points to Check
+
+1. Service Definition:
+   ```typescript
+   export class MyService extends Effect.Service<MyServiceApi>()(
+     "MyService",
+     {
+       effect: Effect.succeed({ /* implementation */ }),
+       dependencies: [] // List required services
+     }
+   ) {}
+   ```
+
+2. No Split Implementation:
+   - NO separate api.ts/service.ts/layer.ts split
+   - NO inheritance between service classes
+   - NO Context.Tag usage
+
+3. Dependencies:
+   - List ALL required services in dependencies array
+   - Access via yield* in implementation
+
+4. Error Handling:
+   - Map ALL errors to domain-specific errors
+   - Use proper Effect error handling patterns
+
+## Checklist Before Changes
+
+- [ ] Read service-pattern.md completely
+- [ ] Understand current service structure
+- [ ] Verify no Context.Tag usage
+- [ ] Plan changes to match correct pattern
+- [ ] Consider impact on dependent code
+
+---
+
+# MDX Service Pattern (Standard)
+
+All services MUST follow the MDX service pattern for consistency and maintainability.
+
+## Required File Structure
+
+Every service MUST have exactly these 5 files:
+
+```
+services/service-name/
+├── api.ts      # Service contract interface
+├── errors.ts   # Domain-specific error types
+├── types.ts    # Type definitions and constants
+├── service.ts  # Service implementation
+└── index.ts    # Barrel exports
+```
+
+## File Templates
+
+### 1. api.ts - Service Contract
+```typescript
+import { Effect } from "effect";
+import type { ServiceError } from "./errors";
+import type { ServiceTypes } from "./types";
+
+export interface ServiceNameApi {
+  readonly methodName: (param: string) => Effect.Effect<ReturnType, ServiceError>;
+  // All methods MUST return Effect with proper error types
+}
+```
+
+### 2. errors.ts - Error Types
+```typescript
+import { Data } from "effect";
+
+export class ServiceSpecificError extends Data.TaggedError(
+  "ServiceSpecificError",
+)<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+
+export class ServiceValidationError extends Data.TaggedError(
+  "ServiceValidationError",
+)<{
+  readonly message: string;
+  readonly field?: string;
+  readonly cause?: unknown;
+}> {}
+
+export type ServiceError = 
+  | ServiceSpecificError 
+  | ServiceValidationError;
+```
+
+### 3. types.ts - Type Definitions
+```typescript
+// Re-export external types if needed
+export type { ExternalType } from "@/types/global";
+
+// Service-specific types
+export interface ServiceConfig {
+  readonly property: string;
+}
+
+// Constants
+export const SERVICE_CONSTANTS = {
+  MAX_ITEMS: 100,
+  TIMEOUT: 5000,
+} as const;
+```
+
+### 4. service.ts - Implementation
+```typescript
+import { Effect } from "effect";
+import type { ServiceNameApi } from "./api";
+import { ServiceSpecificError } from "./errors";
+import type { ServiceConfig } from "./types";
+
+export class ServiceName extends Effect.Service<ServiceNameApi>()(
+  "ServiceName",
+  {
+    scoped: Effect.gen(function* () {
+      // Implementation here
+      const methodName = (param: string) =>
+        Effect.gen(function* () {
+          // Implementation with proper error handling
+        }).pipe(
+          Effect.mapError((cause) =>
+            new ServiceSpecificError({
+              message: "Operation failed",
+              cause,
+            })
+          )
+        );
+
+      return {
+        methodName,
+      } satisfies ServiceNameApi;
+    }),
+    dependencies: [], // List required services
+  },
+) {}
+```
+
+### 5. index.ts - Barrel Exports
+```typescript
+// Main exports
+export type { ServiceNameApi } from "./api";
+export {
+  ServiceSpecificError,
+  ServiceValidationError,
+} from "./errors";
+export type { ServiceError } from "./errors";
+export { ServiceName } from "./service";
+export type {
+  ServiceConfig,
+  ExternalType,
+} from "./types";
+export {
+  SERVICE_CONSTANTS,
+} from "./types";
+```
+
+## Mandatory Rules
+
+### DO:
+1. **Always use the 5-file structure** - no exceptions
+2. **Use Effect.Service pattern** with proper scoped/effect
+3. **Define domain-specific errors** in errors.ts
+4. **Use proper Effect error handling** with mapError
+5. **Export everything through index.ts** barrel exports
+6. **Use readonly properties** in interfaces
+7. **Use proper TypeScript formatting** (multiline for complex types)
+8. **Add JSDoc comments** for public APIs
+
+### DON'T:
+1. **Never use Context.Tag** - it's banned
+2. **Never mix service logic** across files
+3. **Never export .Live or .Default** directly from service.ts
+4. **Never use inheritance** between service classes
+5. **Never skip error handling** - all operations must handle errors
+6. **Never use any or unknown** without proper type guards
+7. **Never create services** without following this exact pattern
+
+## Error Handling Pattern
+
+All service methods MUST:
+1. Return `Effect.Effect<Success, DomainError>`
+2. Map all errors to domain-specific error types
+3. Include proper error context (message, cause)
+4. Use tagged errors for type safety
+
+```typescript
+const operation = (input: string) =>
+  Effect.gen(function* () {
+    const result = yield* riskyOperation(input);
+    return result;
+  }).pipe(
+    Effect.mapError((cause) =>
+      new ServiceSpecificError({
+        message: "Operation failed",
+        cause,
+      })
+    )
+  );
+```
+
+## Dependencies Pattern
+
+Services with dependencies MUST:
+1. List dependencies in the dependencies array
+2. Use proper service injection
+3. Access dependencies via yield*
+
+```typescript
+export class ServiceWithDeps extends Effect.Service<ServiceApi>()(
+  "ServiceWithDeps",
+  {
+    scoped: Effect.gen(function* () {
+      const dependency = yield* DependencyService;
+      
+      const method = () =>
+        Effect.gen(function* () {
+          const result = yield* dependency.someMethod();
+          return result;
+        });
+
+      return { method };
+    }),
+    dependencies: [DependencyService.Default],
+  },
+) {}
+```
+
+## Validation Before Service Changes
+
+Before modifying ANY service:
+
+1. **Check existing pattern** - ensure it follows MDX structure
+2. **Verify error handling** - all methods return proper Effect types
+3. **Review dependencies** - ensure proper service injection
+4. **Test build** - run `bun run build` to verify changes
+5. **Update imports** - ensure all consumers use barrel exports
+
+## Examples
+
+See these services for reference:
+- `apps/client/src/services/app/` - Complete MDX pattern
+- `apps/client/src/services/agent/` - Complete MDX pattern  
+- `apps/client/src/services/chat/` - Complete MDX pattern
+- `apps/client/src/services/toolbar/` - Complete MDX pattern
+
+## Enforcement
+
+This pattern is MANDATORY for:
+- All new services
+- All service modifications
+- All service refactoring
+
+Any deviation from this pattern will cause build failures and must be corrected immediately. 

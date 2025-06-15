@@ -2,17 +2,15 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { AgentService } from "../../agent";
 import { AppService } from "../../app";
-import { ThemesService } from "../../themes";
 import { ToolbarService } from "../../toolbar";
-import { EnhancedConfigLifecycleService } from "../EnhancedConfigLifecycleService";
+import { ConfigLifecycleService } from "../ConfigLifecycleService";
 
 describe("ConfigLifecycleService Integration", () => {
   // Create a test service layer with all dependencies
   const testServiceLayer = Layer.mergeAll(
     AgentService.Default,
     ToolbarService.Default,
-    ThemesService.Default,
-    EnhancedConfigLifecycleService.Default,
+    ConfigLifecycleService.Default,
     AppService.Default,
   );
 
@@ -40,7 +38,6 @@ describe("ConfigLifecycleService Integration", () => {
         const appService = yield* AppService;
         const agentService = yield* AgentService;
         const toolbarService = yield* ToolbarService;
-        const themesService = yield* ThemesService;
 
         // Create required dependencies first
         yield* agentService
@@ -61,46 +58,43 @@ describe("ConfigLifecycleService Integration", () => {
           })
           .pipe(Effect.catchAll(() => Effect.void));
 
-        yield* themesService
-          .setTheme("test-theme", {
-            colors: {
-              primary: "blue-500",
-              secondary: "gray-200",
+        .setTheme("test-theme",
+        primary: "blue-500", secondary;
+        : "gray-200",
               accent: "blue-600",
               background: "white",
               text: "gray-800",
-            },
-            borders: {
-              color: "gray-300",
-              thickness: "1px",
+        ,
+            borders:
+        color: "gray-300", thickness;
+        : "1px",
               radius: "0.5rem",
-            },
-            bubbles: {
-              user: {
-                background: "blue-500",
-                text: "white",
+        ,
+            bubbles:
+        background: "blue-500", text;
+        : "white",
                 radius: "rounded-xl",
-              },
-              agent: {
-                background: "gray-200",
-                text: "gray-800",
+        ,
+              agent:
+        background: "gray-200", text;
+        : "gray-800",
                 radius: "rounded-xl",
-              },
-            },
-            userArea: {
-              background: "gray-50",
-              inputRingColor: "blue-600",
-            },
-            header: {
-              background: "blue-500",
-              text: "white",
-            },
-            typography: {
-              fontFamily: "sans-serif",
-              fontSize: "1rem",
-            },
-          })
-          .pipe(Effect.catchAll(() => Effect.void));
+        ,
+        ,
+            userArea:
+        background: "gray-50", inputRingColor;
+        : "blue-600",
+        ,
+            header:
+        background: "blue-500", text;
+        : "white",
+        ,
+            typography:
+        fontFamily: "sans-serif", fontSize;
+        : "1rem",
+        ,
+        )
+          .pipe(Effect.catchAll(() => Effect.void))
 
         // Test creating a config through AppService
         const testConfig = {
@@ -149,17 +143,15 @@ describe("ConfigLifecycleService Integration", () => {
       Effect.gen(function* () {
         // Verify all services are available
         const appService = yield* AppService;
-        const configService = yield* EnhancedConfigLifecycleService;
+        const configService = yield* ConfigLifecycleService;
         const agentService = yield* AgentService;
         const toolbarService = yield* ToolbarService;
-        const themesService = yield* ThemesService;
 
         // Verify they have the expected methods
         expect(typeof appService.getAll).toBe("function");
         expect(typeof configService.loadConfigs).toBe("function");
         expect(typeof agentService.getAll).toBe("function");
         expect(typeof toolbarService.getAll).toBe("function");
-        expect(typeof themesService.getTheme).toBe("function");
 
         return { success: true };
       }).pipe(Effect.provide(testServiceLayer)),

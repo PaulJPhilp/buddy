@@ -2,13 +2,13 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { WebSocketError } from "../../websocket/WebSocketService";
 import { WebSocketService } from "../../websocket/WebSocketService";
-import { ChatService } from "../ChatService";
-import { ChatState } from "../ChatServiceApi";
 import {
   HistoryError,
   MessageCreationError,
   StateUpdateError,
-} from "../ChatServiceErrors";
+} from "../errors";
+import { ChatService } from "../service";
+import { ChatState } from "../types";
 
 // Constants
 const MAX_MESSAGES_PER_CHAT = 100;
@@ -16,10 +16,7 @@ const MAX_MESSAGE_LENGTH = 1000;
 const MIN_MESSAGE_LENGTH = 1;
 
 // Create a test layer that provides all required dependencies
-const TestLayer = Layer.mergeAll(
-  WebSocketService.Default,
-  ChatService.Default
-);
+const TestLayer = Layer.mergeAll(WebSocketService.Default, ChatService.Default);
 
 describe("ChatService", () => {
   describe("getState", () => {

@@ -5,7 +5,7 @@
  * to replace the current localStorage-based config management.
  */
 
-import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
+import type { ChatAppConfig } from "@/types/global";
 import { Effect } from "effect";
 import { ConfigLifecycleService } from "./ConfigLifecycleService";
 

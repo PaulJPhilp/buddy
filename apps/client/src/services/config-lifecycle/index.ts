@@ -1,21 +1,24 @@
-// Config Lifecycle Service exports
+// Main exports
+export type { ConfigLifecycleServiceApi } from "./api";
 export {
-  ConfigLifecycleService,
+  ConcurrentModificationError,
   ConfigLoadError,
   ConfigSaveError,
   ConfigValidationError,
-  ConcurrentModificationError,
-  type ConfigLifecycleServiceApi,
-} from "./ConfigLifecycleService";
+} from "./errors";
+export type {
+  ConfigLifecycleContext,
+  ConfigLifecycleServiceError,
+} from "./errors";
+export { ConfigLifecycleService } from "./ConfigLifecycleService";
+export type {
+  ChatAppConfig,
+  ConfigLifecycleEvent,
+  ConfigLifecycleServiceOptions,
+} from "./types";
 
-export {
-  EnhancedConfigLifecycleService,
-  EnhancedConfigLifecycleServiceLive,
-  type EnhancedConfigLifecycleServiceApi,
-  type ConfigLifecycleContext,
-  type ConfigSaveStatus,
-  type ConfigLifecycleEvent,
-} from "./EnhancedConfigLifecycleService";
+// Legacy exports for compatibility
+export { ConfigLifecycleServiceLive } from "./ConfigLifecycleService";
 
 // Hooks and utilities
 export { useConfigEditor } from "../../hooks/useConfigEditor";

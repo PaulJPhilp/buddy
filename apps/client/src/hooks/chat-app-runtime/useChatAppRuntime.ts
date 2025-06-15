@@ -1,9 +1,7 @@
 import { useAgentSession } from "@/hooks/agent-session";
-import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 import { AppService } from "@/services/app";
-import { ThemesService } from "@/services/themes";
 import { ToolbarService } from "@/services/toolbar";
-import type { ChatAppTheme } from "@/themes/themeTypes";
+import type { ChatAppConfig } from "@/types/global";
 import { Effect, Layer } from "effect";
 import { useEffect, useMemo, useState } from "react";
 
@@ -16,10 +14,7 @@ import { useEffect, useMemo, useState } from "react";
  * useChatAppRuntime combines config, toolbar, and theme for a chatAppId.
  * Accepts an optional themeOverride for live preview/testing.
  */
-export function useChatAppRuntime(
-  chatAppId: string,
-  themeOverride?: ChatAppTheme,
-) {
+export function useChatAppRuntime(chatAppId: string) {
   const [config, setConfig] = useState<ChatAppConfig | null>(null);
   const [toolbar, setToolbar] = useState<any>(null);
   const [theme, setTheme] = useState<any>(null);
@@ -36,7 +31,6 @@ export function useChatAppRuntime(
       // Get service instances
       const appsService = yield* _(AppService);
       const toolbarsService = yield* _(ToolbarService);
-      const themesService = yield* _(ThemesService);
 
       // Get the chat app config
       const cfg = yield* _(appsService.getById(chatAppId));
@@ -46,17 +40,12 @@ export function useChatAppRuntime(
       const tb = yield* _(toolbarsService.getById(cfg.toolbarId));
 
       // Get the theme
-      const th = yield* _(themesService.getTheme(cfg.themeId));
 
       // Return all fetched data
       return { config: cfg, toolbar: tb, theme: th };
     }).pipe(
       Effect.provide(
-        Layer.mergeAll(
-          AppService.Default,
-          ToolbarService.Default,
-          ThemesService.Default,
-        ),
+        Layer.mergeAll(AppService.Default, ToolbarService.Default),
       ),
     );
 

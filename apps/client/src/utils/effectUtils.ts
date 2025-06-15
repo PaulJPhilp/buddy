@@ -1,17 +1,17 @@
 /**
  * @file Effect-based Utility Functions
  * @module utils/effectUtils
- * 
+ *
  * Collection of reusable Effect-based utilities for file operations,
  * JSON parsing, and other common tasks throughout the application.
  */
 
-import { Effect } from "effect";
 import type {
   FileReadError,
   FileSystemUnavailableError,
   JsonParseError,
-} from "../services/themes/ThemesService";
+} from "@/types/errors";
+import { Effect } from "effect";
 
 /**
  * Type representing any valid JSON value

@@ -39,7 +39,6 @@ export type AppLayoutEvent =
 // Theme Store Types
 export interface ThemeState {
     // Current themes
-    readonly themes: Record<string, any>; // ChatAppTheme type from existing code
     readonly activeThemeId: string;
     readonly defaultThemeId: string;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ThemeEditorPanel } from "@/components/theme-editor";
+// ThemeEditorPanel removed with theme system
 import { useChatAppContext } from "@/contexts/ChatAppContext";
 import { appLayoutStore } from "@/stores/appLayoutStore";
 
@@ -28,30 +28,15 @@ export function AppSidebar({ isOpen, onToggleAction }: AppSidebarProps) {
 
   let editorContent: React.ReactNode = null;
   if (activeSidebarEditor === "theme") {
-    if (chatAppContext?.activeChatAppConfig) {
-      editorContent = (
-        <ThemeEditorPanel
-          theme={chatAppContext.activeChatAppConfig.theme}
-          onThemeChange={chatAppContext.onThemeChange}
-          isOpen={true}
-          onClose={() =>
-            appLayoutStore.send({
-              type: "setActiveSidebarEditor",
-              editor: null,
-            })
-          }
-        />
-      );
-    } else {
-      editorContent = (
-        <div className="p-4 text-center text-muted-foreground">
-          <p className="mb-2">No chat app active</p>
-          <p className="text-sm">
-            The theme editor requires an active chat app to edit themes.
-          </p>
-        </div>
-      );
-    }
+    editorContent = (
+      <div className="p-4 text-center text-muted-foreground">
+        <p className="mb-2">Theme Editor Removed</p>
+        <p className="text-sm">
+          The theme editor has been removed as part of the bootstrap system
+          cleanup.
+        </p>
+      </div>
+    );
   }
   // Add more editors here as needed
 

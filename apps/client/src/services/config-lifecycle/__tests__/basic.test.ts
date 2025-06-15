@@ -36,7 +36,6 @@ describe("ConfigLifecycleService - Basic Integration", () => {
                 themeId: "test-theme",
               },
             ],
-            themes: {},
           }),
         ),
     } as Response);

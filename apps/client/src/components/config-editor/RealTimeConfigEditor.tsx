@@ -1,7 +1,7 @@
 "use client";
 
 import { useConfigEditor } from "@/hooks/useConfigEditor";
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
+import { ChatAppConfig } from "@/types/global";
 import React, { useState } from "react";
 
 interface RealTimeConfigEditorProps {

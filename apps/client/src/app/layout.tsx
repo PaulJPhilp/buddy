@@ -12,13 +12,11 @@ import { Toaster } from "sonner";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ChatAppProvider } from "@/contexts/ChatAppContext";
-import { initializeBootstrapFromLocalStorageDevOnly } from "@/devBootstrapLoader";
 
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 import { AgentService } from "@/services/agent";
 import { AppService } from "@/services/app";
-import { ThemesService } from "@/services/themes";
 import { ToolbarService } from "@/services/toolbar";
+import { ChatAppConfig } from "@/types/global";
 
 import { Effect, Layer } from "effect";
 
@@ -38,7 +36,6 @@ const serviceLayer = Layer.mergeAll(
   AppService.Default,
   AgentService.Default,
   ToolbarService.Default,
-  ThemesService.Default,
 );
 
 // Server component wrapper for the layout
@@ -56,69 +53,6 @@ export default function RootLayout({
   const [activeConfig, setActiveConfig] = useState<ChatAppConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize dev bootstrap loader on app startup
-  useEffect(() => {
-    initializeBootstrapFromLocalStorageDevOnly();
-  }, []);
-
-  // Load all available chat apps from index.json on startup
-  useEffect(() => {
-    const loadAllChatApps = async () => {
-      try {
-        console.log("🚀 Loading all chat apps from index.json...");
-
-        // Fetch the index.json to get list of config files
-        const indexRes = await fetch("/configs/index.json");
-        if (!indexRes.ok) {
-          console.warn("Could not load index.json, skipping chat app loading");
-          return;
-        }
-
-        const configFiles = (await indexRes.json()) as string[];
-        console.log("📋 Found config files:", configFiles);
-
-        const allChatApps: any[] = [];
-
-        // Load each config file and extract chat apps
-        for (const filename of configFiles) {
-          try {
-            const configRes = await fetch(`/configs/${filename}`);
-            if (!configRes.ok) {
-              console.warn(`Could not load ${filename}, skipping`);
-              continue;
-            }
-
-            const configData = await configRes.json();
-            console.log(`📄 Loaded config ${filename}:`, configData);
-
-            // Extract chat apps from this config
-            if (configData.chatApps && Array.isArray(configData.chatApps)) {
-              for (const chatApp of configData.chatApps) {
-                // Enrich with theme if available
-                if (
-                  chatApp.themeId &&
-                  configData.themes &&
-                  configData.themes[chatApp.themeId]
-                ) {
-                  chatApp.theme = configData.themes[chatApp.themeId];
-                }
-                allChatApps.push(chatApp);
-              }
-            }
-          } catch (error) {
-            console.warn(`Failed to load config ${filename}:`, error);
-          }
-        }
-
-        console.log("💾 Loaded all chat apps:", allChatApps);
-      } catch (error) {
-        console.error("❌ Failed to load chat apps from index.json:", error);
-      }
-    };
-
-    loadAllChatApps();
-  }, []);
-
   // Load all chat app configs on mount (no activeConfig dependency)
   useEffect(() => {
     let cancelled = false;
@@ -126,7 +60,6 @@ export default function RootLayout({
     Effect.runPromise(
       Effect.gen(function* () {
         const appService = yield* AppService;
-        const themesService = yield* ThemesService;
 
         const apps = yield* appService.getAll();
         if (!cancelled) setChatApps(apps);
@@ -206,22 +139,13 @@ export default function RootLayout({
       );
 
       Effect.runPromise(
-        Effect.gen(function* () {
-          const themesService = yield* ThemesService;
+        Effect.sync(() => {
           let cfg = appConfig;
 
-          // Use embedded theme if available, otherwise try to load from service
+          // Use embedded theme if available
           if (cfg.theme) {
             console.log("🎧 Layout: Using embedded theme:", cfg.theme);
             // Theme is already embedded, no need to load from service
-          } else if (cfg.themeId) {
-            console.log(
-              "🎧 Layout: Loading theme from service for themeId:",
-              cfg.themeId,
-            );
-            const theme = yield* themesService.getTheme(cfg.themeId);
-            console.log("🎧 Layout: Loaded theme from service:", theme);
-            cfg = { ...cfg, theme: theme ?? {} } as ChatAppConfig;
           } else {
             console.log("🎧 Layout: No theme available, using default");
             cfg = { ...cfg, theme: {} } as ChatAppConfig;
@@ -290,12 +214,6 @@ export default function RootLayout({
     Effect.runPromise(
       Effect.gen(function* () {
         const appService = yield* AppService;
-        const themesService = yield* ThemesService;
-
-        if (config.themeId) {
-          yield* themesService.setTheme(config.themeId, newTheme);
-          yield* themesService.saveThemes({ chatIds: [config.themeId] });
-        }
 
         yield* appService.update(config.id, { theme: newTheme });
       }).pipe(Effect.provide(serviceLayer)),

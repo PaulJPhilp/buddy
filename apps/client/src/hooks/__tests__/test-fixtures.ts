@@ -3,32 +3,31 @@
  * @module hooks/__tests__/test-fixtures
  */
 
-import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
-import type { ChatAppTheme } from "@/themes/themeTypes";
+import type { ChatAppConfig } from "@/types/global";
 import type { ProtocolMessage } from "@buddy/protocol";
 import { Effect, Layer, Ref } from "effect";
 
 // Real test data fixtures
-export const testChatTheme: ChatAppTheme = {
-  themeName: "test-theme",
-  primaryColor: "#000000",
+themeName: "test-theme", primaryColor;
+: "#000000",
   secondaryColor: "#ffffff",
   backgroundColor: "#f5f5f5",
   textColor: "#333333",
   borderColor: "#cccccc",
-  components: {
-    button: {
-      backgroundColor: "#007bff",
-      textColor: "#ffffff",
+  components:
+{
+  backgroundColor: "#007bff", textColor;
+  : "#ffffff",
       borderRadius: "4px",
-    },
-    input: {
-      backgroundColor: "#ffffff",
-      textColor: "#000000",
+  ,
+    input:
+  backgroundColor: "#ffffff", textColor;
+  : "#000000",
       borderColor: "#cccccc",
-    },
-  },
-};
+  ,
+}
+,
+}
 
 export const testChatAppConfig: ChatAppConfig = {
   id: "test-chat-app",
@@ -147,55 +146,41 @@ export const MockToolbarService = Effect.Service<MockToolbarService>()(
   },
 );
 
-export interface MockThemesService {
-  readonly themes: Ref.Ref<Map<string, ChatAppTheme>>;
-  readonly getTheme: (
+readonly;
+getTheme: (
     id: string,
-  ) => Effect.Effect<never, never, ChatAppTheme | null>;
   readonly setTheme: (
     id: string,
-    theme: ChatAppTheme,
   ) => Effect.Effect<never, never, void>;
 }
 
-export const MockThemesService = Effect.Service<MockThemesService>()(
-  "MockThemesService",
-  {
-    effect: Effect.gen(function* () {
-      const themes = yield* Ref.make(new Map<string, ChatAppTheme>());
-
-      return {
+{
+  effect: Effect.gen(function* () {
+    return {
         themes,
         getTheme: (id: string) =>
           Effect.gen(function* () {
             const themeMap = yield* Ref.get(themes);
             return themeMap.get(id) || null;
           }),
-        setTheme: (id: string, theme: ChatAppTheme) =>
           Ref.update(themes, (map) => new Map(map.set(id, theme))),
       };
-    }),
-    dependencies: [],
-  },
-);
+  }),
+    dependencies;
+  : [],
+}
+,
+)
 
 // Test layer that provides all mock services
 export const TestLayer = Layer.mergeAll(
   MockThemeStore.Default,
   MockAppService.Default,
   MockToolbarService.Default,
-  MockThemesService.Default,
 );
 
 // Helper functions for setting up test data
-export const setupTestTheme = (
-  themeId: string,
-  theme: ChatAppTheme = testChatTheme,
-) =>
-  Effect.gen(function* () {
-    const themesService = yield* MockThemesService;
-    yield* themesService.setTheme(themeId, theme);
-  });
+export const setupTestTheme = (themeId: string) => Effect.gen(function* () {});
 
 export const setupTestConfig = (config: ChatAppConfig = testChatAppConfig) =>
   Effect.gen(function* () {

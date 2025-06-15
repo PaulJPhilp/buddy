@@ -1,9 +1,8 @@
+import { ChatAppConfig } from "@/types/global";
 import { Effect, Layer } from "effect";
-import { ChatAppConfig } from "./schemas/ChatAppConfigSchema";
 import { AgentService } from "./services/agent";
 import { AppService } from "./services/app";
-import { EnhancedConfigLifecycleServiceLive } from "./services/config-lifecycle";
-import { ThemesService } from "./services/themes";
+import { ConfigLifecycleServiceLive } from "./services/config-lifecycle";
 import { ToolbarService } from "./services/toolbar";
 
 /**
@@ -34,11 +33,6 @@ const setupChatConfig = Effect.gen(function* () {
   const toolbarService = yield* ToolbarService;
   console.log("✅ ToolbarService obtained:", !!toolbarService);
   console.log("🔍 ToolbarService methods:", Object.keys(toolbarService || {}));
-
-  console.log("🔄 Getting ThemesService...");
-  const themesService = yield* ThemesService;
-  console.log("✅ ThemesService obtained:", !!themesService);
-  console.log("🔍 ThemesService methods:", Object.keys(themesService || {}));
 
   console.log("🔄 Getting AppService...");
   const appService = yield* AppService;
@@ -74,26 +68,22 @@ const setupChatConfig = Effect.gen(function* () {
     .pipe(Effect.catchAll(() => Effect.void)); // Ignore if already exists
 
   console.log("🎨 Creating default theme...");
-  yield* themesService
+  yield* appService
     .setTheme("default-theme", {
-      colors: {
-        primary: "blue-500",
-        secondary: "gray-200",
-        accent: "blue-600",
-        background: "white",
-        text: "gray-800",
-      },
+      primary: "blue-500",
+      secondary: "gray-200",
+      accent: "blue-600",
+      background: "white",
+      text: "gray-800",
       borders: {
         color: "gray-300",
         thickness: "1px",
         radius: "0.5rem",
       },
       bubbles: {
-        user: {
-          background: "blue-500",
-          text: "white",
-          radius: "rounded-xl",
-        },
+        background: "blue-500",
+        text: "white",
+        radius: "rounded-xl",
         agent: {
           background: "gray-200",
           text: "gray-800",
@@ -144,14 +134,12 @@ console.log("🔧 Creating service layer...");
 console.log("🔍 AppService.Default:", AppService.Default);
 console.log("🔍 AgentService.Default:", AgentService.Default);
 console.log("🔍 ToolbarService.Default:", ToolbarService.Default);
-console.log("🔍 ThemesService.Default:", ThemesService.Default);
 
 const serviceLayer = Layer.mergeAll(
   AppService.Default,
   AgentService.Default,
   ToolbarService.Default,
-  ThemesService.Default,
-  EnhancedConfigLifecycleServiceLive,
+  ConfigLifecycleServiceLive,
 );
 
 console.log("✅ Service layer created:", serviceLayer);

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
+import { ChatAppConfig } from "@/types/global";
 import { ReactNode, createContext, useContext } from "react";
 
 interface ChatAppContextValue {

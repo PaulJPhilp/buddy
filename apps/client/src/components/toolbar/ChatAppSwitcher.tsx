@@ -1,6 +1,6 @@
 "use client";
 
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
+import { ChatAppConfig } from "@/types/global";
 import React, { useEffect, useState } from "react";
 
 /**

@@ -1,10 +1,10 @@
 "use client";
 
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 import {
-  EnhancedConfigLifecycleService,
-  EnhancedConfigLifecycleServiceLive,
+  ConfigLifecycleService,
+  ConfigLifecycleServiceLive,
 } from "@/services/config-lifecycle";
+import { ChatAppConfig } from "@/types/global";
 import { Effect } from "effect";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -30,10 +30,10 @@ export function ChatAppSwitcherEnhanced() {
       const service = await Effect.runPromise(
         Effect.gen(function* () {
           console.log(
-            `📱 ChatAppSwitcherEnhanced: Yielding EnhancedConfigLifecycleService...`,
+            `📱 ChatAppSwitcherEnhanced: Yielding ConfigLifecycleService...`,
           );
-          return yield* EnhancedConfigLifecycleService;
-        }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+          return yield* ConfigLifecycleService;
+        }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
       );
       console.log(`📱 ChatAppSwitcherEnhanced: Service obtained:`, !!service);
 
@@ -106,8 +106,8 @@ export function ChatAppSwitcherEnhanced() {
       try {
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         const subscription = await Effect.runPromise(
@@ -160,8 +160,8 @@ export function ChatAppSwitcherEnhanced() {
           // Get service for state management
           const service = await Effect.runPromise(
             Effect.gen(function* () {
-              return yield* EnhancedConfigLifecycleService;
-            }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+              return yield* ConfigLifecycleService;
+            }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
           );
 
           // Set as active in the service

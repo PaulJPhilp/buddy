@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { WebSocketService } from "../../websocket/WebSocketService";
-import { ChatService } from "../ChatService";
 import { ChatState, MessageApi } from "../ChatServiceApi";
+import { ChatService } from "../service";
 
 // Create a test layer that provides all required dependencies
 const TestLayer = Layer.mergeAll(WebSocketService.Default, ChatService.Default);

@@ -1,11 +1,10 @@
 "use client";
 
-import { useChatInstance } from "@/hooks/chat-instance";
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
+import { useSimpleChat } from "@/hooks/useSimpleChat";
 import { AgentService } from "@/services/agent";
 import { AppService } from "@/services/app";
-import { ThemesService } from "@/services/themes";
 import { ToolbarService } from "@/services/toolbar";
+import { ChatAppConfig } from "@/types/global";
 import { Effect, Layer } from "effect";
 import { useEffect, useState } from "react";
 import ChatArea from "./ChatArea";
@@ -21,7 +20,6 @@ const serviceLayer = Layer.mergeAll(
   AppService.Default,
   AgentService.Default,
   ToolbarService.Default,
-  ThemesService.Default,
 );
 
 // ---
@@ -70,7 +68,7 @@ export function ChatApp({ config }: ChatAppProps) {
   });
 
   // Always call the hook (React rules), but handle loading state
-  const { chatState, dispatchAction } = useChatInstance(
+  const { chatState, dispatchAction } = useSimpleChat(
     config.id, // chatId as first parameter
     agentConfig,
   );

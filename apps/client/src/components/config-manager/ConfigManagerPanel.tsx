@@ -1,10 +1,10 @@
 "use client";
 
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 import {
-  EnhancedConfigLifecycleService,
-  EnhancedConfigLifecycleServiceLive,
+  ConfigLifecycleService,
+  ConfigLifecycleServiceLive,
 } from "@/services/config-lifecycle";
+import { ChatAppConfig } from "@/types/global";
 import { Effect } from "effect";
 import React, { useCallback, useEffect, useState } from "react";
 import { RealTimeConfigEditor } from "../config-editor/RealTimeConfigEditor";
@@ -43,8 +43,8 @@ export function ConfigManagerPanel({
 
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         // Load initial configs
@@ -88,8 +88,8 @@ export function ConfigManagerPanel({
     try {
       const service = await Effect.runPromise(
         Effect.gen(function* () {
-          return yield* EnhancedConfigLifecycleService;
-        }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+          return yield* ConfigLifecycleService;
+        }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
       );
 
       await Effect.runPromise(service.toggleAutoSave());
@@ -103,8 +103,8 @@ export function ConfigManagerPanel({
     try {
       const service = await Effect.runPromise(
         Effect.gen(function* () {
-          return yield* EnhancedConfigLifecycleService;
-        }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+          return yield* ConfigLifecycleService;
+        }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
       );
 
       // Save each config that has changes
@@ -137,8 +137,8 @@ export function ConfigManagerPanel({
       try {
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         await Effect.runPromise(service.deleteConfig(configId));
@@ -206,9 +206,9 @@ export function ConfigManagerPanel({
               </span>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={toggleGlobalAutoSave}
               className={`px-3 py-1 text-sm rounded ${
                 autoSaveEnabled
@@ -220,6 +220,7 @@ export function ConfigManagerPanel({
             </button>
 
             <button
+              type="button"
               onClick={saveAllConfigs}
               className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
             >
@@ -227,6 +228,7 @@ export function ConfigManagerPanel({
             </button>
 
             <button
+              type="button"
               onClick={onClose}
               className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
             >
@@ -243,7 +245,7 @@ export function ConfigManagerPanel({
               <div className="p-4">
                 <div className="animate-pulse space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                    <div key={i} className="h-16 bg-gray-200 rounded" />
                   ))}
                 </div>
               </div>
@@ -256,7 +258,6 @@ export function ConfigManagerPanel({
                 {configs.map((config) => {
                   const status = saveStatus[config.id] || "saved";
                   const isSelected = selectedConfigId === config.id;
-
                   return (
                     <div
                       key={config.id}
@@ -266,6 +267,11 @@ export function ConfigManagerPanel({
                           : ""
                       }`}
                       onClick={() => setSelectedConfigId(config.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelectedConfigId(config.id);
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
@@ -288,6 +294,7 @@ export function ConfigManagerPanel({
                           </div>
 
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteConfig(config.id);

@@ -16,7 +16,7 @@ import {
   Sidebar,
   Users,
 } from "lucide-react";
-import { FolderOpen } from "lucide-react";
+
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ConfigManagerPanel } from "../config-manager/ConfigManagerPanel";
@@ -338,13 +338,14 @@ if (process.env.NODE_ENV === "development") {
     variant: "secondary",
   });
 
-  // Modal to select and import a config
-  function BuddyConfigLoaderModal({
+  // BuddyConfigLoaderModal and manage-buddy-configs toolbar button removed
+  // (Bootstrap system no longer needed)
+
+  // Chat Apps Manager - shows count and provides controls
+  function ChatAppsManagerModal({
     open,
     onClose,
   }: { open: boolean; onClose: () => void }) {
-    const [configs, setConfigs] = React.useState<string[]>([]);
-    const [loading, setLoading] = React.useState(false);
     const [displayedConfigs, setDisplayedConfigs] = React.useState<any[]>([]);
 
     React.useEffect(() => {
@@ -352,196 +353,24 @@ if (process.env.NODE_ENV === "development") {
 
       // No longer using localStorage for displayed configs
       setDisplayedConfigs([]);
-
-      // Fetch available configs from the API
-      fetch("/api/configs")
-        .then((res) => res.json())
-        .then((files) => {
-          if (Array.isArray(files)) {
-            // Extract just the filenames from the file objects
-            const filteredFiles = files
-              .filter((file) => file.name !== "index.json")
-              .map((file) => file.name);
-            setConfigs(filteredFiles);
-          } else {
-            setConfigs([]);
-          }
-        })
-        .catch(() => setConfigs([]));
     }, [open]);
 
-    // Defensive: always use an array for mapping
-    const safeConfigs = Array.isArray(configs) ? configs : [];
-    console.log("BuddyConfigLoaderModal configs:", configs);
-
-    async function handleImportConfig(filename: string) {
-      setLoading(true);
-      try {
-        // Fetch the selected config file from the API
-        const res = await fetch(
-          `/api/configs?file=${encodeURIComponent(filename)}`,
-        );
-        if (!res.ok) throw new Error("Failed to import config");
-        const json = await res.text();
-        const configObj = JSON.parse(json);
-
-        // Handle both old format (with chatApps array) and new format (direct config)
-        if (configObj.chatApps && Array.isArray(configObj.chatApps)) {
-          // Old format: extract from chatApps array
-          for (const chatApp of configObj.chatApps) {
-            // Enrich with theme if available
-            if (
-              chatApp.themeId &&
-              configObj.themes &&
-              configObj.themes[chatApp.themeId]
-            ) {
-              chatApp.theme = configObj.themes[chatApp.themeId];
-            }
-
-            // Dispatch event to add this chat app
-            window.dispatchEvent(
-              new CustomEvent("buddy:addChatApp", { detail: chatApp }),
-            );
-          }
-
-          setLoading(false);
-          onClose();
-
-          // Show success message
-          alert(
-            `Successfully imported ${configObj.chatApps.length} chat app(s) from ${filename}`,
-          );
-        } else if (configObj.id && configObj.name) {
-          // New format: file is the config directly
-          window.dispatchEvent(
-            new CustomEvent("buddy:addChatApp", { detail: configObj }),
-          );
-
-          setLoading(false);
-          onClose();
-
-          // Show success message
-          alert(
-            `Successfully imported chat app "${configObj.name}" from ${filename}`,
-          );
-        } else {
-          // Fallback to old behavior for configs without chatApps or direct config
-          localStorage.setItem("buddy:bootstrap", json);
-          setLoading(false);
-          onClose();
-          window.location.reload();
-        }
-      } catch (e) {
-        setLoading(false);
-        alert(`Failed to import config: ${e instanceof Error ? e.message : e}`);
-      }
+    function handleClearAll() {
+      setDisplayedConfigs([]);
+      onClose();
+      window.location.reload();
     }
 
-    async function handleDeleteConfig(filename: string) {
-      if (
-        !confirm(
-          `Are you sure you want to delete ${filename}? This action cannot be undone.`,
-        )
-      ) {
-        return;
-      }
+    function handleRemoveConfig(configId: string) {
+      const updated = displayedConfigs.filter((c) => c.id !== configId);
+      setDisplayedConfigs(updated);
 
-      try {
-        // First, get the config to see which chatapps it contains
-        const res = await fetch(
-          `/api/configs?file=${encodeURIComponent(filename)}`,
-        );
-        if (res.ok) {
-          const json = await res.text();
-          const configObj = JSON.parse(json);
-
-          // Remove any displayed chatapps from this config
-          let configChatAppIds: string[] = [];
-
-          if (configObj.chatApps && Array.isArray(configObj.chatApps)) {
-            // Old format: extract IDs from chatApps array
-            configChatAppIds = configObj.chatApps.map((app: any) => app.id);
-          } else if (configObj.id) {
-            // New format: single config ID
-            configChatAppIds = [configObj.id];
-          }
-
-          // No longer using localStorage for displayed configs
-        }
-
-        // Delete the config file from localStorage (if stored there)
-        // Note: We can't actually delete files from public/configs via client-side code
-        // This would need a server-side API endpoint for actual file deletion
-
-        // For now, just remove from any local storage references
-        alert(
-          `Config ${filename} references removed from active chatapps. Note: The file still exists in /public/configs and would need to be manually deleted.`,
-        );
-
-        // Reload to reflect changes
-        window.location.reload();
-      } catch (e) {
-        alert(
-          `Failed to process config deletion: ${e instanceof Error ? e.message : e}`,
-        );
-      }
+      // Reload to reflect changes
+      window.location.reload();
     }
-
-    // We need to track config usage state
-    const [configUsageState, setConfigUsageState] = React.useState<
-      Record<string, boolean>
-    >({});
-
-    // Update config usage when displayedConfigs or configs change
-    React.useEffect(() => {
-      async function isConfigInUse(filename: string): Promise<boolean> {
-        try {
-          // Fetch the config to get its chatapps
-          const res = await fetch(
-            `/api/configs?file=${encodeURIComponent(filename)}`,
-          );
-          if (!res.ok) return false;
-
-          const json = await res.text();
-          const configObj = JSON.parse(json);
-
-          let configChatAppIds: string[] = [];
-
-          if (configObj.chatApps && Array.isArray(configObj.chatApps)) {
-            // Old format: extract IDs from chatApps array
-            configChatAppIds = configObj.chatApps.map((app: any) => app.id);
-          } else if (configObj.id) {
-            // New format: single config ID
-            configChatAppIds = [configObj.id];
-          } else {
-            return false;
-          }
-
-          // Check if any of these chatapps are currently displayed
-          return displayedConfigs.some((displayedApp) =>
-            configChatAppIds.includes(displayedApp.id),
-          );
-        } catch {
-          return false;
-        }
-      }
-
-      const updateConfigUsage = async () => {
-        const usageState: Record<string, boolean> = {};
-
-        for (const filename of safeConfigs) {
-          usageState[filename] = await isConfigInUse(filename);
-        }
-
-        setConfigUsageState(usageState);
-      };
-
-      if (safeConfigs.length > 0) {
-        updateConfigUsage();
-      }
-    }, [safeConfigs, displayedConfigs]);
 
     if (!open) return null;
+
     return (
       <dialog
         style={{
@@ -568,7 +397,7 @@ if (process.env.NODE_ENV === "development") {
             background: "white",
             padding: 24,
             borderRadius: 12,
-            maxWidth: 400,
+            maxWidth: 500,
             maxHeight: "80vh",
             overflow: "auto",
             boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
@@ -577,294 +406,113 @@ if (process.env.NODE_ENV === "development") {
           onKeyDown={(e) => e.key === "Escape" && onClose()}
           role="document"
         >
-          <h2>Chat App Configs</h2>
-          {safeConfigs.length === 0 ? (
-            <div>No configs found in /public/configs.</div>
+          <h2>Chat Apps Manager</h2>
+          <p>Currently showing {displayedConfigs.length} chat app(s)</p>
+
+          {displayedConfigs.length === 0 ? (
+            <div style={{ margin: "16px 0" }}>
+              No chat apps currently displayed.
+            </div>
           ) : (
-            <ul style={{ listStyle: "none", padding: 0 }}>
-              {safeConfigs.map((file, index) => {
-                const isInUse = configUsageState[file] || false;
-                return (
-                  <li
-                    key={file}
-                    style={{
-                      marginBottom: 12,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px",
-                      borderRadius: "6px",
-                      backgroundColor: isInUse ? "#f3f4f6" : "transparent",
-                      opacity: isInUse ? 0.6 : 1,
-                      border: isInUse
-                        ? "1px solid #d1d5db"
-                        : "1px solid transparent",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      style={{
-                        background: isInUse ? "#9ca3af" : "#2563eb",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        padding: "6px 12px",
-                        cursor: isInUse ? "not-allowed" : "pointer",
-                        flex: 1,
-                      }}
-                      onClick={() => handleImportConfig(file)}
-                      disabled={loading || isInUse}
-                    >
-                      {isInUse ? `${file} (Active)` : `Import ${file}`}
-                    </button>
-                    <button
-                      type="button"
-                      style={{
-                        background: "#ef4444",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 4,
-                        padding: "4px 8px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "bold",
-                      }}
-                      onClick={() => handleDeleteConfig(file)}
-                      disabled={loading}
-                      title={`Delete ${file}`}
-                    >
-                      ×
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <button
-            type="button"
-            style={{
-              marginTop: 16,
-              background: "#ef4444",
-              color: "white",
-              border: "none",
-              borderRadius: 6,
-              padding: "6px 12px",
-              cursor: "pointer",
-            }}
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-      </dialog>
-    );
-  }
-
-  // Add dev-only button to mainToolbarConfig
-  if (process.env.NODE_ENV === "development") {
-    const idx = mainToolbarConfig.items.findIndex((i) => i.id === "settings");
-    mainToolbarConfig.items.splice(idx, 0, {
-      id: "manage-buddy-configs",
-      label: "Configs",
-      icon: <FolderOpen className="h-4 w-4" />,
-      action: () => {
-        if (!window.__buddyConfigLoaderModal) {
-          const root = document.createElement("div");
-          document.body.appendChild(root);
-          const rootInstance = createRoot(root);
-          function close() {
-            if (window.__buddyConfigLoaderModal?.rootInstance) {
-              window.__buddyConfigLoaderModal.rootInstance.unmount();
-            }
-            document.body.removeChild(root);
-            window.__buddyConfigLoaderModal = null;
-          }
-          window.__buddyConfigLoaderModal = { root, rootInstance };
-          rootInstance.render(
-            React.createElement(BuddyConfigLoaderModal, {
-              open: true,
-              onClose: close,
-            }),
-          );
-        }
-      },
-      tooltip: "Manage chat app configs",
-      variant: "secondary",
-    });
-
-    // Chat Apps Manager - shows count and provides controls
-    function ChatAppsManagerModal({
-      open,
-      onClose,
-    }: { open: boolean; onClose: () => void }) {
-      const [displayedConfigs, setDisplayedConfigs] = React.useState<any[]>([]);
-
-      React.useEffect(() => {
-        if (!open) return;
-
-        // No longer using localStorage for displayed configs
-        setDisplayedConfigs([]);
-      }, [open]);
-
-      function handleClearAll() {
-        setDisplayedConfigs([]);
-        onClose();
-        window.location.reload();
-      }
-
-      function handleRemoveConfig(configId: string) {
-        const updated = displayedConfigs.filter((c) => c.id !== configId);
-        setDisplayedConfigs(updated);
-
-        // Reload to reflect changes
-        window.location.reload();
-      }
-
-      if (!open) return null;
-
-      return (
-        <dialog
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 10001,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "none",
-            padding: 0,
-            margin: 0,
-          }}
-          onClick={onClose}
-          onKeyDown={(e) => e.key === "Escape" && onClose()}
-          open={open}
-        >
-          <div
-            style={{
-              background: "white",
-              padding: 24,
-              borderRadius: 12,
-              maxWidth: 500,
-              maxHeight: "80vh",
-              overflow: "auto",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.key === "Escape" && onClose()}
-            role="document"
-          >
-            <h2>Chat Apps Manager</h2>
-            <p>Currently showing {displayedConfigs.length} chat app(s)</p>
-
-            {displayedConfigs.length === 0 ? (
-              <div style={{ margin: "16px 0" }}>
-                No chat apps currently displayed.
-              </div>
-            ) : (
-              <div style={{ margin: "16px 0" }}>
-                {displayedConfigs.map((config, index) => (
-                  <div
-                    key={config.id || `config-${index}`}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "8px 0",
-                      borderBottom: "1px solid #eee",
-                    }}
-                  >
-                    <span>{config.name || config.id}</span>
-                    <button
-                      type="button"
-                      style={{
-                        background: "#ef4444",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 4,
-                        padding: "4px 8px",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                      }}
-                      onClick={() => handleRemoveConfig(config.id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-              {displayedConfigs.length > 0 && (
-                <button
-                  type="button"
+            <div style={{ margin: "16px 0" }}>
+              {displayedConfigs.map((config, index) => (
+                <div
+                  key={config.id || `config-${index}`}
                   style={{
-                    background: "#ef4444",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "6px 12px",
-                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 0",
+                    borderBottom: "1px solid #eee",
                   }}
-                  onClick={handleClearAll}
                 >
-                  Clear All
-                </button>
-              )}
+                  <span>{config.name || config.id}</span>
+                  <button
+                    type="button"
+                    style={{
+                      background: "#ef4444",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      padding: "4px 8px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                    }}
+                    onClick={() => handleRemoveConfig(config.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+            {displayedConfigs.length > 0 && (
               <button
                 type="button"
                 style={{
-                  background: "#6b7280",
+                  background: "#ef4444",
                   color: "white",
                   border: "none",
                   borderRadius: 6,
                   padding: "6px 12px",
                   cursor: "pointer",
                 }}
-                onClick={onClose}
+                onClick={handleClearAll}
               >
-                Close
+                Clear All
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              style={{
+                background: "#6b7280",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 12px",
+                cursor: "pointer",
+              }}
+              onClick={onClose}
+            >
+              Close
+            </button>
           </div>
-        </dialog>
-      );
-    }
-
-    // Add chat apps manager button
-    mainToolbarConfig.items.splice(idx, 0, {
-      id: "chat-apps-manager",
-      label: "Chat Apps",
-      icon: <Grid3X3 className="h-4 w-4" />,
-      action: () => {
-        if (!window.__chatAppsManagerModal) {
-          const root = document.createElement("div");
-          document.body.appendChild(root);
-          const rootInstance = createRoot(root);
-          function close() {
-            if (window.__chatAppsManagerModal?.rootInstance) {
-              window.__chatAppsManagerModal.rootInstance.unmount();
-            }
-            document.body.removeChild(root);
-            window.__chatAppsManagerModal = null;
-          }
-          window.__chatAppsManagerModal = { root, rootInstance };
-          rootInstance.render(
-            React.createElement(ChatAppsManagerModal, {
-              open: true,
-              onClose: close,
-            }),
-          );
-        }
-      },
-      tooltip: "Manage displayed chat apps",
-      variant: "secondary",
-    });
+        </div>
+      </dialog>
+    );
   }
+
+  // Add chat apps manager button
+  mainToolbarConfig.items.splice(idx, 0, {
+    id: "chat-apps-manager",
+    label: "Chat Apps",
+    icon: <Grid3X3 className="h-4 w-4" />,
+    action: () => {
+      if (!window.__chatAppsManagerModal) {
+        const root = document.createElement("div");
+        document.body.appendChild(root);
+        const rootInstance = createRoot(root);
+        function close() {
+          if (window.__chatAppsManagerModal?.rootInstance) {
+            window.__chatAppsManagerModal.rootInstance.unmount();
+          }
+          document.body.removeChild(root);
+          window.__chatAppsManagerModal = null;
+        }
+        window.__chatAppsManagerModal = { root, rootInstance };
+        rootInstance.render(
+          React.createElement(ChatAppsManagerModal, {
+            open: true,
+            onClose: close,
+          }),
+        );
+      }
+    },
+    tooltip: "Manage displayed chat apps",
+    variant: "secondary",
+  });
 }
 
 // Compact toolbar for mobile/small screens

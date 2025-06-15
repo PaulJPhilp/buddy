@@ -1,9 +1,8 @@
-import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
-import { ChatAppConfigSchema } from "@/schemas/ChatAppConfigSchema";
+import { ChatAppConfig } from "@/types/global";
 import { createStore } from "@xstate/store";
 import { Effect, Ref, Schema } from "effect";
 
-// State machine context
+// State machine context with save status tracking
 interface ConfigLifecycleContext {
   readonly configs: ChatAppConfig[];
   readonly activeConfigId: string | null;
@@ -12,6 +11,12 @@ interface ConfigLifecycleContext {
   readonly loading: boolean;
   readonly error: string | null;
   readonly lastModified: number;
+
+  // New: Save status tracking
+  readonly saveStatus: Record<string, "saved" | "saving" | "dirty" | "error">;
+  readonly pendingSaves: Record<string, ChatAppConfig>;
+  readonly autoSaveEnabled: boolean;
+  readonly lastSaved: Record<string, number>;
 }
 
 // Events
@@ -20,16 +25,26 @@ type ConfigLifecycleEvent =
   | { type: "CONFIGS_LOADED"; configs: ChatAppConfig[]; lastModified: number }
   | { type: "ADD_CONFIG"; config: ChatAppConfig }
   | { type: "UPDATE_CONFIG"; configId: string; updates: Partial<ChatAppConfig> }
+  | {
+      type: "UPDATE_CONFIG_IMMEDIATE";
+      configId: string;
+      updates: Partial<ChatAppConfig>;
+    }
   | { type: "DELETE_CONFIG"; configId: string }
   | { type: "SET_ACTIVE"; configId: string | null }
   | { type: "TOGGLE_OPEN"; configId: string }
   | { type: "SET_DISPLAY_MODE"; mode: "expanded" | "compact" }
-  | { type: "SAVE_SUCCESS" }
+  | { type: "SAVE_SUCCESS"; configId: string }
+  | { type: "SAVE_START"; configId: string }
+  | { type: "SAVE_ERROR"; configId: string; error: string }
+  | { type: "SET_DIRTY"; configId: string }
+  | { type: "TOGGLE_AUTO_SAVE" }
   | { type: "ERROR"; error: string }
   | { type: "CLEAR_ERROR" }
-  | { type: "FILE_CHANGED"; lastModified: number };
+  | { type: "FILE_CHANGED"; lastModified: number }
+  | { type: "REVERT_CONFIG"; configId: string };
 
-// Error types
+// Error types (reusing from original service)
 export class ConfigLoadError extends Schema.TaggedError<ConfigLoadError>()(
   "ConfigLoadError",
   {
@@ -65,17 +80,11 @@ export class ConcurrentModificationError extends Schema.TaggedError<ConcurrentMo
 
 // Service API
 export interface ConfigLifecycleServiceApi {
+  // Original methods
   readonly loadConfigs: () => Effect.Effect<ChatAppConfig[], ConfigLoadError>;
   readonly addConfig: (
     config: ChatAppConfig,
   ) => Effect.Effect<void, ConfigSaveError | ConfigValidationError>;
-  readonly updateConfig: (
-    configId: string,
-    updates: Partial<ChatAppConfig>,
-  ) => Effect.Effect<
-    void,
-    ConfigSaveError | ConfigValidationError | ConcurrentModificationError
-  >;
   readonly deleteConfig: (
     configId: string,
   ) => Effect.Effect<void, ConfigSaveError>;
@@ -90,6 +99,32 @@ export interface ConfigLifecycleServiceApi {
   ) => Effect.Effect<{ unsubscribe: () => void }>;
   readonly startFileWatcher: () => Effect.Effect<void>;
   readonly stopFileWatcher: () => Effect.Effect<void>;
+
+  // Enhanced methods for real-time editing
+  readonly updateConfigImmediate: (
+    configId: string,
+    updates: Partial<ChatAppConfig>,
+  ) => Effect.Effect<
+    void,
+    ConfigSaveError | ConfigValidationError | ConcurrentModificationError
+  >;
+  readonly updateConfigWithSave: (
+    configId: string,
+    updates: Partial<ChatAppConfig>,
+  ) => Effect.Effect<
+    void,
+    ConfigSaveError | ConfigValidationError | ConcurrentModificationError
+  >;
+  readonly saveConfig: (
+    configId: string,
+  ) => Effect.Effect<void, ConfigSaveError>;
+  readonly revertConfig: (
+    configId: string,
+  ) => Effect.Effect<void, ConfigLoadError>;
+  readonly toggleAutoSave: () => Effect.Effect<void>;
+  readonly getSaveStatus: (
+    configId: string,
+  ) => Effect.Effect<"saved" | "saving" | "dirty" | "error">;
 }
 
 // XState store configuration
@@ -102,6 +137,10 @@ const createConfigStore = () => {
     loading: false,
     error: null,
     lastModified: 0,
+    saveStatus: {},
+    pendingSaves: {},
+    autoSaveEnabled: true,
+    lastSaved: {},
   };
 
   return createStore({
@@ -115,33 +154,97 @@ const createConfigStore = () => {
       CONFIGS_LOADED: (
         context,
         event: { configs: ChatAppConfig[]; lastModified: number },
-      ) => ({
-        ...context,
-        configs: event.configs,
-        lastModified: event.lastModified,
-        loading: false,
-        error: null,
-      }),
+      ) => {
+        // Reset save status for loaded configs
+        const newSaveStatus: Record<
+          string,
+          "saved" | "saving" | "dirty" | "error"
+        > = {};
+        const newLastSaved: Record<string, number> = {};
+
+        for (const config of event.configs) {
+          newSaveStatus[config.id] = "saved";
+          newLastSaved[config.id] = event.lastModified;
+        }
+
+        return {
+          ...context,
+          configs: event.configs,
+          lastModified: event.lastModified,
+          loading: false,
+          error: null,
+          saveStatus: newSaveStatus,
+          lastSaved: newLastSaved,
+          pendingSaves: {}, // Clear pending saves on reload
+        };
+      },
       ADD_CONFIG: (context, event: { config: ChatAppConfig }) => ({
         ...context,
         configs: [...context.configs, event.config],
+        saveStatus: {
+          ...context.saveStatus,
+          [event.config.id]: "dirty",
+        },
         loading: true,
       }),
       UPDATE_CONFIG: (
         context,
         event: { configId: string; updates: Partial<ChatAppConfig> },
-      ) => ({
-        ...context,
-        configs: context.configs.map((config) =>
+      ) => {
+        const updatedConfigs = context.configs.map((config) =>
           config.id === event.configId
             ? { ...config, ...event.updates }
             : config,
-        ),
-        loading: true,
-      }),
+        );
+
+        return {
+          ...context,
+          configs: updatedConfigs,
+          saveStatus: {
+            ...context.saveStatus,
+            [event.configId]: "dirty",
+          },
+          pendingSaves: {
+            ...context.pendingSaves,
+            [event.configId]:
+              updatedConfigs.find((c) => c.id === event.configId) ??
+              updatedConfigs[0],
+          },
+        };
+      },
+      UPDATE_CONFIG_IMMEDIATE: (
+        context,
+        event: { configId: string; updates: Partial<ChatAppConfig> },
+      ) => {
+        const updatedConfigs = context.configs.map((config) =>
+          config.id === event.configId
+            ? { ...config, ...event.updates }
+            : config,
+        );
+
+        return {
+          ...context,
+          configs: updatedConfigs,
+          saveStatus: {
+            ...context.saveStatus,
+            [event.configId]: "saving",
+          },
+          loading: true,
+        };
+      },
       DELETE_CONFIG: (context, event: { configId: string }) => {
         const newOpenConfigs = new Set(context.openConfigs);
         newOpenConfigs.delete(event.configId);
+
+        const newSaveStatus = { ...context.saveStatus };
+        delete newSaveStatus[event.configId];
+
+        const newPendingSaves = { ...context.pendingSaves };
+        delete newPendingSaves[event.configId];
+
+        const newLastSaved = { ...context.lastSaved };
+        delete newLastSaved[event.configId];
+
         return {
           ...context,
           configs: context.configs.filter(
@@ -152,6 +255,9 @@ const createConfigStore = () => {
               ? null
               : context.activeConfigId,
           openConfigs: newOpenConfigs,
+          saveStatus: newSaveStatus,
+          pendingSaves: newPendingSaves,
+          lastSaved: newLastSaved,
           loading: true,
         };
       },
@@ -175,10 +281,52 @@ const createConfigStore = () => {
         ...context,
         displayMode: event.mode,
       }),
-      SAVE_SUCCESS: (context) => ({
+      SAVE_START: (context, event: { configId: string }) => ({
         ...context,
+        saveStatus: {
+          ...context.saveStatus,
+          [event.configId]: "saving",
+        },
         loading: false,
-        error: null,
+      }),
+      SAVE_SUCCESS: (context, event: { configId: string }) => {
+        const newPendingSaves = { ...context.pendingSaves };
+        delete newPendingSaves[event.configId];
+
+        return {
+          ...context,
+          saveStatus: {
+            ...context.saveStatus,
+            [event.configId]: "saved",
+          },
+          pendingSaves: newPendingSaves,
+          lastSaved: {
+            ...context.lastSaved,
+            [event.configId]: Date.now(),
+          },
+          loading: false,
+          error: null,
+        };
+      },
+      SAVE_ERROR: (context, event: { configId: string; error: string }) => ({
+        ...context,
+        saveStatus: {
+          ...context.saveStatus,
+          [event.configId]: "error",
+        },
+        error: event.error,
+        loading: false,
+      }),
+      SET_DIRTY: (context, event: { configId: string }) => ({
+        ...context,
+        saveStatus: {
+          ...context.saveStatus,
+          [event.configId]: "dirty",
+        },
+      }),
+      TOGGLE_AUTO_SAVE: (context) => ({
+        ...context,
+        autoSaveEnabled: !context.autoSaveEnabled,
       }),
       ERROR: (context, event: { error: string }) => ({
         ...context,
@@ -193,271 +341,209 @@ const createConfigStore = () => {
         ...context,
         lastModified: event.lastModified,
       }),
+      REVERT_CONFIG: (context, event: { configId: string }) => {
+        const newPendingSaves = { ...context.pendingSaves };
+        delete newPendingSaves[event.configId];
+
+        return {
+          ...context,
+          saveStatus: {
+            ...context.saveStatus,
+            [event.configId]: "saved",
+          },
+          pendingSaves: newPendingSaves,
+        };
+      },
     },
   });
 };
 
-// File operations
+// File operations (reusing from original service)
 const loadConfigsFromFiles = Effect.gen(function* () {
-  try {
-    // Get list of config files
-    const filesResponse = yield* Effect.tryPromise({
-      try: () => fetch("/api/configs"),
-      catch: (error) =>
-        new ConfigLoadError({
-          message: "Failed to fetch config file list",
-          cause: error,
-        }),
-    });
+  const response = yield* Effect.tryPromise({
+    try: () => fetch("/api/configs"),
+    catch: (error) =>
+      new ConfigLoadError({
+        message: "Failed to fetch config list",
+        cause: error,
+      }),
+  });
 
-    if (!filesResponse.ok) {
-      return yield* Effect.fail(
-        new ConfigLoadError({
-          message: `HTTP ${filesResponse.status}: ${filesResponse.statusText}`,
-        }),
-      );
-    }
-
-    const filesData = yield* Effect.tryPromise({
-      try: () =>
-        filesResponse.json() as Promise<
-          Array<{ name: string; lastModified: number; size: number }>
-        >,
-      catch: (error) =>
-        new ConfigLoadError({
-          message: "Failed to parse config file list",
-          cause: error,
-        }),
-    });
-
-    const files = filesData.map((f) => f.name);
-
-    // Load each config file
-    const allConfigs: ChatAppConfig[] = [];
-    let lastModified = 0;
-
-    for (const filename of files) {
-      if (filename === "index.json") continue;
-
-      const configResponse = yield* Effect.tryPromise({
-        try: () => fetch(`/api/configs?file=${encodeURIComponent(filename)}`),
-        catch: (error) =>
-          new ConfigLoadError({
-            message: `Failed to fetch config file: ${filename}`,
-            cause: error,
-          }),
-      });
-
-      if (!configResponse.ok) continue;
-
-      const configText = yield* Effect.tryPromise({
-        try: () => configResponse.text(),
-        catch: (error) =>
-          new ConfigLoadError({
-            message: `Failed to read config file: ${filename}`,
-            cause: error,
-          }),
-      });
-
-      const configData = yield* Effect.try({
-        try: () => JSON.parse(configText),
-        catch: (error) =>
-          new ConfigLoadError({
-            message: `Invalid JSON in config file: ${filename}`,
-            cause: error,
-          }),
-      });
-
-      // Extract chat apps and enrich with themes
-      if (configData.chatApps && Array.isArray(configData.chatApps)) {
-        for (const chatApp of configData.chatApps) {
-          // Validate config structure
-          const validatedConfig = yield* Schema.decodeUnknown(
-            ChatAppConfigSchema,
-          )(chatApp).pipe(
-            Effect.mapError(
-              (error) =>
-                new ConfigValidationError({
-                  message: `Invalid config structure in ${filename}`,
-                  cause: error,
-                }),
-            ),
-          );
-
-          // Enrich with theme if available
-          if (
-            validatedConfig.themeId &&
-            configData.themes &&
-            configData.themes[validatedConfig.themeId]
-          ) {
-            allConfigs.push({
-              ...validatedConfig,
-              theme: configData.themes[validatedConfig.themeId],
-            });
-          } else {
-            allConfigs.push(validatedConfig);
-          }
-        }
-      }
-
-      // Track last modified time (simplified - in real implementation, get from file stats)
-      lastModified = Math.max(lastModified, Date.now());
-    }
-
-    return { configs: allConfigs, lastModified };
-  } catch (error) {
+  if (!response.ok) {
     return yield* Effect.fail(
       new ConfigLoadError({
-        message: "Unexpected error loading configs",
-        cause: error,
+        message: `HTTP ${response.status}: ${response.statusText}`,
       }),
     );
   }
+
+  const filesData = yield* Effect.tryPromise({
+    try: () =>
+      response.json() as Promise<
+        Array<{ name: string; lastModified: number; size: number }>
+      >,
+    catch: (error) =>
+      new ConfigLoadError({
+        message: "Failed to parse config list",
+        cause: error,
+      }),
+  });
+
+  // Extract just the filenames from the file objects
+  const files = filesData.map((f) => f.name);
+
+  const configs: ChatAppConfig[] = [];
+  let lastModified = 0;
+
+  for (const file of files) {
+    if (file === "index.json") continue;
+
+    const configResponse = yield* Effect.tryPromise({
+      try: () => fetch(`/api/configs?file=${encodeURIComponent(file)}`),
+      catch: (error) =>
+        new ConfigLoadError({
+          message: `Failed to fetch config file: ${file}`,
+          cause: error,
+        }),
+    });
+
+    if (!configResponse.ok) continue;
+
+    const configText = yield* Effect.tryPromise({
+      try: () => configResponse.text(),
+      catch: (error) =>
+        new ConfigLoadError({
+          message: `Failed to read config file: ${file}`,
+          cause: error,
+        }),
+    });
+
+    try {
+      const configData = JSON.parse(configText);
+
+      // Handle new direct format only
+      const validatedConfig = yield* ChatAppConfig.parse(configData).pipe(
+        Effect.catchAll(() => Effect.succeed(null)),
+      );
+
+      if (validatedConfig) {
+        // Theme is already embedded in the config in the new format
+        configs.push(validatedConfig);
+      }
+
+      const fileModified = configResponse.headers.get("last-modified");
+      if (fileModified) {
+        const modifiedTime = new Date(fileModified).getTime();
+        if (modifiedTime > lastModified) {
+          lastModified = modifiedTime;
+        }
+      }
+    } catch {}
+  }
+
+  return { configs, lastModified: lastModified || Date.now() };
 });
 
 const saveConfigToFile = (config: ChatAppConfig, filename?: string) =>
   Effect.gen(function* () {
     const configFilename = filename || `${config.id}.json`;
 
-    // Create a complete config file structure
-    const configFile = {
-      chatApps: [config],
-      themes: config.theme ? { [config.themeId]: config.theme } : {},
+    // Use new flattened format: file is the config directly
+    const configData = {
+      ...config,
+      // Add metadata
+      version: config.version || "1.0.0",
+      updatedAt: new Date().toISOString(),
     };
 
     const response = yield* Effect.tryPromise({
       try: () =>
         fetch("/api/configs", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename: configFilename,
-            config: configFile,
-          }),
-        }),
-      catch: (error) =>
-        new ConfigSaveError({
-          message: "Failed to save config to file",
-          cause: error,
-        }),
-    });
-
-    if (!response.ok) {
-      const errorData = yield* Effect.tryPromise({
-        try: () => response.json(),
-        catch: () => ({ error: "Unknown error" }),
-      });
-      return yield* Effect.fail(
-        new ConfigSaveError({
-          message: `HTTP ${response.status}: ${errorData.error || response.statusText}`,
-        }),
-      );
-    }
-  });
-
-const updateConfigInFile = (
-  config: ChatAppConfig,
-  filename: string,
-  lastModified: number,
-) =>
-  Effect.gen(function* () {
-    // First, load the existing config file to preserve other chatApps and themes
-    const existingResponse = yield* Effect.tryPromise({
-      try: () => fetch(`/api/configs?file=${encodeURIComponent(filename)}`),
-      catch: (error) =>
-        new ConfigSaveError({
-          message: "Failed to load existing config file",
-          cause: error,
-        }),
-    });
-
-    if (!existingResponse.ok) {
-      return yield* Effect.fail(
-        new ConfigSaveError({
-          message: `Failed to load existing config: HTTP ${existingResponse.status}`,
-        }),
-      );
-    }
-
-    const existingConfigText = yield* Effect.tryPromise({
-      try: () => existingResponse.text(),
-      catch: (error) =>
-        new ConfigSaveError({
-          message: "Failed to read existing config file",
-          cause: error,
-        }),
-    });
-
-    const existingConfig = yield* Effect.try({
-      try: () => JSON.parse(existingConfigText),
-      catch: (error) =>
-        new ConfigSaveError({
-          message: "Invalid JSON in existing config file",
-          cause: error,
-        }),
-    });
-
-    // Update the specific chatApp in the existing config
-    const updatedConfig = {
-      ...existingConfig,
-      chatApps: existingConfig.chatApps?.map((app: any) =>
-        app.id === config.id ? config : app,
-      ) || [config],
-      themes: {
-        ...existingConfig.themes,
-        ...(config.theme ? { [config.themeId]: config.theme } : {}),
-      },
-    };
-
-    // Save the updated config with concurrency control
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch(`/api/configs?file=${encodeURIComponent(filename)}`, {
-          method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "If-Unmodified-Since": new Date(lastModified).toUTCString(),
           },
-          body: JSON.stringify(updatedConfig),
+          body: JSON.stringify({
+            filename: configFilename,
+            data: configData,
+          }),
         }),
       catch: (error) =>
         new ConfigSaveError({
-          message: "Failed to update config file",
+          message: "Failed to save config",
           cause: error,
         }),
     });
 
     if (!response.ok) {
-      const errorData = yield* Effect.tryPromise({
-        try: () => response.json(),
-        catch: () => ({ error: "Unknown error" }),
-      });
-
-      if (response.status === 409) {
-        return yield* Effect.fail(
-          new ConcurrentModificationError({
-            message: "Config file was modified by another process",
-            expectedVersion: lastModified,
-            actualVersion: errorData.serverLastModified || 0,
-          }),
-        );
-      }
-
       return yield* Effect.fail(
         new ConfigSaveError({
-          message: `HTTP ${response.status}: ${errorData.error || response.statusText}`,
+          message: `HTTP ${response.status}: ${response.statusText}`,
         }),
       );
     }
+
+    return config;
   });
 
-// Service implementation
+// Debounce utility
+const createDebouncer = (delayMs: number) => {
+  const timeouts = new Map<string, NodeJS.Timeout>();
+
+  return {
+    debounce: <T extends unknown[]>(
+      key: string,
+      fn: (...args: T) => Effect.Effect<void, any>,
+      ...args: T
+    ) =>
+      Effect.gen(function* () {
+        // Clear existing timeout
+        const existingTimeout = timeouts.get(key);
+        if (existingTimeout) {
+          clearTimeout(existingTimeout);
+        }
+
+        // Set new timeout
+        yield* Effect.async<void>((resume) => {
+          const timeout = setTimeout(() => {
+            timeouts.delete(key);
+            Effect.runPromise(fn(...args)).then(
+              () => resume(Effect.succeed(undefined)),
+              (error) => resume(Effect.fail(error)),
+            );
+          }, delayMs);
+
+          timeouts.set(key, timeout);
+        });
+      }),
+
+    cancel: (key: string) =>
+      Effect.sync(() => {
+        const timeout = timeouts.get(key);
+        if (timeout) {
+          clearTimeout(timeout);
+          timeouts.delete(key);
+        }
+      }),
+
+    cancelAll: () =>
+      Effect.sync(() => {
+        for (const timeout of timeouts.values()) {
+          clearTimeout(timeout);
+        }
+        timeouts.clear();
+      }),
+  };
+};
+
+// Enhanced ConfigLifecycleService
 export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServiceApi>()(
   "ConfigLifecycleService",
   {
     scoped: Effect.gen(function* () {
       const store = createConfigStore();
       const fileWatcherRef = yield* Ref.make<AbortController | null>(null);
+      const debouncer = createDebouncer(2000); // 2 second debounce
 
       const loadConfigs = () =>
         Effect.gen(function* () {
@@ -477,7 +563,7 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
       const addConfig = (config: ChatAppConfig) =>
         Effect.gen(function* () {
           // Validate config
-          yield* Schema.decodeUnknown(ChatAppConfigSchema)(config).pipe(
+          yield* ChatAppConfig.parse(config).pipe(
             Effect.mapError(
               (error) =>
                 new ConfigValidationError({
@@ -490,21 +576,27 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
           // Add to store
           store.send({ type: "ADD_CONFIG", config });
 
-          // Save to file
+          // Save to file immediately for new configs
           yield* saveConfigToFile(config).pipe(
             Effect.tap(() =>
-              Effect.sync(() => store.send({ type: "SAVE_SUCCESS" })),
+              Effect.sync(() =>
+                store.send({ type: "SAVE_SUCCESS", configId: config.id }),
+              ),
             ),
             Effect.catchAll((error) =>
               Effect.sync(() => {
-                store.send({ type: "ERROR", error: error.message });
+                store.send({
+                  type: "SAVE_ERROR",
+                  configId: config.id,
+                  error: error.message,
+                });
                 return Effect.fail(error);
               }),
             ),
           );
         });
 
-      const updateConfig = (
+      const updateConfigImmediate = (
         configId: string,
         updates: Partial<ChatAppConfig>,
       ) =>
@@ -525,7 +617,7 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
           const updatedConfig = { ...existingConfig, ...updates };
 
           // Validate updated config
-          yield* Schema.decodeUnknown(ChatAppConfigSchema)(updatedConfig).pipe(
+          yield* ChatAppConfig.parse(updatedConfig).pipe(
             Effect.mapError(
               (error) =>
                 new ConfigValidationError({
@@ -535,25 +627,172 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
             ),
           );
 
-          // Update in store
+          // Update in store (marks as dirty)
           store.send({ type: "UPDATE_CONFIG", configId, updates });
 
-          // Save to file
+          // Schedule debounced save if auto-save is enabled
+          const state = store.getSnapshot();
+          if (state.context.autoSaveEnabled) {
+            yield* debouncer.debounce(
+              `save-${configId}`,
+              (id: string) =>
+                Effect.gen(function* () {
+                  store.send({ type: "SAVE_START", configId: id });
+
+                  const currentState = store.getSnapshot();
+                  const configToSave = currentState.context.configs.find(
+                    (c) => c.id === id,
+                  );
+
+                  if (configToSave) {
+                    yield* saveConfigToFile(configToSave).pipe(
+                      Effect.tap(() =>
+                        Effect.sync(() =>
+                          store.send({ type: "SAVE_SUCCESS", configId: id }),
+                        ),
+                      ),
+                      Effect.catchAll((error) =>
+                        Effect.sync(() => {
+                          store.send({
+                            type: "SAVE_ERROR",
+                            configId: id,
+                            error: error.message,
+                          });
+                          return Effect.fail(error);
+                        }),
+                      ),
+                    );
+                  }
+                }),
+              configId,
+            );
+          }
+        });
+
+      const updateConfigWithSave = (
+        configId: string,
+        updates: Partial<ChatAppConfig>,
+      ) =>
+        Effect.gen(function* () {
+          const currentState = store.getSnapshot();
+          const existingConfig = currentState.context.configs.find(
+            (c) => c.id === configId,
+          );
+
+          if (!existingConfig) {
+            return yield* Effect.fail(
+              new ConfigSaveError({
+                message: `Config not found: ${configId}`,
+              }),
+            );
+          }
+
+          const updatedConfig = { ...existingConfig, ...updates };
+
+          // Validate updated config
+          yield* ChatAppConfig.parse(updatedConfig).pipe(
+            Effect.mapError(
+              (error) =>
+                new ConfigValidationError({
+                  message: "Invalid config after update",
+                  cause: error,
+                }),
+            ),
+          );
+
+          // Update in store and save immediately
+          store.send({ type: "UPDATE_CONFIG_IMMEDIATE", configId, updates });
+
+          // Cancel any pending debounced save
+          yield* debouncer.cancel(`save-${configId}`);
+
+          // Save immediately
           yield* saveConfigToFile(updatedConfig).pipe(
             Effect.tap(() =>
-              Effect.sync(() => store.send({ type: "SAVE_SUCCESS" })),
+              Effect.sync(() => store.send({ type: "SAVE_SUCCESS", configId })),
             ),
             Effect.catchAll((error) =>
               Effect.sync(() => {
-                store.send({ type: "ERROR", error: error.message });
+                store.send({
+                  type: "SAVE_ERROR",
+                  configId,
+                  error: error.message,
+                });
                 return Effect.fail(error);
               }),
             ),
           );
         });
 
+      const saveConfig = (configId: string) =>
+        Effect.gen(function* () {
+          const currentState = store.getSnapshot();
+          const config = currentState.context.configs.find(
+            (c) => c.id === configId,
+          );
+
+          if (!config) {
+            return yield* Effect.fail(
+              new ConfigSaveError({
+                message: `Config not found: ${configId}`,
+              }),
+            );
+          }
+
+          // Cancel any pending debounced save
+          yield* debouncer.cancel(`save-${configId}`);
+
+          store.send({ type: "SAVE_START", configId });
+
+          yield* saveConfigToFile(config).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => store.send({ type: "SAVE_SUCCESS", configId })),
+            ),
+            Effect.catchAll((error) =>
+              Effect.sync(() => {
+                store.send({
+                  type: "SAVE_ERROR",
+                  configId,
+                  error: error.message,
+                });
+                return Effect.fail(error);
+              }),
+            ),
+          );
+        });
+
+      const revertConfig = (configId: string) =>
+        Effect.gen(function* () {
+          // Cancel any pending saves
+          yield* debouncer.cancel(`save-${configId}`);
+
+          // Reload configs from files
+          const result = yield* loadConfigsFromFiles;
+          const originalConfig = result.configs.find((c) => c.id === configId);
+
+          if (!originalConfig) {
+            return yield* Effect.fail(
+              new ConfigLoadError({
+                message: `Original config not found: ${configId}`,
+              }),
+            );
+          }
+
+          // Update store with original config
+          store.send({
+            type: "UPDATE_CONFIG_IMMEDIATE",
+            configId,
+            updates: originalConfig,
+          });
+
+          store.send({ type: "REVERT_CONFIG", configId });
+        });
+
       const deleteConfig = (configId: string) =>
         Effect.gen(function* () {
+          // Cancel any pending saves
+          yield* debouncer.cancel(`save-${configId}`);
+
           store.send({ type: "DELETE_CONFIG", configId });
 
           // TODO: Implement file deletion via API
@@ -566,11 +805,15 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
               }),
           }).pipe(
             Effect.tap(() =>
-              Effect.sync(() => store.send({ type: "SAVE_SUCCESS" })),
+              Effect.sync(() => store.send({ type: "SAVE_SUCCESS", configId })),
             ),
             Effect.catchAll((error) =>
               Effect.sync(() => {
-                store.send({ type: "ERROR", error: error.message });
+                store.send({
+                  type: "SAVE_ERROR",
+                  configId,
+                  error: error.message,
+                });
                 return Effect.fail(error);
               }),
             ),
@@ -592,9 +835,22 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
           store.send({ type: "SET_DISPLAY_MODE", mode });
         });
 
+      const toggleAutoSave = () =>
+        Effect.sync(() => {
+          store.send({ type: "TOGGLE_AUTO_SAVE" });
+        });
+
+      const getSaveStatus = (configId: string) =>
+        Effect.sync(() => {
+          const state = store.getSnapshot();
+          return state.context.saveStatus[configId] || "saved";
+        });
+
       const getState = () => Effect.sync(() => store.getSnapshot().context);
 
-      const subscribe = (callback: (state: ConfigLifecycleContext) => void) =>
+      const subscribe = (
+        callback: (state: EnhancedConfigLifecycleContext) => void,
+      ) =>
         Effect.sync(() => {
           return store.subscribe((snapshot) => {
             callback(snapshot.context);
@@ -641,16 +897,26 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
         });
 
       // Cleanup on service disposal
-      yield* Effect.addFinalizer(() => stopFileWatcher());
+      yield* Effect.addFinalizer(() =>
+        Effect.gen(function* () {
+          yield* stopFileWatcher();
+          yield* debouncer.cancelAll();
+        }),
+      );
 
       return {
         loadConfigs,
         addConfig,
-        updateConfig,
+        updateConfigImmediate,
+        updateConfigWithSave,
+        saveConfig,
+        revertConfig,
         deleteConfig,
         setActive,
         toggleOpen,
         setDisplayMode,
+        toggleAutoSave,
+        getSaveStatus,
         getState,
         subscribe,
         startFileWatcher,
@@ -660,3 +926,6 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
     dependencies: [],
   },
 ) {}
+
+// Export the Live layer for convenience
+export const ConfigLifecycleServiceLive = ConfigLifecycleService.Default;

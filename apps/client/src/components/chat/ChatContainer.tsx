@@ -2,7 +2,7 @@
 
 import { ChatApp } from "@/components/ChatApp";
 import { useApplyChatContainerStyle } from "@/hooks/chat-style/useApplyChatContainerStyle";
-import { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
+import { ChatAppConfig } from "@/types/global";
 
 function NoChatApps() {
   return (

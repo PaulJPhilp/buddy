@@ -1,6 +1,6 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { ToolbarService } from "../ToolbarService";
+import { ToolbarService } from "../service";
 
 const sampleToolbar = { id: "toolbar1", name: "Main Toolbar", tools: [] };
 
@@ -187,9 +187,17 @@ describe("ToolbarService", () => {
         const service = yield* ToolbarService;
 
         const specialItems = [
-          { id: "special-1", label: "Item with émojis 🚀", action: "emoji-action" },
+          {
+            id: "special-1",
+            label: "Item with émojis 🚀",
+            action: "emoji-action",
+          },
           { id: "special-2", label: "Item with <tags>", action: "tag-action" },
-          { id: "special-3", label: "Item with symbols @#$%", action: "symbol-action" },
+          {
+            id: "special-3",
+            label: "Item with symbols @#$%",
+            action: "symbol-action",
+          },
         ];
 
         const stateWithSpecialItems = {
@@ -221,7 +229,11 @@ describe("ToolbarService", () => {
       Effect.gen(function* () {
         const service = yield* ToolbarService;
 
-        const item = { id: "new-item", label: "New Item", action: "new-action" };
+        const item = {
+          id: "new-item",
+          label: "New Item",
+          action: "new-action",
+        };
         const updatedState = yield* service.addItem(item);
 
         expect(updatedState.items).toHaveLength(1);
@@ -260,7 +272,11 @@ describe("ToolbarService", () => {
         yield* service.setState({ items: existingItems });
 
         // Add new item
-        const newItem = { id: "new-item", label: "New Item", action: "new-action" };
+        const newItem = {
+          id: "new-item",
+          label: "New Item",
+          action: "new-action",
+        };
         const updatedState = yield* service.addItem(newItem);
 
         expect(updatedState.items).toHaveLength(3);
@@ -271,8 +287,16 @@ describe("ToolbarService", () => {
       Effect.gen(function* () {
         const service = yield* ToolbarService;
 
-        const item1 = { id: "duplicate", label: "First Item", action: "action1" };
-        const item2 = { id: "duplicate", label: "Second Item", action: "action2" };
+        const item1 = {
+          id: "duplicate",
+          label: "First Item",
+          action: "action1",
+        };
+        const item2 = {
+          id: "duplicate",
+          label: "Second Item",
+          action: "action2",
+        };
 
         yield* service.addItem(item1);
         const finalState = yield* service.addItem(item2);
@@ -394,7 +418,11 @@ describe("ToolbarService", () => {
         const service = yield* ToolbarService;
 
         // Add single item
-        const item = { id: "only-item", label: "Only Item", action: "only-action" };
+        const item = {
+          id: "only-item",
+          label: "Only Item",
+          action: "only-action",
+        };
         yield* service.setState({ items: [item] });
 
         // Remove the only item
@@ -503,8 +531,8 @@ describe("ToolbarService", () => {
         }));
 
         yield* Effect.all(
-          items.map(item => service.addItem(item)),
-          { concurrency: "unbounded" }
+          items.map((item) => service.addItem(item)),
+          { concurrency: "unbounded" },
         );
 
         const finalState = yield* service.getState();
@@ -524,18 +552,24 @@ describe("ToolbarService", () => {
         yield* service.setState({ items });
 
         // Remove half of them concurrently
-        const idsToRemove = Array.from({ length: 10 }, (_, i) => `remove-item-${i}`);
+        const idsToRemove = Array.from(
+          { length: 10 },
+          (_, i) => `remove-item-${i}`,
+        );
         yield* Effect.all(
-          idsToRemove.map(id => service.removeItem(id)),
-          { concurrency: "unbounded" }
+          idsToRemove.map((id) => service.removeItem(id)),
+          { concurrency: "unbounded" },
         );
 
         const finalState = yield* service.getState();
         expect(finalState.items).toHaveLength(10);
-        
+
         // Verify remaining items are the ones we didn't remove
-        const remainingIds = finalState.items.map(item => item.id);
-        const expectedIds = Array.from({ length: 10 }, (_, i) => `remove-item-${i + 10}`);
+        const remainingIds = finalState.items.map((item) => item.id);
+        const expectedIds = Array.from(
+          { length: 10 },
+          (_, i) => `remove-item-${i + 10}`,
+        );
         expect(remainingIds.sort()).toEqual(expectedIds.sort());
       }).pipe(Effect.provide(ToolbarService.Default)));
 
@@ -552,8 +586,16 @@ describe("ToolbarService", () => {
 
         // Mix of operations
         const operations = [
-          service.addItem({ id: "new-1", label: "New 1", action: "new-action-1" }),
-          service.addItem({ id: "new-2", label: "New 2", action: "new-action-2" }),
+          service.addItem({
+            id: "new-1",
+            label: "New 1",
+            action: "new-action-1",
+          }),
+          service.addItem({
+            id: "new-2",
+            label: "New 2",
+            action: "new-action-2",
+          }),
           service.removeItem("initial-1"),
           service.toggleVisibility(),
           service.setState({ position: "right" }),
@@ -562,7 +604,7 @@ describe("ToolbarService", () => {
         yield* Effect.all(operations, { concurrency: "unbounded" });
 
         const finalState = yield* service.getState();
-        
+
         // Should have 3 items (1 initial + 2 new - 1 removed)
         expect(finalState.items).toHaveLength(3);
         expect(finalState.position).toBe("right");
@@ -617,31 +659,31 @@ describe("ToolbarService", () => {
             label: `Rapid ${i}`,
             action: `rapid-action-${i}`,
           });
-          
+
           if (i % 3 === 0) {
             yield* service.toggleVisibility();
           }
-          
+
           if (i % 5 === 0 && i > 0) {
             yield* service.removeItem(`rapid-${i - 1}`);
           }
         }
 
         const finalState = yield* service.getState();
-        
+
         // Should have items (some were removed)
         expect(finalState.items.length).toBeGreaterThan(0);
         expect(finalState.items.length).toBeLessThan(50);
-        
+
         // All remaining items should have valid structure
         for (const item of finalState.items) {
-          expect(item).toHaveProperty("id")
-          expect(item).toHaveProperty("label")
-          expect(item).toHaveProperty("action")
-          expect(typeof item.id).toBe("string")
-          expect(typeof item.label).toBe("string")
-          expect(typeof item.action).toBe("string")
+          expect(item).toHaveProperty("id");
+          expect(item).toHaveProperty("label");
+          expect(item).toHaveProperty("action");
+          expect(typeof item.id).toBe("string");
+          expect(typeof item.label).toBe("string");
+          expect(typeof item.action).toBe("string");
         }
-      }).pipe(Effect.provide(ToolbarService.Default)))
-  })
-})
+      }).pipe(Effect.provide(ToolbarService.Default)));
+  });
+});

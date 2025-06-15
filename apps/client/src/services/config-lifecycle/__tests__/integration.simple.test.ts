@@ -2,17 +2,15 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { AgentService } from "../../agent";
 import { AppService } from "../../app";
-import { ThemesService } from "../../themes";
 import { ToolbarService } from "../../toolbar";
-import { EnhancedConfigLifecycleService } from "../EnhancedConfigLifecycleService";
+import { ConfigLifecycleService } from "../ConfigLifecycleService";
 
 describe("ConfigLifecycleService Integration - Simple", () => {
   // Create a test service layer with all dependencies
   const testServiceLayer = Layer.mergeAll(
     AgentService.Default,
     ToolbarService.Default,
-    ThemesService.Default,
-    EnhancedConfigLifecycleService.Default,
+    ConfigLifecycleService.Default,
     AppService.Default,
   );
 
@@ -21,10 +19,9 @@ describe("ConfigLifecycleService Integration - Simple", () => {
       Effect.gen(function* () {
         // Verify all services are available in the layer
         const appService = yield* AppService;
-        const configService = yield* EnhancedConfigLifecycleService;
+        const configService = yield* ConfigLifecycleService;
         const agentService = yield* AgentService;
         const toolbarService = yield* ToolbarService;
-        const themesService = yield* ThemesService;
 
         // Verify they have the expected methods
         expect(typeof appService.getAll).toBe("function");
@@ -40,7 +37,6 @@ describe("ConfigLifecycleService Integration - Simple", () => {
 
         expect(typeof agentService.getAll).toBe("function");
         expect(typeof toolbarService.getAll).toBe("function");
-        expect(typeof themesService.getTheme).toBe("function");
 
         return { success: true };
       }).pipe(Effect.provide(testServiceLayer)),
@@ -95,10 +91,10 @@ describe("ConfigLifecycleService Integration - Simple", () => {
     expect(result.methodCount).toBe(5);
   });
 
-  it("should have EnhancedConfigLifecycleService available", async () => {
+  it("should have ConfigLifecycleService available", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
-        const configService = yield* EnhancedConfigLifecycleService;
+        const configService = yield* ConfigLifecycleService;
 
         // Verify the ConfigLifecycleService has the expected enhanced methods
         const expectedMethods = [

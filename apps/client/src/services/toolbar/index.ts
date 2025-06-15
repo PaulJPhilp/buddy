@@ -1,5 +1,10 @@
-// Toolbar Service exports
+// Main exports
+export type { ToolbarServiceApi } from "./api";
 export {
-  ToolbarService,
-  type ToolbarServiceApi,
-} from "./ToolbarService";
+  ToolbarConfigValidationError,
+  ToolbarNotFoundError,
+  ToolbarPersistenceError,
+} from "./errors";
+export type { ToolbarServiceError } from "./errors";
+export { ToolbarService } from "./service";
+export type { ToolbarConfig, ToolbarServiceOptions } from "./types";

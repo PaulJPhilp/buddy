@@ -1,9 +1,8 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { AgentService } from "../../agent";
-import { ThemesService } from "../../themes/ThemesService";
 import { ToolbarService } from "../../toolbar";
-import { AppService } from "../AppService";
+import { AppService } from "../service";
 
 // --- Test Suite ---
 describe("AppService", () => {
@@ -84,9 +83,9 @@ describe("AppService", () => {
     }),
   );
 
-  const mockThemesService = Layer.succeed(
-    ThemesService,
-    ThemesService.of({
+  const mockThemeService = Layer.succeed(
+    ThemeService,
+    ThemeService.of({
       getTheme: (id: string) =>
         Effect.succeed(id === "test-theme" ? mockTheme : undefined),
       setTheme: () => Effect.succeed(undefined),
@@ -99,7 +98,8 @@ describe("AppService", () => {
 
   const mockServices = Layer.merge(
     mockAgentService,
-    Layer.merge(mockToolbarService, mockThemesService),
+    mockToolbarService,
+    mockThemeService,
   );
 
   // Mock services with invalid references for error testing
@@ -126,8 +126,8 @@ describe("AppService", () => {
         }),
       ),
       Layer.succeed(
-        ThemesService,
-        ThemesService.of({
+        ThemeService,
+        ThemeService.of({
           getTheme: () => Effect.succeed(undefined),
           setTheme: () => Effect.succeed(undefined),
           deleteTheme: () => Effect.succeed(undefined),

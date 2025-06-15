@@ -1,6 +1,6 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { AgentService } from "../AgentService";
+import { AgentService } from "../service";
 
 describe("AgentService", () => {
   describe("Service Structure", () => {

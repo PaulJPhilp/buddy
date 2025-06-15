@@ -1,6 +1,6 @@
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { ChatService } from "../ChatService";
+import { ChatService } from "../service";
 
 describe("ChatService - Effect.Service Pattern", () => {
   describe("Service Structure", () => {

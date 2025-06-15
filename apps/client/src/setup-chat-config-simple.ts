@@ -1,7 +1,6 @@
 import { Effect, Layer } from "effect";
 import { AgentService } from "./services/agent";
 import { AppService } from "./services/app";
-import { ThemesService } from "./services/themes";
 import { ToolbarService } from "./services/toolbar";
 
 // Simple test to isolate the issue
@@ -21,7 +20,6 @@ const serviceLayer = Layer.mergeAll(
   AppService.Default,
   AgentService.Default,
   ToolbarService.Default,
-  ThemesService.Default,
 );
 
 // Export the simple test function

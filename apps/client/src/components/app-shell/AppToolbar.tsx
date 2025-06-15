@@ -1,9 +1,6 @@
 "use client";
 
 import {
-  ChatAppTheme,
-  defaultChatTheme,
-} from "@/themes/themeTypes";
 import { Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useState, useEffect } from "react";
@@ -15,12 +12,10 @@ interface AppToolbarProps {
 export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
   const { theme: rawTheme } = useTheme();
   const [currentTheme, setCurrentTheme] =
-    useState<ChatAppTheme>(defaultChatTheme);
 
   // Parse theme in an effect to avoid infinite loops
   useEffect(() => {
     // Safely parse theme with error handling
-    let parsedTheme = defaultChatTheme;
     try {
       if (rawTheme) {
         // Handle special theme names like 'system', 'dark', 'light'
@@ -28,9 +23,7 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
           typeof rawTheme === "string" &&
           !["system", "dark", "light"].includes(rawTheme)
         ) {
-          parsedTheme = JSON.parse(rawTheme) as ChatAppTheme;
         } else if (typeof rawTheme === "object") {
-          parsedTheme = rawTheme as ChatAppTheme;
         }
       }
     } catch (error) {
@@ -45,13 +38,10 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
   const themeStyles = {
     "--color-chat-header-bg":
       currentTheme.header?.background ||
-      defaultChatTheme.header?.background ||
       "#f8fafc",
     "--color-chat-header-text":
-      currentTheme.header?.text || defaultChatTheme.header?.text || "#000000",
     "--color-chat-border":
       currentTheme.borders?.color ||
-      defaultChatTheme.borders?.color ||
       "#e2e8f0",
   } as React.CSSProperties;
   return (

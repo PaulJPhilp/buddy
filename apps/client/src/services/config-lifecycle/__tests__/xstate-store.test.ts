@@ -1,5 +1,4 @@
-import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
-import { defaultChatTheme } from "@/themes/themeTypes";
+import type { ChatAppConfig } from "@/types/global";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigLifecycleService } from "../ConfigLifecycleService";
@@ -14,9 +13,7 @@ const mockChatAppConfig: ChatAppConfig = {
   toolbarId: "test-toolbar",
   themeId: "test-theme",
   theme: {
-    ...defaultChatTheme,
     colors: {
-      ...defaultChatTheme.colors,
       primary: "blue-600",
       secondary: "gray-100",
     },
@@ -46,7 +43,6 @@ describe("ConfigLifecycleService - XState Store", () => {
           Promise.resolve(
             JSON.stringify({
               chatApps: [mockChatAppConfig],
-              themes: {
                 "test-theme": mockChatAppConfig.theme,
               },
             }),
@@ -185,7 +181,6 @@ describe("ConfigLifecycleService - XState Store", () => {
           Promise.resolve(
             JSON.stringify({
               chatApps: [mockChatAppConfig],
-              themes: {},
             }),
           ),
       })

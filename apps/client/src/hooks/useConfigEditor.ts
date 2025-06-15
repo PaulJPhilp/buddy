@@ -1,9 +1,9 @@
-import type { ChatAppConfig } from "@/schemas/ChatAppConfigSchema";
 import {
-  type EnhancedConfigLifecycleContext,
-  EnhancedConfigLifecycleService,
-  EnhancedConfigLifecycleServiceLive,
+  type ConfigLifecycleContext,
+  ConfigLifecycleService,
+  ConfigLifecycleServiceLive,
 } from "@/services/config-lifecycle";
+import type { ChatAppConfig } from "@/types/global";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
 
@@ -37,9 +37,7 @@ export function useConfigEditor({
   configId,
   autoSave = true,
 }: UseConfigEditorOptions): UseConfigEditorReturn {
-  const [state, setState] = useState<EnhancedConfigLifecycleContext | null>(
-    null,
-  );
+  const [state, setState] = useState<ConfigLifecycleContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +49,8 @@ export function useConfigEditor({
       try {
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         const subscription = await Effect.runPromise(
@@ -98,8 +96,8 @@ export function useConfigEditor({
         setLoading(true);
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         await Effect.runPromise(
@@ -121,8 +119,8 @@ export function useConfigEditor({
         setLoading(true);
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         await Effect.runPromise(
@@ -144,8 +142,8 @@ export function useConfigEditor({
         setLoading(true);
         const service = await Effect.runPromise(
           Effect.gen(function* () {
-            return yield* EnhancedConfigLifecycleService;
-          }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+            return yield* ConfigLifecycleService;
+          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
         );
 
         await Effect.runPromise(
@@ -166,8 +164,8 @@ export function useConfigEditor({
       setLoading(true);
       const service = await Effect.runPromise(
         Effect.gen(function* () {
-          return yield* EnhancedConfigLifecycleService;
-        }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+          return yield* ConfigLifecycleService;
+        }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
       );
 
       await Effect.runPromise(service.saveConfig(configId));
@@ -184,8 +182,8 @@ export function useConfigEditor({
       setLoading(true);
       const service = await Effect.runPromise(
         Effect.gen(function* () {
-          return yield* EnhancedConfigLifecycleService;
-        }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+          return yield* ConfigLifecycleService;
+        }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
       );
 
       await Effect.runPromise(service.revertConfig(configId));
@@ -201,8 +199,8 @@ export function useConfigEditor({
     try {
       const service = await Effect.runPromise(
         Effect.gen(function* () {
-          return yield* EnhancedConfigLifecycleService;
-        }).pipe(Effect.provide(EnhancedConfigLifecycleServiceLive)),
+          return yield* ConfigLifecycleService;
+        }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
       );
 
       await Effect.runPromise(service.toggleAutoSave());
