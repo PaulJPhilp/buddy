@@ -85,6 +85,3 @@ export class WebSocketTestServer {
     return this.server !== null;
   }
 }
-
-// Global test server instance
-export const testServer = new WebSocketTestServer(9999);

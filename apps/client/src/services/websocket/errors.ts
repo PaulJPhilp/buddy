@@ -1,5 +1,15 @@
 import { Data } from "effect";
 
+export interface WebSocketErrorProps {
+  message: string;
+  code?: string;
+  cause?: unknown;
+}
+
+export class WebSocketError extends Data.TaggedError(
+  "WebSocketError",
+)<WebSocketErrorProps> {}
+
 export class WebSocketConnectionError extends Data.TaggedError(
   "WebSocketConnectionError",
 )<{
@@ -31,7 +41,7 @@ export class WebSocketTimeoutError extends Data.TaggedError(
 }> {}
 
 // Legacy error class for compatibility
-export class WebSocketError extends Error {
+export class WebSocketErrorLegacy extends Error {
   code: string;
   constructor(message: string, code = "GENERIC") {
     super(message);

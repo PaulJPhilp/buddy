@@ -22,7 +22,6 @@ export type {
   ToolbarSpacer,
   ToolbarItem,
   ToolbarConfig,
-  isCommand,
-  isSpacer,
-  isCustom,
-};
+} from "@/types/global";
+
+export { isCommand, isSpacer, isCustom } from "@/types/global";

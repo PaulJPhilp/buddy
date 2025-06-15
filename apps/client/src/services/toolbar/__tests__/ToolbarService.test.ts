@@ -5,6 +5,26 @@ import { ToolbarService } from "../service";
 const sampleToolbar = { id: "toolbar1", name: "Main Toolbar", tools: [] };
 
 describe("ToolbarService", () => {
+  describe("Service Structure", () => {
+    it("should have a valid .Default layer", () => {
+      expect(ToolbarService.Default).toBeDefined();
+      expect(typeof ToolbarService.Default).toBe("object");
+      // Check that it's a proper Layer by verifying it has layer properties
+      expect(ToolbarService.Default).toHaveProperty("pipe");
+    });
+
+    it("should be able to provide the service layer", () => {
+      const testEffect = Effect.gen(function* () {
+        const service = yield* ToolbarService;
+        return "success";
+      });
+
+      expect(() =>
+        testEffect.pipe(Effect.provide(ToolbarService.Default)),
+      ).not.toThrow();
+    });
+  });
+
   it("creates and retrieves a toolbar", () => {
     const program = Effect.gen(function* () {
       const service = yield* ToolbarService;

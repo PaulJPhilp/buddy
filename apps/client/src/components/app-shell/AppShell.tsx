@@ -13,6 +13,7 @@ import { debugToolStore } from "@/stores/debugToolStore";
 import { errorManagerStore } from "@/stores/errorManagerStore";
 import { sidebarToolStore } from "@/stores/sidebarToolStore";
 
+import { useLlmWorkspaceBridge } from "@/workspace-llm/client/useLlmWorkspaceBridge";
 import { useSelector } from "@xstate/store/react";
 import React from "react";
 import { AppSidebar } from "./AppSidebar";
@@ -22,6 +23,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  // Mount the LLM → Workspace WebSocket bridge once for the entire app.
+  useLlmWorkspaceBridge();
+
   // Get layout state from stores
 
   // Use useSelector consistently for all stores to ensure reactivity

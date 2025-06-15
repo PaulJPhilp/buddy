@@ -5,29 +5,12 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   test: {
-    environment: "happy-dom",
-    setupFiles: ["./vitest.setup.simple.ts"],
-    globals: true,
-    include: [
-      "**/__tests__/**/*.test.ts",
-      "**/__tests__/**/*.test.tsx",
-      "**/*.test.ts",
-      "**/*.test.tsx",
+    environment: "jsdom",
+    setupFiles: [
+      "./vitest.setup.simple.ts",
+      "./vitest.setup.react.ts",
+      "./vitest.setup.websocket.ts",
     ],
-    coverage: {
-      reporter: ["text", "json", "html"],
-      exclude: [
-        "coverage/**",
-        "dist/**",
-        "**/[.]**",
-        "packages/*/test{,s}/**",
-        "**/*.d.ts",
-        "test{,s}/**",
-        "test{,-*}.{js,cjs,mjs,ts,tsx,jsx}",
-        "**/*{.,-}test.{js,cjs,mjs,ts,tsx,jsx}",
-        "**/__tests__/**",
-        "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress}.*",
-      ],
-    },
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });

@@ -3,7 +3,7 @@ import { Effect, Layer, Queue, Ref, Stream } from "effect";
 import { buildChatUrl } from "../../config/websocket";
 import {
   type WebSocketMessage,
-  createWebSocketServiceImpl,
+  WebSocketService,
 } from "../websocket/WebSocketService";
 import type { ChatServiceApi } from "./api";
 import {
@@ -19,60 +19,42 @@ import type {
   MessageValidation,
 } from "./types";
 
-export const ChatService = Effect.Tag<ChatServiceApi>()("ChatService");
+export class ChatService extends Effect.Service<ChatServiceApi>()("ChatService", {
+  scoped: Effect.gen(function* () {
+    // Get dependencies
+    const webSocketService = yield* WebSocketService;
 
-/**
- * Layer helper complying with the Effect Layer Composition Rule.
- * Compose with other services via `Layer.merge(...)`.
- */
-export const ChatServiceLive = (chatId: string, wsUrl?: string) =>
-  Layer.effect(ChatService, createChatServiceForId(chatId, wsUrl));
-
-// Factory function to create ChatService instances with specific chatId
-export const createChatServiceForId = (chatId: string, wsUrl?: string) =>
-  Effect.gen(function* () {
-    console.log(`[ChatService] Creating ChatService for chatId: ${chatId}`);
-
-    // Create a dedicated WebSocket service instance for this chat
-    const webSocketService = yield* createWebSocketServiceImpl();
-    const finalUrl = wsUrl || buildChatUrl(chatId);
-
-    // Create some initial test messages for development
-    const initialMessages: MessageApi[] = [
-      {
-        id: "welcome-1",
-        text: "Hello! I'm your AI assistant. How can I help you today?",
-        sender: "assistant",
-        timestamp: Date.now() - 30000,
-        metadata: {
-          length: 52,
-          validation: { isValid: true, errors: [] },
-          hasAttachments: false,
-        },
-      },
-    ];
-
+    // Create state management
     const stateRef = yield* Ref.make<ChatState>({
-      id: chatId,
-      messages: initialMessages,
+      id: "",
+      messages: [],
       isTyping: false,
       metadata: {
-        messageCount: initialMessages.length,
+        messageCount: 0,
         totalAttachments: 0,
       },
     });
 
     const messageQueue = yield* Queue.unbounded<MessageApi>();
-    const messageStreamFiber: Effect.Fiber<void, never> | null = null;
 
     // Initialize WebSocket connection and message stream
-    const initialize = (): Effect.Effect<void, ChatConnectionError> =>
+    const initialize = (
+      chatId: string,
+      wsUrl?: string,
+    ): Effect.Effect<void, ChatConnectionError> =>
       Effect.gen(function* () {
         console.log(
           `[ChatService] Initializing ChatService for chatId: ${chatId}`,
         );
 
+        // Update state with chatId
+        yield* Ref.update(stateRef, (state) => ({
+          ...state,
+          id: chatId,
+        }));
+
         // Connect to WebSocket
+        const finalUrl = wsUrl || buildChatUrl(chatId);
         yield* webSocketService.connect(finalUrl).pipe(
           Effect.mapError(
             (error) =>
@@ -94,6 +76,9 @@ export const createChatServiceForId = (chatId: string, wsUrl?: string) =>
       attachments?: File[],
     ): Effect.Effect<void, ChatMessageError> =>
       Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef);
+        const chatId = state.id;
+
         // Validate message
         const validation = yield* validateMessage(text);
         if (!validation.isValid) {
@@ -220,4 +205,6 @@ export const createChatServiceForId = (chatId: string, wsUrl?: string) =>
       clearHistory,
       cleanup,
     } satisfies ChatServiceApi;
-  });
+  }),
+  dependencies: [WebSocketService],
+}) {}

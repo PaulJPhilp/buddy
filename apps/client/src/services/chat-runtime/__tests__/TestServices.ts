@@ -6,38 +6,40 @@ import { AgentEndpointResolverService } from "../AgentEndpointResolverService";
 export class TestWebSocketService extends Effect.Service<WebSocketService>()(
   "WebSocketService",
   {
-    effect: Effect.gen(function* () {
+    scoped: Effect.gen(function* () {
       const messageQueue = yield* Queue.unbounded<any>();
-      const isConnected = yield* Effect.succeed(true);
 
       return {
         connect: (url: string) => Effect.succeed(undefined),
         disconnect: () => Effect.succeed(undefined),
         send: (message: any) => Effect.succeed(undefined),
-        receive: () => Stream.fromQueue(messageQueue),
-        isConnected: Effect.succeed(true),
+        receive: Stream.fromQueue(messageQueue),
+        isConnected: true,
+        messageStream: Stream.fromQueue(messageQueue),
+        cleanup: () => Effect.succeed(undefined),
+        _tag: "WebSocketService",
       };
     }),
     dependencies: [],
-  }
+  },
 ) {}
 
 // Real test endpoint resolver implementation
 export class TestEndpointResolverService extends Effect.Service<AgentEndpointResolverService>()(
   "AgentEndpointResolverService",
   {
-    effect: Effect.gen(function* () {
+    scoped: Effect.gen(function* () {
       return {
         resolveEndpoint: (agentId: string, chatId: string) =>
           Effect.succeed(`ws://test-endpoint/${agentId}/${chatId}`),
       };
     }),
     dependencies: [],
-  }
+  },
 ) {}
 
 // Layer combining both test services
 export const TestServicesLive = Layer.merge(
   Layer.succeed(WebSocketService, TestWebSocketService),
-  Layer.succeed(AgentEndpointResolverService, TestEndpointResolverService)
-); 
+  Layer.succeed(AgentEndpointResolverService, TestEndpointResolverService),
+);

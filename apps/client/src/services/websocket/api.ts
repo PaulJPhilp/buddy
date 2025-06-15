@@ -15,7 +15,7 @@ export interface WebSocketServiceApi {
     WebSocketServiceError,
     never
   >;
-  readonly isConnected: boolean;
+  readonly isConnected: Effect.Effect<boolean, never>;
   readonly messageStream: Stream.Stream<
     ProtocolMessage,
     WebSocketServiceError,
