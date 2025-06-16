@@ -1,34 +1,27 @@
-import { Effect } from "effect";
-import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
-import { WebSocketConnectionManager } from "../WebSocketConnectionManager";
+import { afterAll, beforeAll } from "vitest";
 import { WebSocketTestServer } from "./websocket-test-server";
 
-// Use a different port for WebSocketService tests to avoid conflicts
-export const testServer = new WebSocketTestServer(9998);
+// Use dynamic port allocation to avoid conflicts
+export const testServer = new WebSocketTestServer();
+
+let TEST_WS_URL: string;
 
 // Global setup and teardown
 beforeAll(async () => {
-  await testServer.start();
+  const port = await testServer.start();
+  TEST_WS_URL = `ws://localhost:${port}`;
 });
 
 afterAll(async () => {
   await testServer.stop();
 });
 
-// Reset server state between tests
-beforeEach(() => {
-  // Add any per-test setup if needed
-});
-
-afterEach(async () => {
-  // Clean up all WebSocket connections
-  await Effect.runPromise(
-    Effect.gen(function* () {
-      const manager = yield* WebSocketConnectionManager;
-      yield* manager.cleanup();
-    }).pipe(Effect.provide(WebSocketConnectionManager.Default)),
-  );
-});
-
-// Export test server URL for tests to use
-export const TEST_WS_URL = "ws://localhost:9998";
+// Export a function to get the current test server URL
+export function getTestWsUrl() {
+  if (typeof TEST_WS_URL !== "string" || !/^ws:\/\/.+/.test(TEST_WS_URL)) {
+    throw new Error(
+      `TEST_WS_URL is not set or invalid: ${String(TEST_WS_URL)}.\nDid you call getTestWsUrl() before the test server was started?`,
+    );
+  }
+  return TEST_WS_URL;
+}

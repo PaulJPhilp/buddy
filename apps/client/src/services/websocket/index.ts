@@ -8,10 +8,7 @@ export {
   WebSocketTimeoutError,
 } from "./errors";
 export type { WebSocketServiceError } from "./errors";
-export {
-  WebSocketService,
-  createWebSocketServiceImpl,
-} from "./WebSocketService";
+export { WebSocketService } from "./service";
 export type {
   MessageCallback,
   MessageValidationResult,

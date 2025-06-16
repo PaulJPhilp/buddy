@@ -64,16 +64,15 @@ export class AppService extends Effect.Service<AppServiceApi>()("AppService", {
         Effect.gen(function* () {
           console.log("🔧 AppService: getAll called");
 
-          // Delegate to ConfigLifecycleService
+          // Delegate to ConfigLifecycleService with graceful error handling
           const configs = yield* configLifecycle.loadConfigs().pipe(
-            Effect.mapError(
-              (cause) =>
-                new AppConfigPersistenceError({
-                  message: "Failed to load app configs",
-                  operation: "load",
-                  cause,
-                }),
-            ),
+            Effect.catchAll((e) => {
+              console.warn(
+                "Failed to load configs in getAll, returning empty array:",
+                e,
+              );
+              return Effect.succeed([]);
+            }),
           );
 
           console.log(
@@ -88,16 +87,15 @@ export class AppService extends Effect.Service<AppServiceApi>()("AppService", {
         Effect.gen(function* () {
           console.log("🔧 AppService: getById called for", id);
 
-          // Delegate to ConfigLifecycleService
+          // Delegate to ConfigLifecycleService with graceful error handling
           const configs = yield* configLifecycle.loadConfigs().pipe(
-            Effect.mapError(
-              (cause) =>
-                new AppConfigPersistenceError({
-                  message: "Failed to load app configs",
-                  operation: "load",
-                  cause,
-                }),
-            ),
+            Effect.catchAll((e) => {
+              console.warn(
+                "Failed to load configs in getById, returning empty array:",
+                e,
+              );
+              return Effect.succeed([]);
+            }),
           );
           const config = configs.find((c) => c.id === id);
 
@@ -110,7 +108,7 @@ export class AppService extends Effect.Service<AppServiceApi>()("AppService", {
           console.log("🔧 AppService: create called for", app.id);
 
           // AppService validation (business logic)
-          const validApp = yield* ChatAppConfig.parse(app).pipe(
+          const validApp = yield* ChatAppConfig.parseEffect(app).pipe(
             Effect.mapError(
               (cause) =>
                 new AppConfigValidationError({

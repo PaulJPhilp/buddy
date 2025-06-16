@@ -26,82 +26,23 @@ export class MdxService extends Effect.Service<MdxServiceApi>()("MdxService", {
 
     const compile = (mdxContent: string, options?: MdxCompileOptions) =>
       Effect.gen(function* () {
-        try {
-          // Parse frontmatter
-          const { content, data: frontmatter } = matter(mdxContent);
-
-          // Process MDX content
-          const result = yield* Effect.promise(() => processor.process(content));
-
-          return {
-            html: String(result),
-            frontmatter,
-          };
-        } catch (error) {
-          throw new MdxCompilationError({
-            message: "Failed to compile MDX content",
-            cause: error,
-          });
-        }
-      });
-
-    const compileFile = (filePath: string, options?: MdxCompileOptions) =>
-      Effect.gen(function* () {
-        try {
-          // Read file content
-          const content = yield* Effect.promise(() =>
-            Bun.file(filePath).text(),
-          );
-
-          // Compile MDX
-          return yield* compile(content, options);
-        } catch (error) {
-          throw new MdxParsingError({
-            message: "Failed to parse MDX file",
-            filePath,
-            cause: error,
-          });
-        }
-      });
-
-    return {
-      compile,
-      compileFile,
-    };
-  }),
-  dependencies: [],
-});
-
-// Create the layer for dependency injection
-export const MdxServiceLive = Layer.effect(
-  MdxService,
-  Effect.succeed({
-    compile: (mdxContent: string, options?: MdxCompileOptions) =>
-      Effect.gen(function* () {
         // Parse frontmatter
         const { content, data: frontmatter } = yield* Effect.try({
           try: () => matter(mdxContent),
           catch: (err) =>
             new MdxParsingError({
-              underlyingError: err,
-              details: "Failed to parse frontmatter",
+              message: "Failed to parse frontmatter",
+              cause: err,
             }),
         });
-
-        // Create unified processor pipeline for markdown to HTML with GFM support
-        const processor = unified()
-          .use(remarkParse) // Parse markdown
-          .use(remarkGfm) // Add GitHub Flavored Markdown support (tables, strikethrough, etc.)
-          .use(remarkRehype) // Convert to HTML AST
-          .use(rehypeStringify); // Stringify to HTML
 
         // Process the markdown content
         const result = yield* Effect.tryPromise({
           try: () => processor.process(content),
           catch: (err) =>
             new MdxCompilationError({
-              underlyingError: err,
-              details: "Markdown to HTML compilation failed",
+              message: "Markdown to HTML compilation failed",
+              cause: err,
             }),
         });
 
@@ -113,19 +54,36 @@ export const MdxServiceLive = Layer.effect(
           metadata: result.data || {},
         };
       }).pipe(
-        Effect.tapError((e) => {
-          console.log(`MDX processing error: ${e._tag}`);
-          return Effect.succeed(undefined);
-        }),
-      ),
+        Effect.mapError(
+          (error) =>
+            new MdxCompilationError({
+              message: "Failed to compile MDX content",
+              cause: error,
+            }),
+        ),
+      );
 
-    compileFile: () =>
-      Effect.fail(
-        new MdxCompilationError({
-          underlyingError: new Error("compileFile not supported in browser"),
-          details:
-            "File system operations are not available in the browser environment",
-        }),
-      ),
+    const compileFile = (filePath: string, options?: MdxCompileOptions) =>
+      Effect.gen(function* () {
+        // Read file content
+        const content = yield* Effect.tryPromise({
+          try: () => Bun.file(filePath).text(),
+          catch: (err) =>
+            new MdxParsingError({
+              message: "Failed to read MDX file",
+              filePath,
+              cause: err,
+            }),
+        });
+
+        // Compile MDX
+        return yield* compile(content, options);
+      });
+
+    return {
+      compile,
+      compileFile,
+    } satisfies MdxServiceApi;
   }),
-);
+  dependencies: [],
+}) {}

@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { WebSocketService } from "../../websocket/WebSocketService";
+import { WebSocketService } from "../../websocket";
 import { ChatState, MessageApi } from "../ChatServiceApi";
 import { ChatService } from "../service";
 

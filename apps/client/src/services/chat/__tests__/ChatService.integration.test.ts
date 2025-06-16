@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-describe("ChatService Integration Tests - Live LLM Agent", () => {
+describe.skip("ChatService Integration Tests - Live LLM Agent", () => {
   let ws: WebSocket;
   const LLM_AGENT_URL = "ws://localhost:8080/chat";
 

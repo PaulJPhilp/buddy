@@ -1,11 +1,62 @@
-import { WebSocketService } from "@/services/websocket/WebSocketService";
-import { TEST_WS_URL } from "@/services/websocket/__tests__/setup";
+import { WebSocketService } from "@/services/websocket";
 import { Effect, Layer } from "effect";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { WebSocketServer } from "ws";
 import { UiEventPayload } from "../../shared/schema";
 import { WorkspaceEventPublisher } from "../service";
 
 describe("WorkspaceEventPublisher", () => {
+  let server: any;
+  let TEST_PORT: number;
+  let TEST_URL: string;
+
+  // Start isolated test server (using llm-agent pattern)
+  beforeAll(async () => {
+    const { createServer } = await import("node:http");
+    const express = await import("express");
+
+    const app = express.default();
+    const httpServer = createServer(app);
+    const wss = new WebSocketServer({ server: httpServer });
+
+    wss.on("connection", (ws) => {
+      console.log("Test client connected to publisher server");
+
+      ws.on("message", (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          console.log("Publisher server received:", message);
+        } catch (error) {
+          console.error("Error processing message:", error);
+        }
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      httpServer.listen(0, () => {
+        // Get the dynamically assigned port
+        const address = httpServer.address();
+        if (typeof address === "object" && address && "port" in address) {
+          TEST_PORT = address.port;
+          TEST_URL = `ws://localhost:${TEST_PORT}`;
+          console.log(`Publisher test server running on port ${TEST_PORT}`);
+        } else {
+          throw new Error("Unable to determine server port");
+        }
+        resolve();
+      });
+    });
+
+    server = httpServer;
+  });
+
+  // Cleanup after all tests
+  afterAll(() => {
+    if (server) {
+      server.close();
+    }
+  });
+
   it("publishes event without throwing", async () => {
     const layer = Layer.merge(
       WebSocketService.Default,
@@ -23,8 +74,8 @@ describe("WorkspaceEventPublisher", () => {
         const wsService = yield* WebSocketService;
         const pub = yield* WorkspaceEventPublisher;
 
-        // Connect to test server
-        yield* wsService.connect(TEST_WS_URL);
+        // Connect to isolated test server
+        yield* wsService.connect(TEST_URL);
 
         // Publish event
         yield* pub.publishEvent("user-1", testEvent);

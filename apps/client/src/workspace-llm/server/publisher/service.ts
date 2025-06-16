@@ -1,4 +1,4 @@
-import { WebSocketService } from "@/services/websocket/WebSocketService";
+import { WebSocketService } from "@/services/websocket";
 import { createMessage } from "@buddy/protocol";
 import { Effect } from "effect";
 import { encodeUiEvent } from "../../shared/schema";

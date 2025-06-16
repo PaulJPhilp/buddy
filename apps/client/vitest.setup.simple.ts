@@ -23,5 +23,7 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
+// No mocking - tests must use real external services
+
 // Add basic console notification
 console.log("✅ Vitest setup complete - using happy-dom environment");

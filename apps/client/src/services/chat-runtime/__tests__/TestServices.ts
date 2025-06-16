@@ -1,5 +1,5 @@
 import { Effect, Layer, Queue, Stream } from "effect";
-import { WebSocketService } from "../../websocket/WebSocketService";
+import { WebSocketService } from "../../websocket";
 import { AgentEndpointResolverService } from "../AgentEndpointResolverService";
 
 // Real test WebSocket service implementation

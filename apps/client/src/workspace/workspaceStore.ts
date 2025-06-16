@@ -26,6 +26,10 @@ const handlers = {
     context: UIState,
     event: Extract<UIEvent, { type: "TAB_ADDED" }>,
   ): UIState => {
+    console.log("[workspaceStore] TAB_ADDED handler called", {
+      context,
+      event,
+    });
     // Disallow duplicates – no-op if tab already exists
     if (context.tabs[event.tabId]) return context;
 
@@ -110,6 +114,10 @@ const handlers = {
     context: UIState,
     event: Extract<UIEvent, { type: "CHAT_APP_ADDED" }>,
   ): UIState => {
+    console.log("[workspaceStore] CHAT_APP_ADDED handler called", {
+      context,
+      event,
+    });
     if (!context.tabs[event.tabId]) return context; // invalid tab
 
     if (context.chatApps[event.appId]) return context; // duplicate

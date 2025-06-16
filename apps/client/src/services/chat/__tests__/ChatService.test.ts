@@ -1,7 +1,6 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { WebSocketError } from "../../websocket/WebSocketService";
-import { WebSocketService } from "../../websocket/WebSocketService";
+import { WebSocketError, WebSocketService } from "../../websocket";
 import {
   HistoryError,
   MessageCreationError,

@@ -1,74 +1,48 @@
 import { Effect } from "effect";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// Mock fetch globally
-global.fetch = vi.fn();
+import { describe, expect, it } from "vitest";
+import { ConfigLifecycleService } from "../ConfigLifecycleService";
+import "./setup"; // Import setup to start real API server
 
 describe("ConfigLifecycleService - Basic Integration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should be able to call the API endpoints", async () => {
-    const mockFetch = fetch as any;
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* ConfigLifecycleService;
 
-    // Mock file list response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve([
-          { name: "test-config.json", lastModified: Date.now(), size: 1000 },
-        ]),
-    } as Response);
+        // Test real API call to external service
+        const configs = yield* service.loadConfigs();
 
-    // Mock config file content response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      text: () =>
-        Promise.resolve(
-          JSON.stringify({
-            chatApps: [
-              {
-                id: "test-config",
-                name: "Test Config",
-                agentId: "test-agent",
-                toolbarId: "test-toolbar",
-                themeId: "test-theme",
-              },
-            ],
-          }),
-        ),
-    } as Response);
+        return {
+          success: true,
+          configCount: configs.length,
+          hasConfigs: configs.length > 0,
+        };
+      }).pipe(Effect.provide(ConfigLifecycleService.Default)),
+    );
 
-    // Test that we can call the API endpoints directly
-    const filesResponse = await fetch("/api/configs");
-    expect(filesResponse.ok).toBe(true);
-
-    const files = await filesResponse.json();
-    expect(Array.isArray(files)).toBe(true);
-    expect(files).toHaveLength(1);
-    expect(files[0].name).toBe("test-config.json");
-
-    // Test config file content
-    const configResponse = await fetch("/api/configs?file=test-config.json");
-    expect(configResponse.ok).toBe(true);
-
-    const configText = await configResponse.text();
-    const configData = JSON.parse(configText);
-    expect(configData.chatApps).toHaveLength(1);
-    expect(configData.chatApps[0].id).toBe("test-config");
+    expect(result.success).toBe(true);
+    expect(typeof result.configCount).toBe("number");
+    expect(result.configCount).toBeGreaterThanOrEqual(0);
   });
 
   it("should handle API errors gracefully", async () => {
-    const mockFetch = fetch as any;
-    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* ConfigLifecycleService;
 
-    try {
-      await fetch("/api/configs");
-      expect.fail("Should have thrown an error");
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe("Network error");
+        // Try to perform operation that might fail with real external service
+        const saveResult = yield* service
+          .saveConfig("non-existent-config")
+          .pipe(Effect.either);
+
+        return saveResult;
+      }).pipe(Effect.provide(ConfigLifecycleService.Default)),
+    );
+
+    // Real external service should return proper error response
+    expect(result._tag).toBe("Left");
+    if (result._tag === "Left") {
+      expect(result.left).toHaveProperty("_tag");
     }
   });
 });

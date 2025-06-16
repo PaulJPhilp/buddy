@@ -22,7 +22,6 @@ interface UseConfigEditorReturn {
   error: string | null;
 
   // Actions
-  updateTheme: (themeUpdates: Partial<ChatAppConfig["theme"]>) => void;
   updateName: (name: string) => void;
   updateConfig: (updates: Partial<ChatAppConfig>) => void;
   saveNow: () => Promise<void>;
@@ -84,33 +83,6 @@ export function useConfigEditor({
   const config = state?.configs.find((c) => c.id === configId) || null;
   const saveStatus = state?.saveStatus[configId] || "saved";
   const autoSaveEnabled = state?.autoSaveEnabled ?? true;
-
-  // Update theme properties
-  const updateTheme = useCallback(
-    async (themeUpdates: Partial<ChatAppConfig["theme"]>) => {
-      if (!config?.theme) return;
-
-      const updatedTheme = { ...config.theme, ...themeUpdates };
-
-      try {
-        setLoading(true);
-        const service = await Effect.runPromise(
-          Effect.gen(function* () {
-            return yield* ConfigLifecycleService;
-          }).pipe(Effect.provide(ConfigLifecycleServiceLive)),
-        );
-
-        await Effect.runPromise(
-          service.updateConfigImmediate(configId, { theme: updatedTheme }),
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [configId, config?.theme],
-  );
 
   // Update config name
   const updateName = useCallback(
@@ -219,7 +191,6 @@ export function useConfigEditor({
     error: error || state?.error,
 
     // Actions
-    updateTheme,
     updateName,
     updateConfig,
     saveNow,
@@ -231,66 +202,11 @@ export function useConfigEditor({
   };
 }
 
-// Convenience hook for theme editing specifically
-export function useThemeEditor(configId: string) {
-  const editor = useConfigEditor({ configId });
-
-  const updateBackgroundColor = useCallback(
-    (color: string) => {
-      if (!editor.config?.theme) return;
-
-      editor.updateTheme({
-        colors: {
-          ...editor.config.theme.colors,
-          background: color,
-        },
-      });
-    },
-    [editor],
-  );
-
-  const updateTextColor = useCallback(
-    (color: string) => {
-      if (!editor.config?.theme) return;
-
-      editor.updateTheme({
-        colors: {
-          ...editor.config.theme.colors,
-          text: color,
-        },
-      });
-    },
-    [editor],
-  );
-
-  const updateAccentColor = useCallback(
-    (color: string) => {
-      if (!editor.config?.theme) return;
-
-      editor.updateTheme({
-        colors: {
-          ...editor.config.theme.colors,
-          accent: color,
-        },
-      });
-    },
-    [editor],
-  );
-
-  return {
-    ...editor,
-    updateBackgroundColor,
-    updateTextColor,
-    updateAccentColor,
-  };
-}
-
 // Example usage in a component:
 //
 // const {
 //   config,
 //   saveStatus,
-//   updateTheme,
 //   updateName,
 //   saveNow,
 //   revert,
@@ -299,7 +215,6 @@ export function useThemeEditor(configId: string) {
 // } = useConfigEditor({ configId });
 //
 // Usage examples:
-// - updateTheme({ colors: { primary: '#ff0000' } })
 // - updateName('New Config Name')
 // - saveNow() to force immediate save
 // - revert() to undo changes

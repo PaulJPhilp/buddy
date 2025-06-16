@@ -11,7 +11,7 @@ const promptVoiceCreateEndpoint = HttpApiEndpoint.post(
 
 const promptVoiceGetEndpoint = HttpApiEndpoint.post(
   "getPromptVoice",
-)`/user/get/${HttpApiSchema.param("id", Schema.NumberFromString)}`
+)`/prompt-voice/get/${HttpApiSchema.param("id", Schema.NumberFromString)}`
   .setPayload(PromptVoice)
   .addError(Schema.String)
   .addSuccess(PromptVoice);

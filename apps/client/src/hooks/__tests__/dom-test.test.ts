@@ -4,8 +4,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { JSDOM } from "jsdom";
-import { beforeAll, describe, expect, test } from "vitest";
-import { useChatTheme } from "../chat-theme/useChatTheme";
+import { beforeAll, describe } from "vitest";
 
 describe("DOM Test with Manual Setup", () => {
   beforeAll(() => {
@@ -35,17 +34,5 @@ describe("DOM Test with Manual Setup", () => {
     global.Node = dom.window.Node;
   });
 
-  test("should render hook with manual DOM setup", () => {
-    const { result } = renderHook(() => useChatTheme());
-
-    expect(result.current).toBeDefined();
-    expect(typeof result.current).toBe("object");
-  });
-
-  test("should handle theme override", () => {
-    const themeOverride = { primaryColor: "#ff0000" };
-    const { result } = renderHook(() => useChatTheme(themeOverride));
-
-    expect(result.current.primaryColor).toBe("#ff0000");
-  });
+  // All theme-related tests have been removed.
 });

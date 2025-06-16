@@ -2,72 +2,71 @@ import { WebSocketServer } from "ws";
 
 export class WebSocketTestServer {
   private server: WebSocketServer | null = null;
-  private port: number;
+  private actualPort: number | null = null;
+  private connections: Set<any> = new Set();
 
-  constructor(port = 8080) {
-    this.port = port;
-  }
-
-  async start(): Promise<void> {
+  async start(): Promise<number> {
     return new Promise((resolve, reject) => {
-      try {
-        this.server = new WebSocketServer({
-          port: this.port,
-          host: "localhost",
+      // Create WebSocket server directly (like llm-agent and working simple server)
+      this.server = new WebSocketServer({ port: 0 });
+
+      this.server.on("connection", (ws) => {
+        console.log("WebSocket connection established: /");
+        this.connections.add(ws);
+
+        // Simple message handling (like working simple server)
+        ws.on("message", (data) => {
+          console.log("Server received:", data.toString());
+          // Simple echo without complex JSON parsing
+          ws.send(`Echo: ${data.toString()}`);
         });
 
-        this.server.on("connection", (ws, request) => {
-          console.log(`WebSocket connection established: ${request.url}`);
+        // DON'T send welcome message immediately - this was causing the hang
 
-          // Echo server - send back any message received
-          ws.on("message", (data) => {
-            try {
-              // Try to parse as JSON and echo back
-              const message = JSON.parse(data.toString());
-              ws.send(JSON.stringify({ echo: message }));
-            } catch {
-              // If not JSON, just echo the string
-              ws.send(`Echo: ${data.toString()}`);
-            }
-          });
+        ws.on("error", (error) => {
+          console.error("WebSocket error:", error);
+        });
 
-          // Send a welcome message
-          ws.send(
-            JSON.stringify({
-              type: "welcome",
-              message: "Connected to test server",
-            }),
+        ws.on("close", (code, reason) => {
+          console.log(`WebSocket closed: ${code} ${reason}`);
+          this.connections.delete(ws);
+        });
+      });
+
+      this.server.on("listening", () => {
+        const address = this.server?.address();
+        if (typeof address === "object" && address && "port" in address) {
+          this.actualPort = address.port;
+          console.log(
+            `WebSocket test server listening on port ${this.actualPort}`,
           );
+          resolve(this.actualPort);
+        } else {
+          reject(new Error("Unable to determine server port"));
+        }
+      });
 
-          ws.on("error", (error) => {
-            console.error("WebSocket error:", error);
-          });
-
-          ws.on("close", (code, reason) => {
-            console.log(`WebSocket closed: ${code} ${reason}`);
-          });
-        });
-
-        this.server.on("listening", () => {
-          console.log(`WebSocket test server listening on port ${this.port}`);
-          resolve();
-        });
-
-        this.server.on("error", (error) => {
-          console.error("WebSocket server error:", error);
-          reject(error);
-        });
-      } catch (error) {
+      this.server.on("error", (error) => {
+        console.error("WebSocket server error:", error);
         reject(error);
-      }
+      });
     });
   }
 
   async stop(): Promise<void> {
     return new Promise((resolve) => {
+      // Close all active connections first
+      for (const ws of this.connections) {
+        if (ws.readyState === 1) {
+          // OPEN
+          ws.close();
+        }
+      }
+      this.connections.clear();
+
       if (this.server) {
         this.server.close(() => {
-          console.log("WebSocket test server stopped");
+          console.log("WebSocket server stopped");
           this.server = null;
           resolve();
         });
@@ -78,10 +77,33 @@ export class WebSocketTestServer {
   }
 
   getUrl(): string {
-    return `ws://localhost:${this.port}`;
+    if (!this.actualPort) {
+      throw new Error("Server not started - no port available");
+    }
+    return `ws://localhost:${this.actualPort}`;
   }
 
   isRunning(): boolean {
     return this.server !== null;
+  }
+
+  getPort(): number {
+    if (!this.actualPort) {
+      throw new Error("Server not started - no port available");
+    }
+    return this.actualPort;
+  }
+
+  // Simulate different server behaviors for testing
+  simulateDisconnect(): void {
+    for (const ws of this.connections) {
+      ws.close(1001, "Server going away");
+    }
+  }
+
+  simulateError(): void {
+    for (const ws of this.connections) {
+      ws.terminate(); // Abrupt close
+    }
   }
 }

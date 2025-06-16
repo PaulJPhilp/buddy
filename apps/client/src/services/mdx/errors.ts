@@ -4,19 +4,21 @@ import { Data } from "effect";
 export class MdxCompilationError extends Data.TaggedError(
   "MdxCompilationError",
 )<{
-  readonly underlyingError: unknown;
-  readonly details?: string;
+  readonly message: string;
+  readonly cause?: unknown;
 }> {}
 
 export class MdxParsingError extends Data.TaggedError("MdxParsingError")<{
-  readonly underlyingError: unknown;
-  readonly details?: string;
+  readonly message: string;
+  readonly filePath?: string;
+  readonly cause?: unknown;
 }> {}
 
 export class FileSystemError extends Data.TaggedError("FileSystemError")<{
-  readonly underlyingError: unknown;
+  readonly message: string;
   readonly path: string;
   readonly operation: "read" | "stat" | "write";
+  readonly cause?: unknown;
 }> {}
 
 export type MdxError = MdxCompilationError | MdxParsingError | FileSystemError;

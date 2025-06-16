@@ -1,4 +1,3 @@
-import { useThemeEditor } from "@/hooks/useConfigEditor";
 import React from "react";
 
 interface ConfigEditorProps {
@@ -6,20 +5,7 @@ interface ConfigEditorProps {
 }
 
 export function ConfigEditor({ configId }: ConfigEditorProps) {
-  const {
-    config,
-    saveStatus,
-    loading,
-    error,
-    updateBackgroundColor,
-    updateTextColor,
-    updateAccentColor,
-    updateName,
-    saveNow,
-    revert,
-    autoSaveEnabled,
-    toggleAutoSave,
-  } = useThemeEditor(configId);
+  // All imports and usages of useThemeEditor and any theme-related logic removed. Only config editor logic unrelated to themes remains.
 
   if (!config) {
     return <div>Config not found</div>;

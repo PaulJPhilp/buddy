@@ -11,7 +11,7 @@ const promptCreateEndpoint = HttpApiEndpoint.post(
 
 const promptGetEndpoint = HttpApiEndpoint.post(
   "getPrompt",
-)`/user/get/${HttpApiSchema.param("id", Schema.NumberFromString)}`
+)`/prompt/get/${HttpApiSchema.param("id", Schema.NumberFromString)}`
   .setPayload(Prompt)
   .addError(Schema.String)
   .addSuccess(Prompt);

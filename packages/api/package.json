@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@effect/platform": "^0.80.14",
-    "effect": "^3.14.8",
+    "effect": "^3.16.7",
     "zod": "^3.24.2"
   },
   "devDependencies": {

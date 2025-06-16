@@ -18,8 +18,6 @@ export function useDynamicToolbar(baseConfig: ToolbarConfig): ToolbarConfig {
     appLayoutStore,
     (state) => state.context.isSidebarOpen,
   );
-  // Theme editor is no longer available (themeStore removed)
-  const themeEditorIsOpen = false;
   const clerkAdminPanelIsOpen = useSelector(
     clerkAdminStore,
     (state) => state.context.isPanelOpen,
@@ -50,9 +48,6 @@ export function useDynamicToolbar(baseConfig: ToolbarConfig): ToolbarConfig {
 
         case "toggle-sidebar-tool":
           return { ...item, active: sidebarToolIsOpen };
-
-        case "toggle-theme-editor":
-          return { ...item, active: themeEditorIsOpen };
 
         case "toggle-clerk-admin":
           return { ...item, active: clerkAdminPanelIsOpen };

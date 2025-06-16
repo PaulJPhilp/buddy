@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/config/api";
 import { ChatAppConfig } from "@/types/global";
 import { createStore } from "@xstate/store";
 import { Effect, Ref, Schema } from "effect";
@@ -361,7 +362,7 @@ const createConfigStore = () => {
 // File operations (reusing from original service)
 const loadConfigsFromFiles = Effect.gen(function* () {
   const response = yield* Effect.tryPromise({
-    try: () => fetch("/api/configs"),
+    try: () => fetch(buildApiUrl("/api/configs")),
     catch: (error) =>
       new ConfigLoadError({
         message: "Failed to fetch config list",
@@ -399,7 +400,8 @@ const loadConfigsFromFiles = Effect.gen(function* () {
     if (file === "index.json") continue;
 
     const configResponse = yield* Effect.tryPromise({
-      try: () => fetch(`/api/configs?file=${encodeURIComponent(file)}`),
+      try: () =>
+        fetch(buildApiUrl(`/api/configs?file=${encodeURIComponent(file)}`)),
       catch: (error) =>
         new ConfigLoadError({
           message: `Failed to fetch config file: ${file}`,
@@ -422,7 +424,7 @@ const loadConfigsFromFiles = Effect.gen(function* () {
       const configData = JSON.parse(configText);
 
       // Handle new direct format only
-      const validatedConfig = yield* ChatAppConfig.parse(configData).pipe(
+      const validatedConfig = yield* ChatAppConfig.parseEffect(configData).pipe(
         Effect.catchAll(() => Effect.succeed(null)),
       );
 
@@ -458,7 +460,7 @@ const saveConfigToFile = (config: ChatAppConfig, filename?: string) =>
 
     const response = yield* Effect.tryPromise({
       try: () =>
-        fetch("/api/configs", {
+        fetch(buildApiUrl("/api/configs"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -563,7 +565,7 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
       const addConfig = (config: ChatAppConfig) =>
         Effect.gen(function* () {
           // Validate config
-          yield* ChatAppConfig.parse(config).pipe(
+          yield* ChatAppConfig.parseEffect(config).pipe(
             Effect.mapError(
               (error) =>
                 new ConfigValidationError({
@@ -617,7 +619,7 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
           const updatedConfig = { ...existingConfig, ...updates };
 
           // Validate updated config
-          yield* ChatAppConfig.parse(updatedConfig).pipe(
+          yield* ChatAppConfig.parseEffect(updatedConfig).pipe(
             Effect.mapError(
               (error) =>
                 new ConfigValidationError({
@@ -690,7 +692,7 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
           const updatedConfig = { ...existingConfig, ...updates };
 
           // Validate updated config
-          yield* ChatAppConfig.parse(updatedConfig).pipe(
+          yield* ChatAppConfig.parseEffect(updatedConfig).pipe(
             Effect.mapError(
               (error) =>
                 new ConfigValidationError({
@@ -797,7 +799,10 @@ export class ConfigLifecycleService extends Effect.Service<ConfigLifecycleServic
 
           // TODO: Implement file deletion via API
           yield* Effect.tryPromise({
-            try: () => fetch(`/api/configs/${configId}`, { method: "DELETE" }),
+            try: () =>
+              fetch(buildApiUrl(`/api/configs/${configId}`), {
+                method: "DELETE",
+              }),
             catch: (error) =>
               new ConfigSaveError({
                 message: "Failed to delete config file",

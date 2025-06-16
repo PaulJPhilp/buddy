@@ -192,17 +192,36 @@ describe("WebSocket Client-Server Communication", () => {
   describe("Error Handling", () => {
     it("should handle connection errors", async () => {
       return new Promise<void>((resolve, reject) => {
-        const client = new WebSocket("ws://localhost:9999"); // Non-existent server
+        // Use a port that's definitely not in use (very high port number)
+        const client = new WebSocket("ws://localhost:65535");
+        clients.push(client);
 
-        client.on("error", () => {
-          // We expect an error here
-          resolve();
+        let errorReceived = false;
+        let closeReceived = false;
+
+        client.on("error", (error) => {
+          console.log("🔌 Connection error received:", error.message);
+          errorReceived = true;
+          checkCompletion();
         });
 
-        // If we don't get an error, fail the test after a timeout
+        client.on("close", (code, reason) => {
+          console.log(`🔌 Connection closed: ${code} ${reason}`);
+          closeReceived = true;
+          checkCompletion();
+        });
+
+        function checkCompletion() {
+          // Either error or close event should fire for failed connection
+          if (errorReceived || closeReceived) {
+            resolve();
+          }
+        }
+
+        // Shorter timeout since connection should fail quickly
         setTimeout(() => {
           reject(new Error("Expected connection error did not occur"));
-        }, 1000);
+        }, 500);
       });
     });
   });

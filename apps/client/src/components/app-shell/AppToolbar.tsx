@@ -1,6 +1,5 @@
 "use client";
 
-import {
 import { Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useState, useEffect } from "react";
@@ -11,39 +10,39 @@ interface AppToolbarProps {
 
 export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
   const { theme: rawTheme } = useTheme();
-  const [currentTheme, setCurrentTheme] =
+  const [currentTheme, setCurrentTheme] = useState<any>(null);
 
   // Parse theme in an effect to avoid infinite loops
   useEffect(() => {
     // Safely parse theme with error handling
     try {
+      let parsedTheme = null;
       if (rawTheme) {
         // Handle special theme names like 'system', 'dark', 'light'
         if (
           typeof rawTheme === "string" &&
           !["system", "dark", "light"].includes(rawTheme)
         ) {
+          parsedTheme = JSON.parse(rawTheme);
         } else if (typeof rawTheme === "object") {
+          parsedTheme = rawTheme;
         }
       }
+      setCurrentTheme(parsedTheme);
     } catch (error) {
       console.error("Error parsing theme in AppToolbar:", error);
       // Fall back to default theme on parsing error
+      setCurrentTheme(null);
     }
-
-    setCurrentTheme(parsedTheme);
   }, [rawTheme]); // Only re-run when rawTheme changes
 
   // Compute theme styles
   const themeStyles = {
-    "--color-chat-header-bg":
-      currentTheme.header?.background ||
-      "#f8fafc",
-    "--color-chat-header-text":
-    "--color-chat-border":
-      currentTheme.borders?.color ||
-      "#e2e8f0",
+    "--color-chat-header-bg": currentTheme?.header?.background || "#f8fafc",
+    "--color-chat-header-text": currentTheme?.header?.text || "#1e293b",
+    "--color-chat-border": currentTheme?.borders?.color || "#e2e8f0",
   } as React.CSSProperties;
+
   return (
     <header
       className="flex items-center h-6 px-4 border-b"
@@ -51,6 +50,7 @@ export function AppToolbar({ onToggleSidebarAction }: AppToolbarProps) {
         backgroundColor: "var(--color-chat-header-bg)",
         color: "var(--color-chat-header-text)",
         borderColor: "var(--color-chat-border)",
+        ...themeStyles,
       }}
     >
       <button

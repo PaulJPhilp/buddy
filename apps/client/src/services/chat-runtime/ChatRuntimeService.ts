@@ -5,7 +5,7 @@ import { Scope } from "effect/Scope";
 import {
   WebSocketError as BaseWebSocketError,
   WebSocketService,
-} from "../websocket/WebSocketService";
+} from "../websocket";
 import {
   AgentEndpointNotFoundError,
   AgentEndpointResolverService,

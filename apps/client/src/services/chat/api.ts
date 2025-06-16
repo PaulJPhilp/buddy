@@ -8,7 +8,10 @@ import type {
 } from "./types";
 
 export interface ChatServiceApi extends ChatStateApi {
-  readonly initialize: () => Effect.Effect<void, ChatServiceError>;
+  readonly initialize: (
+    chatId: string,
+    wsUrl?: string,
+  ) => Effect.Effect<void, ChatServiceError>;
   readonly sendMessage: (
     text: string,
     attachments?: File[],

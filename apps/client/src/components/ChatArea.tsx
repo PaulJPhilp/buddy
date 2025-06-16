@@ -165,7 +165,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                     isCurrentUser={msg.role === "user"}
                     role={msg.role}
                     enableMdxProcessing={true}
-                    showDebugInfo={false} // Set to true to re-enable debug output
+                    showDebugInfo={false}
                   />
                   {msg.role === "assistant" && toolbarItems.length > 0 && (
                     <div className="absolute left-0 bottom-0 translate-y-full pt-1.5 w-full">
@@ -200,6 +200,18 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         })}
         {isTyping && (
           <div className="flex justify-start">
+            <style>
+              {`
+                @keyframes subtle-bounce {
+                  0%, 20%, 53%, 80%, 100% {
+                    transform: translateY(0);
+                  }
+                  40%, 43% {
+                    transform: translateY(-5px);
+                  }
+                }
+              `}
+            </style>
             <div
               className="text-xs px-2 py-1 rounded-xl"
               style={{
@@ -211,22 +223,22 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 <div
                   className="w-1.5 h-1.5 rounded-full"
                   style={{
-                    backgroundColor: "#be185d",
-                    animation: "bounce 1s infinite",
+                    backgroundColor: "var(--color-chat-primary)",
+                    animation: "subtle-bounce 0.8s infinite",
                   }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full"
                   style={{
-                    backgroundColor: "#be185d",
-                    animation: "bounce 1s infinite 0.2s",
+                    backgroundColor: "var(--color-chat-primary)",
+                    animation: "subtle-bounce 0.8s infinite 0.16s",
                   }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full"
                   style={{
-                    backgroundColor: "#be185d",
-                    animation: "bounce 1s infinite 0.4s",
+                    backgroundColor: "var(--color-chat-primary)",
+                    animation: "subtle-bounce 0.8s infinite 0.32s",
                   }}
                 />
               </div>
@@ -245,7 +257,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
               <div className="flex items-center space-x-2">
                 <div
                   className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"
-                  style={{ color: "#be185d" }}
+                  style={{ color: "var(--color-chat-primary)" }}
                 />
                 <span className="text-xs opacity-75">Formatting...</span>
               </div>
