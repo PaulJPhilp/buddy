@@ -1,6 +1,5 @@
 import type { Message } from "@/types/chat";
 import type { ChatAppConfig } from "@/types/global";
-import { ExternalLink, X } from "lucide-react";
 import { ChatArea } from "../ChatArea";
 import { HeaderBar } from "../HeaderBar/HeaderBar";
 import UserArea from "../UserArea";
@@ -15,8 +14,11 @@ interface ChatAppShellProps {
   readonly status: "idle" | "connecting" | "connected" | "error";
   readonly isExpanded: boolean;
   readonly onExpand: () => void;
+  readonly onCompact: () => void;
+  readonly onClose: () => void;
   readonly onClear: () => void;
   readonly onSend: (text: string, files?: File[]) => void;
+  readonly onSettings: () => void;
   readonly agents: ReadonlyArray<{
     id: string;
     name: string;
@@ -24,6 +26,9 @@ interface ChatAppShellProps {
   }>;
   readonly selectedAgentId: string;
   readonly onSelectedAgentChange: (id: string) => void;
+  readonly attachedFiles: File[];
+  readonly onAddAttachments: (files: File[]) => void;
+  readonly onRemoveAttachment: (file: File) => void;
   readonly inputDisabled?: boolean;
 }
 
@@ -37,11 +42,17 @@ export function ChatAppShell({
   status,
   isExpanded,
   onExpand,
+  onCompact,
+  onClose,
   onClear,
   onSend,
+  onSettings,
   agents,
   selectedAgentId,
   onSelectedAgentChange,
+  attachedFiles,
+  onAddAttachments,
+  onRemoveAttachment,
   inputDisabled = false,
 }: ChatAppShellProps) {
   return (
@@ -60,6 +71,11 @@ export function ChatAppShell({
         title={config.name}
         isSelected={false}
         onClearChat={onClear}
+        onExpand={onExpand}
+        onCompact={onCompact}
+        onClose={onClose}
+        onSettings={onSettings}
+        isExpanded={isExpanded}
         statusInfo={{
           agentStatus: {
             state:
@@ -80,38 +96,7 @@ export function ChatAppShell({
                   : `${chatState.messages.length} messages`,
           },
         }}
-      >
-        {/* Expand button */}
-        {!isExpanded && (
-          <button
-            type="button"
-            data-testid="expand-chat-button"
-            title="Expand chat"
-            aria-label="Expand chat"
-            onClick={onExpand}
-            className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-gray-100 flex items-center"
-            style={{ color: "var(--color-chat-header-text, #1e293b)" }}
-          >
-            <ExternalLink className="h-3 w-3" />
-          </button>
-        )}
-        {/* Close button always shows */}
-        <button
-          type="button"
-          data-testid="close-chat-button"
-          title="Close chat"
-          aria-label="Close chat"
-          onClick={() => {
-            window.dispatchEvent(
-              new CustomEvent("buddy:removeChatApp", { detail: config.id }),
-            );
-          }}
-          className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-red-100 flex items-center"
-          style={{ color: "var(--color-chat-header-text, #1e293b)" }}
-        >
-          <X className="h-3 w-3" />
-        </button>
-      </HeaderBar>
+      />
 
       {/* Chat Area */}
       <ChatArea
@@ -127,9 +112,9 @@ export function ChatAppShell({
         agents={agents}
         selectedAgent={selectedAgentId}
         onSelectedAgentChange={onSelectedAgentChange}
-        currentAttachments={[]}
-        onRemoveAttachment={() => {}}
-        onAddAttachments={() => {}}
+        currentAttachments={attachedFiles}
+        onRemoveAttachment={onRemoveAttachment}
+        onAddAttachments={onAddAttachments}
         disabled={inputDisabled || status === "error"}
       />
     </section>

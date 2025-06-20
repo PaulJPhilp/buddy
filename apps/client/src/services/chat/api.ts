@@ -12,6 +12,10 @@ export interface ChatServiceApi extends ChatStateApi {
   readonly initialize: (
     chatId: string,
     wsUrl?: string,
+    agentId?: string,
+  ) => Effect.Effect<void, ChatServiceError>;
+  readonly switchAgent: (
+    agentId: string,
   ) => Effect.Effect<void, ChatServiceError>;
   readonly sendMessage: (
     text: string,

@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@ui/components/ui/button";
-import { MessageCircle, Settings, Trash2 } from "lucide-react";
+import {
+  Eraser,
+  ExternalLink,
+  MessageCircle,
+  Minimize2,
+  Settings,
+  X,
+} from "lucide-react";
 import React, { ReactNode, useState } from "react";
 
 export interface ErrorInfo {
@@ -41,6 +48,16 @@ export interface HeaderBarProps {
   onHeaderClick?: () => void;
   /** Optional clear-chat callback */
   onClearChat?: () => void;
+  /** Optional expand callback - shows expand icon when provided and not expanded */
+  onExpand?: () => void;
+  /** Optional compact callback - shows compact icon when provided and expanded */
+  onCompact?: () => void;
+  /** Optional close callback - shows close icon when provided */
+  onClose?: () => void;
+  /** Optional settings callback - shows settings functionality when provided */
+  onSettings?: () => void;
+  /** Whether the chat is currently expanded - controls expand/compact icon visibility */
+  isExpanded?: boolean;
   /** Optional class name for styling */
   className?: string;
   /** Optional children to render in the header */
@@ -57,6 +74,11 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
       onToggleStatusPanel,
       onHeaderClick,
       onClearChat,
+      onExpand,
+      onCompact,
+      onClose,
+      onSettings,
+      isExpanded = false,
       className,
       children,
     },
@@ -153,14 +175,61 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
         <div className="flex items-center space-x-1" style={{ height: "100%" }}>
           {children}
 
-          {/* Settings icon - always visible */}
+          {/* Expand icon - only visible when onExpand is provided and not expanded */}
+          {onExpand && !isExpanded && (
+            <button
+              type="button"
+              data-testid="expand-chat-button"
+              title="Expand chat"
+              aria-label="Expand chat"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExpand();
+              }}
+              className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-gray-100"
+              style={{ color: iconColor }}
+            >
+              <ExternalLink
+                className="h-3 w-3"
+                style={{ color: iconColor }}
+                aria-hidden="true"
+              />
+            </button>
+          )}
+
+          {/* Compact icon - only visible when onCompact is provided and expanded */}
+          {onCompact && isExpanded && (
+            <button
+              type="button"
+              data-testid="compact-chat-button"
+              title="Restore chat"
+              aria-label="Restore chat"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCompact();
+              }}
+              className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-gray-100"
+              style={{ color: iconColor }}
+            >
+              <Minimize2
+                className="h-3 w-3"
+                style={{ color: iconColor }}
+                aria-hidden="true"
+              />
+            </button>
+          )}
+
+          {/* Settings icon - visible when onSettings provided, or as status toggle fallback */}
           <button
             type="button"
+            data-testid="settings-button"
             title="Settings"
             aria-label="Settings"
             onClick={(e) => {
               e.stopPropagation();
-              if (statusInfo) {
+              if (onSettings) {
+                onSettings();
+              } else if (statusInfo) {
                 handleStatusToggle(!isStatusOpen);
               }
             }}
@@ -174,26 +243,49 @@ export const HeaderBar = React.forwardRef<HTMLDivElement, HeaderBarProps>(
             />
           </button>
 
-          {/* Trash icon - always visible */}
-          <button
-            type="button"
-            title="Clear chat"
-            aria-label="Clear chat"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onClearChat) {
+          {/* Clear icon - only visible when onClearChat is provided */}
+          {onClearChat && (
+            <button
+              type="button"
+              data-testid="clear-chat-button"
+              title="Clear chat"
+              aria-label="Clear chat"
+              onClick={(e) => {
+                e.stopPropagation();
                 onClearChat();
-              }
-            }}
-            className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-red-100"
-            style={{ color: iconColor }}
-          >
-            <Trash2
-              className="h-3 w-3"
+              }}
+              className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-yellow-100"
               style={{ color: iconColor }}
-              aria-hidden="true"
-            />
-          </button>
+            >
+              <Eraser
+                className="h-3 w-3"
+                style={{ color: iconColor }}
+                aria-hidden="true"
+              />
+            </button>
+          )}
+
+          {/* Close icon - only visible when onClose is provided */}
+          {onClose && (
+            <button
+              type="button"
+              data-testid="close-chat-button"
+              title="Close chat"
+              aria-label="Close chat"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="ml-1 px-1 py-0 rounded bg-transparent hover:bg-red-100"
+              style={{ color: iconColor }}
+            >
+              <X
+                className="h-3 w-3"
+                style={{ color: iconColor }}
+                aria-hidden="true"
+              />
+            </button>
+          )}
         </div>
 
         {/* Status Panel */}

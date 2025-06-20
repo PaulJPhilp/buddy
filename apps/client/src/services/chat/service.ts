@@ -124,15 +124,21 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
       // Simplified message processing - restore basic functionality
       console.log("[ChatService] Setting up basic message processing...");
 
+      // Store current agent ID
+      const currentAgentRef = yield* Ref.make<string | undefined>(undefined);
+
       // Initialize WebSocket connection and message stream
       const initialize = (
         chatId: string,
         wsUrl?: string,
+        agentId?: string,
       ): Effect.Effect<void, ChatConnectionError> =>
         Effect.gen(function* () {
           console.log(
             `[ChatService:${instanceId}] Initialize called with chatId:`,
             chatId,
+            "agentId:",
+            agentId,
           );
 
           // Update state with chatId
@@ -141,8 +147,26 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
             id: chatId,
           }));
 
-          // Connect to WebSocket with retry
-          const finalUrl = wsUrl || (yield* configService.buildChatUrl(chatId));
+          // Update current agent
+          if (agentId) {
+            yield* Ref.set(currentAgentRef, agentId);
+          }
+
+          // Build WebSocket URL with agent support
+          let finalUrl: string;
+          if (wsUrl) {
+            finalUrl = wsUrl;
+          } else {
+            const baseUrl = yield* configService.buildChatUrl(chatId);
+            if (agentId) {
+              const url = new URL(baseUrl);
+              url.searchParams.set("agentId", agentId);
+              finalUrl = url.toString();
+            } else {
+              finalUrl = baseUrl;
+            }
+          }
+
           console.log(
             `[ChatService:${instanceId}] Attempting to connect to:`,
             finalUrl,
@@ -348,6 +372,44 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
 
           console.log(
             `[ChatService:${instanceId}] WebSocket connection and direct message processing initialized`,
+          );
+        });
+
+      const switchAgent = (
+        agentId: string,
+      ): Effect.Effect<void, ChatConnectionError> =>
+        Effect.gen(function* () {
+          console.log(
+            `[ChatService:${instanceId}] Switching to agent:`,
+            agentId,
+          );
+
+          const state = yield* Ref.get(stateRef);
+          const chatId = state.id;
+
+          if (!chatId) {
+            return yield* Effect.fail(
+              new ChatConnectionError({
+                message: "Chat not initialized. Call initialize() first.",
+              }),
+            );
+          }
+
+          // Disconnect current WebSocket
+          const isConnected = yield* webSocketService.isConnected;
+          if (isConnected) {
+            console.log(
+              `[ChatService:${instanceId}] Disconnecting from current agent...`,
+            );
+            yield* webSocketService.disconnect();
+          }
+
+          // Re-initialize with new agent
+          yield* initialize(chatId, undefined, agentId);
+
+          console.log(
+            `[ChatService:${instanceId}] Successfully switched to agent:`,
+            agentId,
           );
         });
 
@@ -632,6 +694,7 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
       return {
         instanceId,
         initialize,
+        switchAgent,
         sendMessage,
         getHistory,
         validateMessage,

@@ -27,16 +27,6 @@ interface ChatStateUI {
  * in sync. Assumes the service already called `initialize`.
  */
 export function useChatState(chatService: any | null): ChatStateUI {
-  const subscriptionId = Math.random().toString(36).substring(7);
-  console.log(
-    `[useChatState:${subscriptionId}] Hook called with chatService:`,
-    chatService ? "provided" : "null",
-  );
-  console.log(
-    `[useChatState:${subscriptionId}] ChatService instanceId:`,
-    chatService?.instanceId || "unknown",
-  );
-
   const [state, setState] = useState<ChatStateUI>(() => ({
     messages: [],
     isTyping: false,
@@ -45,6 +35,15 @@ export function useChatState(chatService: any | null): ChatStateUI {
   }));
 
   useEffect(() => {
+    const subscriptionId = Math.random().toString(36).substring(7);
+    console.log(
+      `[useChatState:${subscriptionId}] Hook called with chatService:`,
+      chatService ? "provided" : "null",
+    );
+    console.log(
+      `[useChatState:${subscriptionId}] ChatService instanceId:`,
+      chatService?.instanceId || "unknown",
+    );
     console.log(
       `[useChatState:${subscriptionId}] useEffect triggered, chatService:`,
       chatService ? "provided" : "null",
@@ -194,10 +193,5 @@ export function useChatState(chatService: any | null): ChatStateUI {
     };
   }, [chatService]);
 
-  console.log(`[useChatState:${subscriptionId}] Returning state:`, {
-    messageCount: state.messages.length,
-    isTyping: state.isTyping,
-    status: state.status,
-  });
   return state;
 }

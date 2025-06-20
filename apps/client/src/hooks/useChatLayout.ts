@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 export function useChatLayout(chatId: string): {
   readonly isExpanded: boolean;
   readonly expand: () => void;
+  readonly compact: () => void;
 } {
   const storageKey = `chat-expanded-${chatId}`;
 
@@ -22,7 +23,7 @@ export function useChatLayout(chatId: string): {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(storageKey) === "1";
     setIsExpanded(stored);
-  }, [chatId, storageKey]);
+  }, [storageKey]);
 
   // Persist to localStorage whenever the flag changes.
   useEffect(() => {
@@ -34,7 +35,25 @@ export function useChatLayout(chatId: string): {
     }
   }, [isExpanded, storageKey]);
 
-  const expand = useCallback(() => setIsExpanded(true), []);
+  const expand = useCallback(() => {
+    setIsExpanded(true);
+    // Dispatch workspace event to expand this chat app
+    window.dispatchEvent(
+      new CustomEvent("buddy:chatAppExpanded", {
+        detail: { appId: chatId, tabId: "default-tab" },
+      }),
+    );
+  }, [chatId]);
 
-  return { isExpanded, expand } as const;
+  const compact = useCallback(() => {
+    setIsExpanded(false);
+    // Dispatch workspace event to compact this chat app
+    window.dispatchEvent(
+      new CustomEvent("buddy:chatAppCompacted", {
+        detail: { appId: chatId, tabId: "default-tab" },
+      }),
+    );
+  }, [chatId]);
+
+  return { isExpanded, expand, compact } as const;
 }

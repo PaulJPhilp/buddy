@@ -58,11 +58,17 @@ export function ChatApp({ config }: ChatAppProps) {
   }
 
   // Layout preferences (e.g., panel expansion)
-  const { isExpanded, expand } = useChatLayout(config.id);
+  const { isExpanded, expand, compact } = useChatLayout(config.id);
 
   const [statusLocal, setStatusLocal] = useState<
     "idle" | "connecting" | "connected" | "error"
   >("idle");
+
+  // Add file attachment state
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Add current agent state
+  const [currentAgentId, setCurrentAgentId] = useState<string>(config.agentId);
 
   // Build the Effect Layer once per `config.id`
   const { layer, runWithServices } = useServiceLayer([config.id]);
@@ -167,9 +173,78 @@ export function ChatApp({ config }: ChatAppProps) {
     expand();
   }, [expand]);
 
-  const handleAgentChange = useCallback((agentId: string) => {
-    // TODO: Implement agent switching via Effect services
+  const handleCompact = useCallback(() => {
+    compact();
+  }, [compact]);
+
+  const handleClose = useCallback(() => {
+    // Dispatch remove chat app event
+    window.dispatchEvent(
+      new CustomEvent("buddy:removeChatApp", { detail: config.id }),
+    );
+  }, [config.id]);
+
+  // Implement agent switching
+  const handleAgentChange = useCallback(
+    (agentId: string) => {
+      if (!chatService || agentId === currentAgentId) {
+        return;
+      }
+
+      console.log(
+        `[ChatApp] Switching agent from ${currentAgentId} to ${agentId}`,
+      );
+      setStatusLocal("connecting");
+
+      const previousAgentId = currentAgentId;
+      setCurrentAgentId(agentId);
+
+      // Use switchAgent method
+      const program = Effect.gen(function* () {
+        yield* chatService.switchAgent(agentId);
+        const state = yield* chatService.getState();
+        console.log(`[ChatApp] Agent switched successfully to ${agentId}`);
+        setStatusLocal("connected");
+      });
+
+      runWithServices(program).catch((error) => {
+        console.error(`[ChatApp] Agent switch error:`, error);
+        setStatusLocal("error");
+        // Revert to previous agent on error
+        setCurrentAgentId(previousAgentId);
+      });
+    },
+    [chatService, currentAgentId, runWithServices],
+  );
+
+  // File attachment handlers
+  const handleAddAttachments = useCallback((newFiles: File[]) => {
+    console.log(
+      "[ChatApp] Adding attachments:",
+      newFiles.map((f) => f.name),
+    );
+    setAttachedFiles((prev) => [...prev, ...newFiles]);
   }, []);
+
+  const handleRemoveAttachment = useCallback((fileToRemove: File) => {
+    console.log("[ChatApp] Removing attachment:", fileToRemove.name);
+    setAttachedFiles((prev) => prev.filter((file) => file !== fileToRemove));
+  }, []);
+
+  // Settings handler
+  const handleSettings = useCallback(() => {
+    console.log("[ChatApp] Opening settings for chat:", config.id);
+    // Dispatch settings event for workspace to handle
+    window.dispatchEvent(
+      new CustomEvent("buddy:openChatSettings", {
+        detail: {
+          chatId: config.id,
+          agentId: currentAgentId,
+          config: config,
+        },
+      }),
+    );
+  }, [config, currentAgentId]);
 
   // Removed manual polling thanks to reactive stateStream
 
@@ -179,7 +254,18 @@ export function ChatApp({ config }: ChatAppProps) {
     {
       id: config.agentId,
       name: config.agentId,
-      isActive: true,
+      isActive: currentAgentId === config.agentId,
+    },
+    // Add more available agents
+    {
+      id: "business-agent",
+      name: "Business Assistant",
+      isActive: currentAgentId === "business-agent",
+    },
+    {
+      id: "social-agent",
+      name: "Social Assistant",
+      isActive: currentAgentId === "social-agent",
     },
   ];
 
@@ -192,11 +278,17 @@ export function ChatApp({ config }: ChatAppProps) {
       status={statusLocal}
       isExpanded={isExpanded}
       onExpand={handleExpand}
+      onCompact={handleCompact}
+      onClose={handleClose}
       onClear={handleClearChat}
       onSend={handleSendMessage}
+      onSettings={handleSettings}
       agents={agentsList}
-      selectedAgentId={config.agentId}
+      selectedAgentId={currentAgentId}
       onSelectedAgentChange={handleAgentChange}
+      attachedFiles={attachedFiles}
+      onAddAttachments={handleAddAttachments}
+      onRemoveAttachment={handleRemoveAttachment}
       inputDisabled={!ready}
     />
   );
