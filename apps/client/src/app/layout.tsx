@@ -58,7 +58,6 @@ export default function RootLayout({
     Effect.runPromise(
       Effect.gen(function* () {
         const appService = yield* AppService;
-
         const apps = yield* appService.getAll();
         if (!cancelled) {
           setChatApps(apps);
@@ -241,7 +240,10 @@ export default function RootLayout({
           <ErrorBoundary>
             <Toaster position="top-center" />
             {loading ? (
-              <div className="h-screen w-full flex items-center justify-center">
+              <div
+                className="h-screen w-full flex items-center justify-center"
+                suppressHydrationWarning
+              >
                 Loading...
               </div>
             ) : isHomePage ? (

@@ -1,0 +1,43 @@
+# Page snapshot
+
+```yaml
+- region "Notifications alt+T"
+- alert
+- button "Open Next.js Dev Tools":
+  - img
+- toolbar "main-toolbar toolbar":
+  - button "Toggle Sidebar"
+- main:
+  - region "Basic Chat Test":
+    - heading "Basic Chat Test" [level=2]
+    - button "Expand chat"
+    - button "Close chat"
+    - button "Settings"
+    - button "Clear chat"
+    - log:
+      - paragraph: What is the weather?
+      - text: 4:58:08 AM
+      - paragraph: "I do not have access to real-time information, including current weather conditions. To get the weather for your location, I recommend using a weather app or website such as:"
+      - list:
+        - listitem:
+          - strong: "Google Weather:"
+          - text: Just search "weather" on Google.
+        - listitem:
+          - strong: "AccuWeather:"
+          - link "www.accuweather.com":
+            - /url: www.accuweather.com
+        - listitem:
+          - strong: "The Weather Channel:"
+          - link "www.weather.com":
+            - /url: www.weather.com
+        - listitem:
+          - strong: "Your phone's built-in weather app:"
+          - text: Most smartphones have a pre-installed weather application.
+      - paragraph: These services will provide you with up-to-the-minute information, including temperature, precipitation, wind speed, and more.
+      - text: 4:58:08 AM
+    - textbox "Message input"
+    - toolbar "Input actions toolbar":
+      - button "Attach files"
+      - button "Send message" [disabled]
+    - combobox "Select agent": test-agent
+```

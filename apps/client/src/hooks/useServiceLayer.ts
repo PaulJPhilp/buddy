@@ -16,20 +16,22 @@ import { debugLog } from "@/utils/debugLogger";
 let layerCreationCount = 0;
 let serviceLayerCallCount = 0;
 
-// Create a single shared layer at module level
+// Create a minimal shared layer for fast testing
 const sharedServiceLayer = Layer.mergeAll(
   AppService.Default,
+  // Re-enabling essential services for input functionality
   AgentService.Default,
   ToolbarService.Default,
-  ChatService.Default,
-  MdxService.Default,
-  ChatBridge.Default,
-  WebSocketService.Default,
-  ConfigService.Default,
+  ChatService.Default, // Essential for input field to be enabled
+  ChatBridge.Default, // Needed for agent communication and responses
+  // Keeping these disabled for now to maintain fast loading
+  // MdxService.Default,
+  // WebSocketService.Default,
+  // ConfigService.Default,
 );
 
 console.log(
-  "[useServiceLayer] Creating shared service layer, creation count:",
+  "[useServiceLayer] Creating minimal service layer for fast testing, creation count:",
   ++layerCreationCount,
 );
 

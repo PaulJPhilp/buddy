@@ -33,12 +33,39 @@ export class ChatBridge extends Effect.Service<ChatBridgeApi>()("ChatBridge", {
 
         // Start consuming messages within Effect context
         console.log("[ChatBridge] 🔧 About to fork stream consumption fiber");
+        console.log(
+          "[ChatBridge] 🔧 WebSocket messageStream:",
+          webSocketService.messageStream,
+        );
+
+        // Test if the stream is working by taking one message
+        console.log("[ChatBridge] 🧪 Testing stream by taking one message...");
+        const testResult = yield* Effect.fork(
+          Stream.take(webSocketService.messageStream, 1).pipe(
+            Stream.runForEach((msg) =>
+              Effect.sync(() => {
+                console.log("[ChatBridge] 🧪 TEST: Stream has message:", msg);
+              }),
+            ),
+            Effect.timeout("5 seconds"),
+            Effect.catchAll((error) => {
+              console.log(
+                "[ChatBridge] 🧪 TEST: Stream test failed or timed out:",
+                error,
+              );
+              return Effect.succeed(undefined);
+            }),
+          ),
+        );
+
         streamFiber = yield* Effect.fork(
           Effect.gen(function* () {
             console.log(
               "[ChatBridge] 🚀 Stream consumption fiber ACTUALLY started",
             );
             let messageCount = 0;
+
+            console.log("[ChatBridge] 🔧 About to start Stream.runForEach");
 
             yield* Stream.runForEach(
               webSocketService.messageStream,
@@ -80,10 +107,16 @@ export class ChatBridge extends Effect.Service<ChatBridgeApi>()("ChatBridge", {
                   );
                 }),
             );
+
+            console.log("[ChatBridge] 🏁 Stream.runForEach completed");
           }).pipe(
             Effect.catchAll((error) => {
               console.error("[ChatBridge] 💥 STREAM CONSUMPTION ERROR:", error);
               console.error("[ChatBridge] 💥 Error stack:", error?.stack);
+              console.error(
+                "[ChatBridge] 💥 Error details:",
+                JSON.stringify(error, null, 2),
+              );
               return Effect.succeed(undefined);
             }),
           ),

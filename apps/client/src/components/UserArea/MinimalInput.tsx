@@ -94,7 +94,7 @@ const MinimalInput = forwardRef<HTMLInputElement, MinimalInputProps>(
         ? [
             {
               id: "attach",
-              icon: <Icon name="Paperclip" size={20} />,
+              icon: <Icon name="Paperclip" size={16} />,
               action: handleTriggerFileInput,
               tooltip: "Attach files",
               disabled: disabled,
@@ -104,11 +104,12 @@ const MinimalInput = forwardRef<HTMLInputElement, MinimalInputProps>(
       { id: "spacer", type: "spacer-expand" } as ToolBarItem,
       {
         id: "send",
-        icon: <Icon name="Send" size={20} />,
+        icon: <Icon name="Send" size={16} />,
         action: handleSubmit,
         tooltip: "Send message",
         disabled: disabled || !text.trim(),
         intent: "primary",
+        testId: "send-message-button",
       } as ToolBarItem,
     ];
 
@@ -139,11 +140,11 @@ const MinimalInput = forwardRef<HTMLInputElement, MinimalInputProps>(
               : placeholder
           }
           disabled={disabled}
-          className="block w-full text-[8px] rounded pl-1 leading-[10px] bg-transparent h-[12px] focus:outline-none"
+          className="block w-full text-sm rounded pl-2 leading-normal bg-transparent h-8 focus:outline-none"
           style={{
             color: "var(--color-chat-foreground)",
-            paddingTop: "6px",
-            paddingBottom: "6px",
+            paddingTop: "8px",
+            paddingBottom: "8px",
             backgroundColor: "transparent",
           }}
           aria-label="Message input"
@@ -153,8 +154,8 @@ const MinimalInput = forwardRef<HTMLInputElement, MinimalInputProps>(
           <ToolBar
             commands={toolbarItems}
             variant="tiny"
-            className="justify-start h-3 text-xs pointer-events-auto [&_button]:p-0 [&_button]:mx-0.5 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-3 [&_svg.lucide]:!h-3 [&_svg.lucide]:!w-3"
-            ariaLabel="Message input toolbar"
+            className="justify-start h-8 text-sm pointer-events-auto [&_button]:p-1 [&_button]:mx-1 [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:h-6 [&_svg.lucide]:!h-4 [&_svg.lucide]:!w-4"
+            ariaLabel="Input actions toolbar"
           />
         </div>
         {onFilesSelected && (

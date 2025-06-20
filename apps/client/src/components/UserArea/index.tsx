@@ -99,19 +99,19 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
     return (
       <div
         ref={ref}
-        className={cn("w-full border-t h-12", className)}
+        className={cn("w-full border-t h-16", className)}
         style={{
           backgroundColor: "var(--color-chat-user-area)",
           color: "var(--color-chat-foreground)",
           borderColor: "var(--color-chat-border)",
         }}
       >
-        <div className="w-full max-w-4xl mx-auto px-1 py-0.5 space-y-0.5">
+        <div className="w-full max-w-4xl mx-auto px-1 py-1 space-y-1">
           {/* 3-Row Layout: AttachmentToolbar, MinimalInput, AgentToolbar */}
           <div className="flex flex-col space-y-1 w-1/2 mx-auto text-xs">
             {/* Row 1: AttachmentToolbar */}
             {currentAttachments.length > 0 && (
-              <div className="w-full flex items-center h-3">
+              <div className="w-full flex items-center h-4">
                 <AttachmentRow
                   files={currentAttachments}
                   onRemoveFile={onRemoveAttachment}
@@ -121,7 +121,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
             )}
 
             {/* Row 2: MinimalInput */}
-            <div className="w-full flex items-center h-6">
+            <div className="w-full flex items-center h-10">
               <MinimalInput
                 text={inputText}
                 onTextChange={handleTextChange}
@@ -137,7 +137,7 @@ const UserArea = React.forwardRef<HTMLDivElement, UserAreaProps>(
 
             {/* Row 3: AgentToolbar */}
             {agents.length > 0 && (
-              <div className="w-full flex items-center h-3">
+              <div className="w-full flex items-center h-4">
                 <AgentToolBar
                   agents={agents}
                   selectedAgentId={selectedAgent}

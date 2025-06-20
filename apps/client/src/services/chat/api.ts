@@ -27,4 +27,11 @@ export interface ChatServiceApi extends ChatStateApi {
    */
   readonly stateStream: Stream.Stream<ChatState, ChatServiceError>;
   readonly messageStream: Stream.Stream<MessageApi, ChatServiceError>;
+  /**
+   * Direct subscription to state changes. More reliable than stream for React hooks.
+   * Returns an unsubscribe function.
+   */
+  readonly subscribeToState: (
+    callback: (state: ChatState) => void,
+  ) => () => void;
 }

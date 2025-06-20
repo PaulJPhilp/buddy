@@ -10,3 +10,6 @@
 [{"name":"next-dev","duration":590910,"timestamp":707593276920,"id":1,"tags":{},"startTime":1750364752922,"traceId":"9480c7abb750f1c0"}]
 [{"name":"next-dev","duration":512706,"timestamp":709944976515,"id":1,"tags":{},"startTime":1750367104662,"traceId":"e5275c5728790bc7"}]
 [{"name":"next-dev","duration":507012,"timestamp":711190798091,"id":1,"tags":{},"startTime":1750368350522,"traceId":"960ebb3bc1737ef4"}]
+[{"name":"next-dev","duration":1755523,"timestamp":747069937906,"id":1,"tags":{},"startTime":1750404230638,"traceId":"a0ea1d99c3c041cb"}]
+[{"name":"next-dev","duration":2441362,"timestamp":749069627456,"id":1,"tags":{},"startTime":1750406230369,"traceId":"f79f6020adca975f"}]
+[{"name":"next-dev","duration":2747825,"timestamp":750969153668,"id":1,"tags":{},"startTime":1750408130024,"traceId":"bc29819547915b9d"}]

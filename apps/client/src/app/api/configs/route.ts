@@ -5,6 +5,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -17,19 +18,25 @@ export async function GET(request: NextRequest) {
   try {
     if (!filename) {
       // Return array of parsed config objects
+      console.time("configs-read");
       const files = readdirSync(configsDir).filter((f) => f.endsWith(".json"));
-      const configs = files
-        .map((f) => {
-          const filePath = path.join(configsDir, f);
-          try {
-            const content = readFileSync(filePath, "utf-8");
-            return JSON.parse(content);
-          } catch (e) {
-            // Optionally log error, skip invalid file
-            return null;
-          }
-        })
-        .filter(Boolean);
+      console.log(`Found ${files.length} config files`);
+
+      // Use Promise.all for concurrent file reading instead of sequential
+      const configPromises = files.map(async (f) => {
+        const filePath = path.join(configsDir, f);
+        try {
+          const content = await readFile(filePath, "utf-8");
+          return JSON.parse(content);
+        } catch (e) {
+          console.warn(`Failed to parse config file ${f}:`, e);
+          return null;
+        }
+      });
+
+      const configs = (await Promise.all(configPromises)).filter(Boolean);
+      console.timeEnd("configs-read");
+      console.log(`Successfully parsed ${configs.length} configs`);
       return NextResponse.json(configs);
     }
 
@@ -46,6 +53,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    console.error("Error reading configs:", error);
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 }

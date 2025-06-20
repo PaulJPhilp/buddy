@@ -1,4 +1,3 @@
-import { ChatBridge } from "@/services/chat-bridge";
 import { MdxService } from "@/services/mdx";
 import { Effect, Fiber, Layer, Queue, Ref, Schedule, Stream } from "effect";
 import { ConfigService } from "../config";
@@ -29,7 +28,6 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
 
       // Get dependencies
       const webSocketService = yield* WebSocketService;
-      const chatBridge = yield* ChatBridge;
       const mdxService = yield* MdxService;
       const configService = yield* ConfigService;
 
@@ -40,10 +38,6 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
       console.log(
         "[ChatService] WebSocketService messageStream:",
         webSocketService.messageStream,
-      );
-      console.log(
-        "[ChatService] Got ChatBridge instance:",
-        chatBridge ? "YES" : "NO",
       );
 
       // --------------------------------------------------
@@ -63,12 +57,69 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
       // Queue so that React receives changes as soon as they occur.
       const stateQueue = yield* Queue.unbounded<ChatState>();
 
+      // Direct state subscription callbacks for React hooks
+      const stateSubscribers = new Set<(state: ChatState) => void>();
+
+      const subscribeToState = (callback: (state: ChatState) => void) => {
+        console.log(
+          `[ChatService:${instanceId}] 📝 New state subscriber added, total: ${stateSubscribers.size + 1}`,
+        );
+        stateSubscribers.add(callback);
+        return () => {
+          console.log(
+            `[ChatService:${instanceId}] 📝 State subscriber removed, remaining: ${stateSubscribers.size - 1}`,
+          );
+          stateSubscribers.delete(callback);
+        };
+      };
+
       /** Helper to atomically update the Ref and broadcast the new state */
       const updateState = (f: (s: ChatState) => ChatState) =>
         Ref.modify(stateRef, (old) => {
           const next = f(old);
+          console.log(
+            `[ChatService:${instanceId}] 🔄 updateState: old messages count: ${old.messages.length}, new messages count: ${next.messages.length}`,
+          );
           return [next, next] as const;
-        }).pipe(Effect.tap((next) => Queue.offer(stateQueue, next)));
+        }).pipe(
+          Effect.tap((next) => {
+            console.log(
+              `[ChatService:${instanceId}] 🔄 About to offer to stateQueue, messages count: ${next.messages.length}`,
+            );
+            return Queue.offer(stateQueue, next).pipe(
+              Effect.tap(() => {
+                console.log(
+                  `[ChatService:${instanceId}] ✅ Successfully offered to stateQueue, messages count: ${next.messages.length}`,
+                );
+
+                // Also notify direct subscribers
+                console.log(
+                  `[ChatService:${instanceId}] 📢 Notifying ${stateSubscribers.size} direct subscribers`,
+                );
+                for (const callback of stateSubscribers) {
+                  try {
+                    callback(next);
+                    console.log(
+                      `[ChatService:${instanceId}] ✅ Direct subscriber notified successfully`,
+                    );
+                  } catch (error) {
+                    console.error(
+                      `[ChatService:${instanceId}] ❌ Error notifying direct subscriber:`,
+                      error,
+                    );
+                  }
+                }
+              }),
+              Effect.catchAll((error) => {
+                console.error(
+                  `[ChatService:${instanceId}] ❌ Failed to offer to stateQueue:`,
+                  error,
+                );
+                return Effect.succeed(undefined);
+              }),
+            );
+          }),
+        );
 
       // Simplified message processing - restore basic functionality
       console.log("[ChatService] Setting up basic message processing...");
@@ -116,142 +167,187 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
             `[ChatService:${instanceId}] WebSocket connected successfully`,
           );
 
-          // Start the chat bridge to consume messages from Effect context
-          yield* chatBridge.start();
-          console.log(`[ChatService:${instanceId}] Chat bridge started`);
-
-          // Register message handler with bridge
-          const messageHandler = (protocolMessage: any) => {
-            console.log(
-              `[ChatService:${instanceId}] 🔥 BRIDGE MESSAGE RECEIVED:`,
-              {
-                type: protocolMessage.type,
-                payloadType: (protocolMessage.payload as any)?.type,
-                id: protocolMessage.id,
-              },
-            );
-
-            const payload = protocolMessage.payload as any;
-            const messageType = payload?.type || protocolMessage.type;
-            const content = payload?.content || protocolMessage.content;
-
-            console.log(`[ChatService:${instanceId}] 🔍 Processing message:`, {
-              messageType,
-              contentLength: content?.length || 0,
-              contentPreview: content?.substring(0, 50) || "no content",
-            });
-
-            if (messageType === "LLM_STREAM") {
-              console.log(
-                `[ChatService:${instanceId}] 📝 Processing LLM_STREAM`,
-              );
-              // Simple streaming - just accumulate text
-              Effect.runFork(
-                updateState((state) => {
-                  const messages = [...state.messages];
-
-                  // Find or create streaming message
-                  let streamingIdx = -1;
-                  for (let i = messages.length - 1; i >= 0; i--) {
-                    if (
-                      messages[i].sender === "assistant" &&
-                      messages[i].metadata?.streaming === true
-                    ) {
-                      streamingIdx = i;
-                      break;
-                    }
-                  }
-
-                  if (streamingIdx >= 0) {
-                    // Append to existing
-                    messages[streamingIdx] = {
-                      ...messages[streamingIdx],
-                      text: messages[streamingIdx].text + (content || ""),
-                    };
-                    console.log(
-                      `[ChatService:${instanceId}] ➕ Appended to existing streaming message`,
-                    );
-                  } else {
-                    // Create new streaming message
-                    messages.push({
-                      id: crypto.randomUUID(),
-                      text: content || "",
-                      sender: "assistant",
-                      timestamp: Date.now(),
-                      metadata: { streaming: true },
-                    });
-                    console.log(
-                      `[ChatService:${instanceId}] ✨ Created new streaming message`,
-                    );
-                  }
-
-                  return {
-                    ...state,
-                    messages,
-                    isTyping: true,
-                    metadata: {
-                      ...state.metadata,
-                      messageCount: messages.length,
-                    },
-                  };
-                }),
-              );
-            } else if (messageType === "LLM_RESPONSE") {
-              console.log(
-                `[ChatService:${instanceId}] 🏁 Processing LLM_RESPONSE (finalizing)`,
-              );
-              // Finalize streaming message
-              Effect.runFork(
-                updateState((state) => {
-                  const messages = [...state.messages];
-
-                  // Find streaming message to finalize
-                  for (let i = messages.length - 1; i >= 0; i--) {
-                    if (
-                      messages[i].sender === "assistant" &&
-                      messages[i].metadata?.streaming === true
-                    ) {
-                      messages[i] = {
-                        ...messages[i],
-                        metadata: {
-                          ...messages[i].metadata,
-                          streaming: false,
-                        },
-                      };
-                      console.log(
-                        `[ChatService:${instanceId}] ✅ Finalized streaming message`,
-                      );
-                      break;
-                    }
-                  }
-
-                  return {
-                    ...state,
-                    messages,
-                    isTyping: false,
-                    metadata: {
-                      ...state.metadata,
-                      messageCount: messages.length,
-                    },
-                  };
-                }),
-              );
-            } else {
-              console.log(
-                `[ChatService:${instanceId}] ❓ Unknown message type:`,
-                messageType,
-              );
-            }
-          };
-
-          // Register message handler with bridge
-          yield* chatBridge.registerHandler(messageHandler);
+          // Start consuming messages directly from WebSocket stream
           console.log(
-            `[ChatService:${instanceId}] Message handler registered with bridge`,
+            `[ChatService:${instanceId}] Starting direct message consumption...`,
+          );
+
+          // Start message consumption immediately within the same Effect context
+          yield* Effect.forkDaemon(
+            Effect.gen(function* () {
+              console.log(
+                `[ChatService:${instanceId}] 🚀 Message consumption daemon started`,
+              );
+              let messageCount = 0;
+
+              console.log(
+                `[ChatService:${instanceId}] 🔧 About to start Stream.runForEach...`,
+              );
+
+              yield* Stream.runForEach(
+                webSocketService.messageStream,
+                (protocolMessage) =>
+                  Effect.gen(function* () {
+                    messageCount++;
+                    console.log(
+                      `[ChatService:${instanceId}] 🔥 DIRECT MESSAGE RECEIVED #${messageCount}:`,
+                      {
+                        type: protocolMessage.type,
+                        payloadType: (protocolMessage.payload as any)?.type,
+                        id: protocolMessage.id,
+                      },
+                    );
+
+                    const payload = protocolMessage.payload as any;
+                    const messageType = payload?.type || protocolMessage.type;
+                    const content = payload?.content || protocolMessage.content;
+
+                    console.log(
+                      `[ChatService:${instanceId}] 🔍 Processing message:`,
+                      {
+                        messageType,
+                        contentLength: content?.length || 0,
+                        contentPreview:
+                          content?.substring(0, 50) || "no content",
+                      },
+                    );
+
+                    if (messageType === "LLM_STREAM") {
+                      console.log(
+                        `[ChatService:${instanceId}] 📝 Processing LLM_STREAM`,
+                      );
+                      // Simple streaming - just accumulate text
+                      yield* updateState((state) => {
+                        const messages = [...state.messages];
+
+                        // Find or create streaming message
+                        let streamingIdx = -1;
+                        for (let i = messages.length - 1; i >= 0; i--) {
+                          if (
+                            messages[i].sender === "assistant" &&
+                            messages[i].metadata?.streaming === true
+                          ) {
+                            streamingIdx = i;
+                            break;
+                          }
+                        }
+
+                        if (streamingIdx >= 0) {
+                          // Append to existing
+                          messages[streamingIdx] = {
+                            ...messages[streamingIdx],
+                            text: messages[streamingIdx].text + (content || ""),
+                          };
+                          console.log(
+                            `[ChatService:${instanceId}] ➕ Appended to existing streaming message`,
+                          );
+                        } else {
+                          // Create new streaming message
+                          messages.push({
+                            id: crypto.randomUUID(),
+                            text: content || "",
+                            sender: "assistant",
+                            timestamp: Date.now(),
+                            metadata: { streaming: true },
+                          });
+                          console.log(
+                            `[ChatService:${instanceId}] ✨ Created new streaming message`,
+                          );
+                        }
+
+                        console.log(
+                          `[ChatService:${instanceId}] 📊 State updated, messages count: ${messages.length}`,
+                        );
+
+                        return {
+                          ...state,
+                          messages,
+                          isTyping: true,
+                          metadata: {
+                            ...state.metadata,
+                            messageCount: messages.length,
+                          },
+                        };
+                      });
+                    } else if (messageType === "LLM_RESPONSE") {
+                      console.log(
+                        `[ChatService:${instanceId}] 🏁 Processing LLM_RESPONSE (finalizing)`,
+                      );
+                      // Finalize streaming message
+                      yield* updateState((state) => {
+                        const messages = [...state.messages];
+
+                        // Find streaming message to finalize
+                        for (let i = messages.length - 1; i >= 0; i--) {
+                          if (
+                            messages[i].sender === "assistant" &&
+                            messages[i].metadata?.streaming === true
+                          ) {
+                            messages[i] = {
+                              ...messages[i],
+                              metadata: {
+                                ...messages[i].metadata,
+                                streaming: false,
+                              },
+                            };
+                            console.log(
+                              `[ChatService:${instanceId}] ✅ Finalized streaming message`,
+                            );
+                            break;
+                          }
+                        }
+
+                        console.log(
+                          `[ChatService:${instanceId}] 📊 Final state updated, messages count: ${messages.length}`,
+                        );
+
+                        return {
+                          ...state,
+                          messages,
+                          isTyping: false,
+                          metadata: {
+                            ...state.metadata,
+                            messageCount: messages.length,
+                          },
+                        };
+                      });
+                    } else {
+                      console.log(
+                        `[ChatService:${instanceId}] ❓ Unknown message type:`,
+                        messageType,
+                      );
+                    }
+                  }),
+              );
+
+              console.log(
+                `[ChatService:${instanceId}] 🏁 Direct message consumption completed`,
+              );
+            }).pipe(
+              Effect.catchAll((error) => {
+                console.error(
+                  `[ChatService:${instanceId}] 💥 DIRECT MESSAGE CONSUMPTION ERROR:`,
+                  error,
+                );
+                console.error(
+                  `[ChatService:${instanceId}] 💥 Error stack:`,
+                  error?.stack,
+                );
+                console.error(
+                  `[ChatService:${instanceId}] 💥 Error details:`,
+                  JSON.stringify(error, null, 2),
+                );
+                return Effect.succeed(undefined);
+              }),
+            ),
           );
 
           console.log(
-            `[ChatService:${instanceId}] WebSocket connection and bridge initialized`,
+            `[ChatService:${instanceId}] Message consumption daemon started`,
+          );
+
+          console.log(
+            `[ChatService:${instanceId}] WebSocket connection and direct message processing initialized`,
           );
         });
 
@@ -260,11 +356,27 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
         attachments?: File[],
       ): Effect.Effect<void, ChatMessageError> =>
         Effect.gen(function* () {
+          console.log(
+            `[ChatService:${instanceId}] 📤 sendMessage called with:`,
+            {
+              text,
+              textLength: text.length,
+              attachmentsCount: attachments?.length || 0,
+            },
+          );
+
           const state = yield* Ref.get(stateRef);
           const chatId = state.id;
 
+          console.log(`[ChatService:${instanceId}] 📤 Current state:`, {
+            chatId,
+            messageCount: state.messages.length,
+            isTyping: state.isTyping,
+          });
+
           // Check if chat is initialized
           if (!chatId) {
+            console.log(`[ChatService:${instanceId}] ❌ Chat not initialized`);
             return yield* Effect.fail(
               new ChatMessageError({
                 message: "Chat not initialized. Call initialize() first.",
@@ -274,7 +386,14 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
 
           // Check WebSocket connection
           const isConnected = yield* webSocketService.isConnected;
+          console.log(
+            `[ChatService:${instanceId}] 📤 WebSocket connected:`,
+            isConnected,
+          );
           if (!isConnected) {
+            console.log(
+              `[ChatService:${instanceId}] ❌ WebSocket not connected`,
+            );
             return yield* Effect.fail(
               new ChatMessageError({
                 message: "WebSocket not connected. Please wait for connection.",
@@ -284,7 +403,15 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
 
           // Validate message
           const validation = yield* validateMessage(text);
+          console.log(
+            `[ChatService:${instanceId}] 📤 Message validation:`,
+            validation,
+          );
           if (!validation.isValid) {
+            console.log(
+              `[ChatService:${instanceId}] ❌ Message validation failed:`,
+              validation.errors,
+            );
             return yield* Effect.fail(
               new ChatMessageError({
                 message: `Invalid message: ${validation.errors.join(", ")}`,
@@ -306,30 +433,57 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
             },
           };
 
+          console.log(`[ChatService:${instanceId}] 📤 Created user message:`, {
+            id: userMessage.id,
+            text: userMessage.text,
+            sender: userMessage.sender,
+            timestamp: userMessage.timestamp,
+          });
+
           // Add to state & broadcast
-          yield* updateState((state) => ({
-            ...state,
-            messages: [...state.messages, userMessage],
-            metadata: {
-              ...state.metadata,
-              messageCount: state.messages.length + 1,
-              lastMessageAt: Date.now(),
-            },
-          }));
+          console.log(
+            `[ChatService:${instanceId}] 📤 About to update state with user message...`,
+          );
+          yield* updateState((state) => {
+            const newState = {
+              ...state,
+              messages: [...state.messages, userMessage],
+              metadata: {
+                ...state.metadata,
+                messageCount: state.messages.length + 1,
+                lastMessageAt: Date.now(),
+              },
+            };
+            console.log(
+              `[ChatService:${instanceId}] 📤 State updated with user message, new count: ${newState.messages.length}`,
+            );
+            return newState;
+          });
 
           // Send via WebSocket using simplified protocol
           const userMessageForWS = {
             text: text,
           };
 
+          console.log(
+            `[ChatService:${instanceId}] 📤 About to send via WebSocket:`,
+            userMessageForWS,
+          );
           yield* webSocketService.send(userMessageForWS).pipe(
-            Effect.mapError(
-              (error) =>
-                new ChatMessageError({
-                  message: "Failed to send message",
-                  cause: error,
-                }),
-            ),
+            Effect.mapError((error) => {
+              console.log(
+                `[ChatService:${instanceId}] ❌ WebSocket send error:`,
+                error,
+              );
+              return new ChatMessageError({
+                message: "Failed to send message",
+                cause: error,
+              });
+            }),
+          );
+
+          console.log(
+            `[ChatService:${instanceId}] ✅ sendMessage completed successfully`,
           );
         });
 
@@ -394,14 +548,6 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
         Effect.gen(function* () {
           console.log(`[ChatService:${instanceId}] Cleaning up...`);
 
-          // Stop bridge first so it no longer consumes from the WS stream
-          const started = yield* chatBridge.isStarted();
-          if (started) {
-            console.log(`[ChatService:${instanceId}] Stopping bridge...`);
-            yield* chatBridge.stop();
-            console.log(`[ChatService:${instanceId}] Bridge stopped`);
-          }
-
           // Disconnect WebSocket if still connected
           const connected = yield* webSocketService.isConnected;
           if (connected) {
@@ -445,11 +591,41 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
       );
 
       // Stream that emits the full chat state whenever it changes.
-      const stateStream: Stream.Stream<ChatState, never> =
-        Stream.fromQueue(stateQueue);
+      const stateStream: Stream.Stream<ChatState, never> = Stream.fromQueue(
+        stateQueue,
+      ).pipe(
+        Stream.tap((state) =>
+          Effect.sync(() => {
+            console.log(
+              `[ChatService:${instanceId}] 🌊 stateStream emitting:`,
+              {
+                messageCount: state.messages.length,
+                isTyping: state.isTyping,
+                chatId: state.id,
+              },
+            );
+          }),
+        ),
+      );
 
       // Emit the initial state immediately so subscribers get a snapshot.
-      yield* Queue.offer(stateQueue, yield* Ref.get(stateRef));
+      console.log(
+        `[ChatService:${instanceId}] 🔄 About to offer initial state to queue...`,
+      );
+      yield* Queue.offer(stateQueue, yield* Ref.get(stateRef)).pipe(
+        Effect.tap(() => {
+          console.log(
+            `[ChatService:${instanceId}] ✅ Successfully offered initial state to queue`,
+          );
+        }),
+        Effect.catchAll((error) => {
+          console.error(
+            `[ChatService:${instanceId}] ❌ Failed to offer initial state to queue:`,
+            error,
+          );
+          return Effect.succeed(undefined);
+        }),
+      );
 
       console.log(`[ChatService:${instanceId}] Service construction complete`);
 
@@ -466,11 +642,14 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
         setTyping,
         clearHistory,
         cleanup,
-      } satisfies ChatServiceApi & { instanceId: string };
+        subscribeToState,
+      } satisfies ChatServiceApi & {
+        instanceId: string;
+        cleanup: typeof cleanup;
+      };
     }),
     dependencies: [
       WebSocketService.Default,
-      ChatBridge.Default,
       MdxService.Default,
       ConfigService.Default,
     ],

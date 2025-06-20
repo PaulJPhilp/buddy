@@ -9,6 +9,7 @@ export interface ToolBarCommand {
   tooltip?: string;
   disabled?: boolean;
   intent?: "primary" | "secondary" | "danger";
+  testId?: string;
 }
 
 export interface ToolBarSpacer {
@@ -26,13 +27,26 @@ export interface ToolBarProps {
 }
 
 const ToolBar = React.forwardRef<HTMLDivElement, ToolBarProps>(
-  ({ commands, variant = "default", className, ariaLabel = "Toolbar" }, ref) => {
+  (
+    { commands, variant = "default", className, ariaLabel = "Toolbar" },
+    ref,
+  ) => {
     const styles = getToolbarStyles(variant, className);
 
-    const getItemStyle = (item: ToolBarCommand): { baseClassName: string; intentStyle: React.CSSProperties; additionalClassName?: string } => {
+    const getItemStyle = (
+      item: ToolBarCommand,
+    ): {
+      baseClassName: string;
+      intentStyle: React.CSSProperties;
+      additionalClassName?: string;
+    } => {
       const baseClassName = styles.item;
       if (item.disabled) {
-        return { baseClassName, intentStyle: {}, additionalClassName: styles.disabled };
+        return {
+          baseClassName,
+          intentStyle: {},
+          additionalClassName: styles.disabled,
+        };
       }
 
       let intentStyle: React.CSSProperties = {};
@@ -78,12 +92,13 @@ const ToolBar = React.forwardRef<HTMLDivElement, ToolBarProps>(
             <button
               key={command.id}
               type="button"
-              className={`${baseClassName} ${additionalClassName || ''}`.trim()}
+              className={`${baseClassName} ${additionalClassName || ""}`.trim()}
               style={intentStyle}
               onClick={command.action}
               disabled={command.disabled}
               title={command.tooltip}
               aria-label={command.label || command.tooltip}
+              data-testid={command.testId}
             >
               <span className={styles.icon}>{command.icon}</span>
               {command.label && (
