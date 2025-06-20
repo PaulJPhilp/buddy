@@ -1,7 +1,7 @@
+import { ChatBridge } from "@/services/chat-bridge";
 import { MdxService } from "@/services/mdx";
-import { createMessage } from "@buddy/protocol";
-import { Effect, Layer, Queue, Ref, Stream } from "effect";
-import { buildChatUrl } from "../../config/websocket";
+import { Effect, Fiber, Layer, Queue, Ref, Schedule, Stream } from "effect";
+import { ConfigService } from "../config";
 import { type WebSocketMessage, WebSocketService } from "../websocket";
 import type { ChatServiceApi } from "./api";
 import {
@@ -21,11 +21,34 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
   "ChatService",
   {
     scoped: Effect.gen(function* () {
+      const instanceId = Math.random().toString(36).substring(7);
+      console.log(
+        "[ChatService] Service construction started, instanceId:",
+        instanceId,
+      );
+
       // Get dependencies
       const webSocketService = yield* WebSocketService;
+      const chatBridge = yield* ChatBridge;
       const mdxService = yield* MdxService;
+      const configService = yield* ConfigService;
 
-      // Create state management
+      console.log(
+        "[ChatService] Got WebSocketService instance:",
+        (webSocketService as any).instanceId,
+      );
+      console.log(
+        "[ChatService] WebSocketService messageStream:",
+        webSocketService.messageStream,
+      );
+      console.log(
+        "[ChatService] Got ChatBridge instance:",
+        chatBridge ? "YES" : "NO",
+      );
+
+      // --------------------------------------------------
+      // Reactive state management
+      // --------------------------------------------------
       const stateRef = yield* Ref.make<ChatState>({
         id: "",
         messages: [],
@@ -36,7 +59,19 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
         },
       });
 
-      const messageQueue = yield* Queue.unbounded<MessageApi>();
+      // Instead of polling a Ref every 100 ms, push each update into a
+      // Queue so that React receives changes as soon as they occur.
+      const stateQueue = yield* Queue.unbounded<ChatState>();
+
+      /** Helper to atomically update the Ref and broadcast the new state */
+      const updateState = (f: (s: ChatState) => ChatState) =>
+        Ref.modify(stateRef, (old) => {
+          const next = f(old);
+          return [next, next] as const;
+        }).pipe(Effect.tap((next) => Queue.offer(stateQueue, next)));
+
+      // Simplified message processing - restore basic functionality
+      console.log("[ChatService] Setting up basic message processing...");
 
       // Initialize WebSocket connection and message stream
       const initialize = (
@@ -45,7 +80,8 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
       ): Effect.Effect<void, ChatConnectionError> =>
         Effect.gen(function* () {
           console.log(
-            `[ChatService] Initializing ChatService for chatId: ${chatId}`,
+            `[ChatService:${instanceId}] Initialize called with chatId:`,
+            chatId,
           );
 
           // Update state with chatId
@@ -54,158 +90,168 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
             id: chatId,
           }));
 
-          // Connect to WebSocket
-          const finalUrl = wsUrl || buildChatUrl(chatId);
+          // Connect to WebSocket with retry
+          const finalUrl = wsUrl || (yield* configService.buildChatUrl(chatId));
+          console.log(
+            `[ChatService:${instanceId}] Attempting to connect to:`,
+            finalUrl,
+          );
+
           yield* webSocketService.connect(finalUrl).pipe(
+            Effect.retry({
+              times: 3,
+              delay: "1 second",
+            }),
             Effect.mapError(
               (error) =>
                 new ChatConnectionError({
-                  message: "Failed to initialize chat connection",
+                  message:
+                    "Failed to initialize chat connection after retries. Is the LLM agent running on port 8080?",
                   cause: error,
                 }),
             ),
           );
 
           console.log(
-            `[ChatService] Starting message stream for chatId: ${chatId}`,
+            `[ChatService:${instanceId}] WebSocket connected successfully`,
           );
 
-          // Start listening for incoming WebSocket messages
-          yield* Effect.fork(
-            Stream.runForEach(
-              webSocketService.messageStream,
-              (protocolMessage) =>
-                Effect.gen(function* () {
-                  console.log(
-                    "[ChatService] Received WebSocket message:",
-                    protocolMessage,
-                  );
+          // Start the chat bridge to consume messages from Effect context
+          yield* chatBridge.start();
+          console.log(`[ChatService:${instanceId}] Chat bridge started`);
 
-                  // Handle RESPONSE messages from LLM agent
-                  if (
-                    protocolMessage.type === "RESPONSE" &&
-                    protocolMessage.payload
-                  ) {
-                    const payload = protocolMessage.payload as any;
-                    const messageType = payload.type;
-                    const content = payload.content;
+          // Register message handler with bridge
+          const messageHandler = (protocolMessage: any) => {
+            console.log(
+              `[ChatService:${instanceId}] 🔥 BRIDGE MESSAGE RECEIVED:`,
+              {
+                type: protocolMessage.type,
+                payloadType: (protocolMessage.payload as any)?.type,
+                id: protocolMessage.id,
+              },
+            );
 
-                    if (messageType === "LLM_RESPONSE") {
-                      // Final response from LLM
-                      const assistantMessage: MessageApi = {
-                        id: crypto.randomUUID(),
-                        text: content || "No response",
-                        sender: "assistant",
-                        timestamp: Date.now(),
+            const payload = protocolMessage.payload as any;
+            const messageType = payload?.type || protocolMessage.type;
+            const content = payload?.content || protocolMessage.content;
+
+            console.log(`[ChatService:${instanceId}] 🔍 Processing message:`, {
+              messageType,
+              contentLength: content?.length || 0,
+              contentPreview: content?.substring(0, 50) || "no content",
+            });
+
+            if (messageType === "LLM_STREAM") {
+              console.log(
+                `[ChatService:${instanceId}] 📝 Processing LLM_STREAM`,
+              );
+              // Simple streaming - just accumulate text
+              Effect.runFork(
+                updateState((state) => {
+                  const messages = [...state.messages];
+
+                  // Find or create streaming message
+                  let streamingIdx = -1;
+                  for (let i = messages.length - 1; i >= 0; i--) {
+                    if (
+                      messages[i].sender === "assistant" &&
+                      messages[i].metadata?.streaming === true
+                    ) {
+                      streamingIdx = i;
+                      break;
+                    }
+                  }
+
+                  if (streamingIdx >= 0) {
+                    // Append to existing
+                    messages[streamingIdx] = {
+                      ...messages[streamingIdx],
+                      text: messages[streamingIdx].text + (content || ""),
+                    };
+                    console.log(
+                      `[ChatService:${instanceId}] ➕ Appended to existing streaming message`,
+                    );
+                  } else {
+                    // Create new streaming message
+                    messages.push({
+                      id: crypto.randomUUID(),
+                      text: content || "",
+                      sender: "assistant",
+                      timestamp: Date.now(),
+                      metadata: { streaming: true },
+                    });
+                    console.log(
+                      `[ChatService:${instanceId}] ✨ Created new streaming message`,
+                    );
+                  }
+
+                  return {
+                    ...state,
+                    messages,
+                    isTyping: true,
+                    metadata: {
+                      ...state.metadata,
+                      messageCount: messages.length,
+                    },
+                  };
+                }),
+              );
+            } else if (messageType === "LLM_RESPONSE") {
+              console.log(
+                `[ChatService:${instanceId}] 🏁 Processing LLM_RESPONSE (finalizing)`,
+              );
+              // Finalize streaming message
+              Effect.runFork(
+                updateState((state) => {
+                  const messages = [...state.messages];
+
+                  // Find streaming message to finalize
+                  for (let i = messages.length - 1; i >= 0; i--) {
+                    if (
+                      messages[i].sender === "assistant" &&
+                      messages[i].metadata?.streaming === true
+                    ) {
+                      messages[i] = {
+                        ...messages[i],
                         metadata: {
-                          length: (content || "").length,
+                          ...messages[i].metadata,
                           streaming: false,
                         },
                       };
-
-                      // Compile MDX for the response
-                      const mdxResult = yield* mdxService
-                        .compile(content || "")
-                        .pipe(
-                          Effect.catchAll(() =>
-                            Effect.succeed({
-                              compiledSource: content || "",
-                              frontmatter: {},
-                              metadata: { mdxError: true },
-                            }),
-                          ),
-                        );
-
-                      console.log("[ChatService] MDX compilation result:", {
-                        originalContent: content,
-                        compiledSource: mdxResult.compiledSource,
-                        frontmatter: mdxResult.frontmatter,
-                        hasError: mdxResult.metadata?.mdxError,
-                      });
-
-                      // Update message with MDX compilation result
-                      assistantMessage.metadata = {
-                        ...assistantMessage.metadata,
-                        mdx: mdxResult,
-                      };
-
                       console.log(
-                        "[ChatService] Final assistant message:",
-                        assistantMessage,
+                        `[ChatService:${instanceId}] ✅ Finalized streaming message`,
                       );
-
-                      // Add to message queue for stream consumers
-                      yield* Queue.offer(messageQueue, assistantMessage);
-
-                      // Update state
-                      yield* Ref.update(stateRef, (state) => ({
-                        ...state,
-                        messages: [...state.messages, assistantMessage],
-                        isTyping: false,
-                        metadata: {
-                          ...state.metadata,
-                          messageCount: state.messages.length + 1,
-                          lastMessageAt: Date.now(),
-                        },
-                      }));
-
-                      console.log(
-                        "[ChatService] Added LLM response with MDX to stream:",
-                        content,
-                      );
-                    } else if (messageType === "LLM_STREAM") {
-                      // Streaming chunk from LLM - for now just log it
-                      console.log(
-                        "[ChatService] Received LLM stream chunk:",
-                        content,
-                      );
-                    } else if (messageType === "THINKING") {
-                      // Update typing status based on thinking state
-                      const isThinking = content === "true";
-                      yield* Ref.update(stateRef, (state) => ({
-                        ...state,
-                        isTyping: isThinking,
-                      }));
-                      console.log(
-                        "[ChatService] Updated thinking state:",
-                        isThinking,
-                      );
-                    } else if (messageType === "LLM_ERROR") {
-                      // Handle LLM errors
-                      console.error("[ChatService] LLM Error:", content);
-                      yield* Ref.update(stateRef, (state) => ({
-                        ...state,
-                        isTyping: false,
-                      }));
-                    } else if (messageType === "WELCOME") {
-                      console.log(
-                        "[ChatService] Received welcome message:",
-                        content,
-                      );
-                    } else if (messageType === "PROCESSING") {
-                      console.log(
-                        "[ChatService] LLM is processing message:",
-                        content,
-                      );
-                    } else {
-                      console.log(
-                        "[ChatService] Unknown message type:",
-                        messageType,
-                        content,
-                      );
+                      break;
                     }
                   }
-                }).pipe(
-                  Effect.catchAll((error) =>
-                    Effect.sync(() => {
-                      console.error(
-                        "[ChatService] Error processing WebSocket message:",
-                        error,
-                      );
-                    }),
-                  ),
-                ),
-            ),
+
+                  return {
+                    ...state,
+                    messages,
+                    isTyping: false,
+                    metadata: {
+                      ...state.metadata,
+                      messageCount: messages.length,
+                    },
+                  };
+                }),
+              );
+            } else {
+              console.log(
+                `[ChatService:${instanceId}] ❓ Unknown message type:`,
+                messageType,
+              );
+            }
+          };
+
+          // Register message handler with bridge
+          yield* chatBridge.registerHandler(messageHandler);
+          console.log(
+            `[ChatService:${instanceId}] Message handler registered with bridge`,
+          );
+
+          console.log(
+            `[ChatService:${instanceId}] WebSocket connection and bridge initialized`,
           );
         });
 
@@ -216,6 +262,25 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
         Effect.gen(function* () {
           const state = yield* Ref.get(stateRef);
           const chatId = state.id;
+
+          // Check if chat is initialized
+          if (!chatId) {
+            return yield* Effect.fail(
+              new ChatMessageError({
+                message: "Chat not initialized. Call initialize() first.",
+              }),
+            );
+          }
+
+          // Check WebSocket connection
+          const isConnected = yield* webSocketService.isConnected;
+          if (!isConnected) {
+            return yield* Effect.fail(
+              new ChatMessageError({
+                message: "WebSocket not connected. Please wait for connection.",
+              }),
+            );
+          }
 
           // Validate message
           const validation = yield* validateMessage(text);
@@ -241,8 +306,8 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
             },
           };
 
-          // Add to state
-          yield* Ref.update(stateRef, (state) => ({
+          // Add to state & broadcast
+          yield* updateState((state) => ({
             ...state,
             messages: [...state.messages, userMessage],
             metadata: {
@@ -252,20 +317,12 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
             },
           }));
 
-          // Send via WebSocket
-          const protocolMessage = createMessage(
-            "COMMAND",
-            {
-              command: "userMessage",
-              data: { text, chatId, sessionId: chatId },
-              __tag: "CommandPayload",
-            },
-            userMessage.id,
-            Date.now(),
-            { processed: false, __tag: "Metadata" },
-          );
+          // Send via WebSocket using simplified protocol
+          const userMessageForWS = {
+            text: text,
+          };
 
-          yield* webSocketService.send(protocolMessage).pipe(
+          yield* webSocketService.send(userMessageForWS).pipe(
             Effect.mapError(
               (error) =>
                 new ChatMessageError({
@@ -315,35 +372,107 @@ export class ChatService extends Effect.Service<ChatServiceApi>()(
 
       const getState = () => Ref.get(stateRef);
       const setState = (state: ChatState) =>
-        Ref.set(stateRef, state).pipe(Effect.map(() => state));
-      const setTyping = (isTyping: boolean) =>
-        Ref.update(stateRef, (state) => ({ ...state, isTyping })).pipe(
-          Effect.flatMap(() => Ref.get(stateRef)),
+        Ref.set(stateRef, state).pipe(
+          Effect.tap(() => Queue.offer(stateQueue, state)),
+          Effect.map(() => state),
         );
+      const setTyping = (isTyping: boolean) =>
+        updateState((state) => ({ ...state, isTyping }));
       const clearHistory = () =>
-        Ref.update(stateRef, (state) => ({
+        updateState((state) => ({
           ...state,
           messages: [],
           metadata: { ...state.metadata, messageCount: 0 },
         }));
-      const cleanup = () => Effect.succeed(undefined);
 
-      // Create message stream from queue
-      const messageStream = Stream.fromQueue(messageQueue);
+      /**
+       * Gracefully release runtime resources so that React Strict-Mode double
+       * mounting does not leave zombie WebSocket connections or background
+       * fibers running.
+       */
+      const cleanup = () =>
+        Effect.gen(function* () {
+          console.log(`[ChatService:${instanceId}] Cleaning up...`);
+
+          // Stop bridge first so it no longer consumes from the WS stream
+          const started = yield* chatBridge.isStarted();
+          if (started) {
+            console.log(`[ChatService:${instanceId}] Stopping bridge...`);
+            yield* chatBridge.stop();
+            console.log(`[ChatService:${instanceId}] Bridge stopped`);
+          }
+
+          // Disconnect WebSocket if still connected
+          const connected = yield* webSocketService.isConnected;
+          if (connected) {
+            console.log(
+              `[ChatService:${instanceId}] Disconnecting WebSocket...`,
+            );
+            yield* webSocketService.disconnect();
+            console.log(`[ChatService:${instanceId}] WebSocket disconnected`);
+          }
+
+          console.log(`[ChatService:${instanceId}] Cleanup complete`);
+        }).pipe(
+          Effect.catchAll((error) => {
+            console.error(`[ChatService:${instanceId}] Cleanup error:`, error);
+            return Effect.succeed(undefined);
+          }),
+        );
+
+      // Map protocol messages to UI message format
+      const mappedMessageStream = Stream.map(
+        webSocketService.messageStream,
+        (protocolMessage: any) => {
+          // Extract type and content from protocol message
+          const payload = protocolMessage.payload || {};
+          const messageType = payload.type || protocolMessage.type;
+          const content = payload.content || protocolMessage.content;
+          let sender: "user" | "assistant" = "assistant";
+          if (messageType === "USER_MESSAGE") sender = "user";
+          // Use protocolMessage.timestamp if available, else Date.now()
+          return {
+            id: protocolMessage.id || crypto.randomUUID(),
+            text: content || "",
+            sender,
+            timestamp: protocolMessage.timestamp || Date.now(),
+            metadata: {
+              type: messageType,
+              __tag: "Metadata",
+            },
+          };
+        },
+      );
+
+      // Stream that emits the full chat state whenever it changes.
+      const stateStream: Stream.Stream<ChatState, never> =
+        Stream.fromQueue(stateQueue);
+
+      // Emit the initial state immediately so subscribers get a snapshot.
+      yield* Queue.offer(stateQueue, yield* Ref.get(stateRef));
+
+      console.log(`[ChatService:${instanceId}] Service construction complete`);
 
       return {
+        instanceId,
         initialize,
         sendMessage,
         getHistory,
         validateMessage,
-        messageStream,
+        stateStream,
+        messageStream: mappedMessageStream,
         getState,
         setState,
         setTyping,
         clearHistory,
         cleanup,
-      } satisfies ChatServiceApi;
+      } satisfies ChatServiceApi & { instanceId: string };
     }),
-    dependencies: [WebSocketService.Default, MdxService.Default],
+    dependencies: [
+      WebSocketService.Default,
+      ChatBridge.Default,
+      MdxService.Default,
+      ConfigService.Default,
+    ],
   },
 ) {}

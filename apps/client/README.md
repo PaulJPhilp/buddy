@@ -1,351 +1,314 @@
-# Buddy Client Application
+# Buddy Chat Client
 
-A Next.js application built with Effect.js services and React components, demonstrating clean architecture patterns for integrating functional programming with React.
+A modern, real-time chat application built with Next.js, Effect.js, and TypeScript. This client provides a clean, extensible chat interface with agent integration and dynamic configuration management.
 
-## Architecture Overview
+## 🏗️ Architecture Overview
 
-This application follows a layered architecture that separates business logic (Effect.js services) from UI concerns (React components), with well-defined integration patterns.
+This application follows the **Pure Effect Service Pattern** with a clean component architecture that separates concerns and maintains scalability.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    React Components                         │
-│                   (UI & User Interaction)                   │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ useChatRuntime()
-┌─────────────────────▼───────────────────────────────────────┐
-│                  React Contexts                            │
-│              (React Lifecycle Management)                   │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ useChatRuntimeService()
-┌─────────────────────▼───────────────────────────────────────┐
-│                   React Hooks                              │
-│            (Effect.js ↔ React Bridge)                      │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ Effect.runFork()
-┌─────────────────────▼───────────────────────────────────────┐
-│                 Effect.js Services                         │
-│              (Pure Business Logic)                         │
-└─────────────────────────────────────────────────────────────┘
-```
+### Core Principles
 
-## Service Integration Pattern
+- **Pure Effect Services**: All business logic lives in Effect.js services, not React hooks
+- **Clean Component Structure**: Each component has a single responsibility
+- **Type Safety**: Full TypeScript coverage with strict typing
+- **Service-First Design**: React components are thin wrappers around Effect services
 
-### The Four-Layer Pattern
-
-We use a consistent four-layer pattern to integrate Effect.js services with React:
-
-#### 1. **Effect.js Service Layer** (`src/services/`)
-Pure business logic implemented with Effect.js patterns.
-
-```typescript
-// services/chat-runtime/ChatRuntimeService.ts
-export interface ChatRuntimeServiceApi {
-  readonly establishSession: (
-    agentId: string,
-    chatId: string,
-  ) => Effect.Effect<AgentSession, AgentRuntimeError, Scope>;
-}
-
-export class ChatRuntimeService extends Effect.Service<ChatRuntimeServiceApi>()(
-  "ChatRuntimeService",
-  {
-    scoped: Effect.gen(function* () {
-      // Pure Effect.js implementation
-      return { establishSession: ... };
-    }),
-    dependencies: [AgentEndpointResolverService.Default, WebSocketService.Default],
-  },
-) {}
-```
-
-#### 2. **React Hook Layer** (`src/hooks/`)
-Bridges Effect.js services with React lifecycle.
-
-```typescript
-// hooks/useChatRuntimeService.ts
-export interface ChatRuntimeServiceState {
-  readonly status: "initializing" | "ready" | "error";
-  readonly chatRuntime: ChatRuntimeServiceApi | null;
-  readonly error: unknown | null;
-}
-
-export function useChatRuntimeService(): ChatRuntimeServiceState {
-  const [state, setState] = useState<ChatRuntimeServiceState>({
-    status: "initializing",
-    chatRuntime: null,
-    error: null,
-  });
-
-  useEffect(() => {
-    // Run Effect.js service
-    const fiber = Effect.runFork(
-      Effect.provide(ChatRuntimeService, ChatRuntimeService.Default)
-    );
-
-    // Handle results and cleanup
-    fiber.addObserver((exit) => {
-      if (Exit.isSuccess(exit)) {
-        setState({ status: "ready", chatRuntime: exit.value, error: null });
-      } else {
-        setState({ status: "error", chatRuntime: null, error: exit.cause });
-      }
-    });
-
-    return () => Fiber.interrupt(fiber);
-  }, []);
-
-  return state;
-}
-```
-
-#### 3. **React Context Layer** (`src/contexts/`)
-Provides service state across component tree.
-
-```typescript
-// contexts/ChatRuntimeContext.tsx
-const ChatRuntimeContext = createContext<ChatRuntimeServiceState | null>(null);
-
-export function ChatRuntimeProvider({ children }: ChatRuntimeProviderProps) {
-  const runtimeState = useChatRuntimeService();
-  
-  return (
-    <ChatRuntimeContext.Provider value={runtimeState}>
-      {children}
-    </ChatRuntimeContext.Provider>
-  );
-}
-
-export function useChatRuntime(): ChatRuntimeServiceState {
-  const context = useContext(ChatRuntimeContext);
-  if (!context) {
-    throw new Error("useChatRuntime must be used within a ChatRuntimeProvider");
-  }
-  return context;
-}
-```
-
-#### 4. **React Component Layer** (`src/components/`, `src/app/`)
-Consumes service state for UI rendering.
-
-```typescript
-// app/ChatContainer.tsx
-export default function ChatContainer() {
-  const runtime = useChatRuntime();
-
-  return (
-    <div>
-      {runtime.status === "ready" ? (
-        <div>Runtime ready</div>
-      ) : runtime.status === "error" ? (
-        <div>Error: {String(runtime.error)}</div>
-      ) : (
-        <div>Initializing...</div>
-      )}
-    </div>
-  );
-}
-```
-
-### When to Use This Pattern
-
-✅ **Use the full four-layer pattern when:**
-- Service needs React lifecycle management (initialization, cleanup)
-- Multiple components need access to service state
-- Service state includes loading/error states for UI
-- Service manages long-running resources (WebSockets, subscriptions)
-
-❌ **Don't use contexts when:**
-- Service is stateless or purely functional
-- Only one component needs the service
-- Service doesn't need React lifecycle integration
-- Simple CRUD operations that can be called directly
-
-### Example: ChatRuntimeService (✅ Good use of pattern)
-
-**Why it uses the full pattern:**
-- Manages WebSocket connections (needs cleanup)
-- Has initialization states (initializing → ready → error)
-- Multiple components need runtime status
-- Long-running service with complex lifecycle
-
-### Counter-example: AgentService (❌ Don't wrap in context)
-
-**Why it doesn't need context:**
-- Simple CRUD operations
-- Stateless service calls
-- No initialization phase
-- Components can call service methods directly
-
-```typescript
-// ✅ Good: Direct service usage
-const handleCreateAgent = async (agent: AgentConfig) => {
-  const result = await Effect.runPromise(
-    Effect.provide(
-      Effect.flatMap(AgentService, (s) => s.create(agent)),
-      AgentService.Default
-    )
-  );
-};
-```
-
-## Directory Structure
+## 📁 Project Structure
 
 ```
-src/
-├── services/           # Effect.js services (pure business logic)
-│   ├── agent/         # AgentService - CRUD operations
-│   ├── chat-runtime/  # ChatRuntimeService - WebSocket management
-│   ├── websocket/     # WebSocketService - Low-level WebSocket
-│   └── ...
-├── hooks/             # React hooks (Effect.js ↔ React bridge)
-│   ├── useChatRuntimeService.ts
-│   └── ...
-├── contexts/          # React contexts (service lifecycle only)
-│   ├── ChatRuntimeContext.tsx
-│   └── ...
-├── stores/            # Zustand stores (UI state)
-│   ├── appShellStore.ts
-│   └── ...
-├── components/        # React components (UI)
-└── app/              # Next.js app router pages
+apps/client/
+├── src/
+│   ├── components/           # UI Components (7 core components)
+│   │   ├── AppShell/        # Application layout and structure
+│   │   ├── ChatApp/         # Main chat orchestrator
+│   │   ├── ChatArea/        # Message display area
+│   │   ├── ChatContainer/   # Chat wrapper and configuration
+│   │   ├── HeaderBar/       # Chat controls and status
+│   │   ├── Toolbar/         # Application toolbar system
+│   │   └── UserArea/        # User input and interactions
+│   ├── services/            # Effect.js business logic services
+│   │   ├── agent/          # Agent management and communication
+│   │   ├── app/            # Application state and configuration
+│   │   ├── chat/           # Chat functionality and messaging
+│   │   ├── chat-runtime/   # Real-time chat operations
+│   │   ├── config-lifecycle/ # Configuration management
+│   │   ├── mdx/            # MDX processing and rendering
+│   │   ├── toolbar/        # Toolbar state and commands
+│   │   └── websocket/      # WebSocket communication
+│   ├── hooks/              # React hooks (minimal, UI-focused only)
+│   ├── stores/             # XState stores for UI state
+│   ├── types/              # TypeScript type definitions
+│   └── utils/              # Utility functions
+├── __tests__/              # Integration tests
+├── tests/                  # E2E tests (Playwright)
+└── public/                 # Static assets and configurations
 ```
 
-## Service Patterns
+## 🧩 Component Architecture
 
-### Effect.js Service Definition
+### Core Chat Components
 
-All services follow the Effect.Service pattern:
+#### `ChatApp/` - Main Chat Orchestrator
+- **Purpose**: Coordinates all chat functionality using Effect services
+- **Pattern**: Pure Effect Service integration
+- **Services**: `ChatService`, `AgentService`, `AppService`, `ToolbarService`
+- **Features**: Message handling, agent communication, state management
 
-```typescript
-export class MyService extends Effect.Service<MyServiceApi>()(
-  "MyService",
-  {
-    scoped: Effect.gen(function* () {
-      // Implementation
-      return { /* API methods */ };
-    }),
-    dependencies: [/* Required services */],
-  },
-) {}
+#### `ChatArea/` - Message Display
+- **Purpose**: Renders chat messages and conversation history
+- **Features**: Auto-scrolling, message formatting, empty state handling
+- **Integration**: Receives messages from `ChatService`
+
+#### `HeaderBar/` - Chat Controls
+- **Purpose**: Provides chat controls and status information
+- **Features**: Expand/collapse, clear conversation, status indicators
+- **Integration**: Toolbar commands and chat state
+
+#### `UserArea/` - User Input
+- **Purpose**: Handles user input and message composition
+- **Features**: Message input, file attachments, agent selection
+- **Components**: `MinimalInput`, `AttachmentBar`, `AgentToolBar`
+
+### Infrastructure Components
+
+#### `AppShell/` - Application Layout
+- **Purpose**: Provides overall application structure
+- **Features**: Toolbar integration, sidebar management, responsive layout
+- **Components**: `AppShell`, `AppSidebar`, `AppToolbar`
+
+#### `Toolbar/` - Command System
+- **Purpose**: Extensible toolbar with dynamic commands
+- **Features**: Command registration, state synchronization, responsive design
+- **Pattern**: Command pattern with XState integration
+
+#### `Chat/` - Container Wrapper
+- **Purpose**: Chat configuration and layout coordination
+- **Features**: Configuration management, theme application
+
+## 🔧 Service Architecture
+
+### Effect.js Services (MDX Pattern)
+
+All services follow the **MDX service pattern** with exactly 5 files:
+
+```
+services/service-name/
+├── api.ts      # Service contract interface
+├── errors.ts   # Domain-specific error types
+├── types.ts    # Type definitions and constants
+├── service.ts  # Effect.Service implementation
+└── index.ts    # Barrel exports
 ```
 
-### Error Handling
+#### Key Services
 
-Services use tagged errors for type-safe error handling:
+- **`ChatService`**: Message handling, conversation management
+- **`AgentService`**: Agent communication and management
+- **`AppService`**: Application configuration and state
+- **`ConfigLifecycleService`**: Dynamic configuration management
+- **`WebSocketService`**: Real-time communication
+- **`ToolbarService`**: Toolbar state and command management
 
-```typescript
-export class MyServiceError extends Data.TaggedError("MyServiceError")<{
-  readonly message: string;
-  readonly cause?: unknown;
-}> {}
+### Service Integration Rules
 
-// In service implementation
-yield* Effect.mapError(someOperation, (error) => 
-  new MyServiceError({ message: "Operation failed", cause: error })
-);
-```
+1. **Use Layer instances** in dependencies (e.g., `SomeService.Default`)
+2. **Never export `.Live` or `.Default`** directly from service files
+3. **All methods return Effect** with proper error handling
+4. **Use `scoped` for services with dependencies**
+5. **Map all errors** to domain-specific error types
 
-### Testing Services
+## 🚀 Getting Started
 
-Services are tested using Effect.js test utilities:
+### Prerequisites
 
-```typescript
-test("should create agent", async () => {
-  const result = await Effect.runPromise(
-    Effect.provide(
-      Effect.flatMap(AgentService, (s) => s.create(mockAgent)),
-      AgentService.Default
-    )
-  );
-  expect(result).toBeDefined();
-});
-```
+- Node.js 18+
+- Bun package manager
+- TypeScript 5.8+
 
-## State Management
-
-### Context vs Zustand vs Direct Service Calls
-
-- **React Context**: For service lifecycle state (initialization, errors)
-- **Zustand**: For complex UI state (app shell, chat selection, messages, form state)
-- **Direct Service Calls**: For simple operations (CRUD, one-off actions)
-
-### Current Contexts
-
-1. **ChatRuntimeContext**: Service lifecycle management ✅
-
-### Current State Management
-
-- **React Context**: For service lifecycle state (ChatRuntimeContext)
-- **Zustand Store**: For UI state (AppShellStore - chat selection, messages, etc.)
-- **Direct Service Calls**: For simple operations (CRUD, one-off actions)
-
-## Development Guidelines
-
-### Adding a New Service
-
-1. **Create the service** in `src/services/[service-name]/`
-2. **Determine integration pattern**:
-   - Simple operations → Direct service calls
-   - Complex lifecycle → Full four-layer pattern
-3. **If using full pattern**:
-   - Create hook in `src/hooks/use[ServiceName]Service.ts`
-   - Create context in `src/contexts/[ServiceName]Context.tsx`
-   - Add provider to app layout
-4. **Write tests** for service logic
-5. **Update this README** with new patterns
-
-### Best Practices
-
-- **Keep services pure** - No React dependencies in service layer
-- **Handle all errors** - Use tagged errors for type safety
-- **Test services independently** - Don't test React integration in service tests
-- **Document service APIs** - Clear interfaces and error types
-- **Follow naming conventions** - Service, Hook, Context, Provider
-
-## Examples
-
-See the following files for complete examples:
-
-- **Service**: `src/services/chat-runtime/ChatRuntimeService.ts`
-- **Hook**: `src/hooks/useChatRuntimeService.ts`
-- **Context**: `src/contexts/ChatRuntimeContext.tsx`
-- **Component**: `src/app/ChatContainer.tsx`
-
-## Migration Notes
-
-When migrating from other patterns:
-
-1. **From React Context wrapping services** → Use direct service calls for simple operations
-2. **From mixed service/context logic** → Separate pure service logic from React concerns
-3. **From imperative patterns** → Use Effect.js functional patterns
-
-This architecture ensures clean separation of concerns, testable business logic, and maintainable React integration.
-
-## Getting Started
-
-### Development Setup
+### Installation
 
 ```bash
 # Install dependencies
 bun install
 
-# Run development server
-bun dev
-
-# Run tests
-bun test
+# Start development server
+bun run dev
 
 # Build for production
 bun run build
+
+# Run tests
+bun run test
+
+# Run E2E tests
+bunx playwright test
 ```
 
-### Environment
+### Development Workflow
 
-This project uses:
-- **Next.js 15** - React framework
-- **Effect.js 3.14+** - Functional programming library
-- **TypeScript 5.8** - Type safety
-- **Bun** - Package manager and runtime
-- **Vitest** - Testing framework
+1. **Services First**: Implement business logic in Effect services
+2. **Component Integration**: Create React components that use services
+3. **Type Safety**: Ensure full TypeScript coverage
+4. **Testing**: Write integration and E2E tests
+5. **Documentation**: Update relevant README files
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+## 🧪 Testing Strategy
+
+### Integration Tests
+- Service integration testing
+- Component behavior testing
+- Effect service testing with real dependencies
+
+### E2E Tests (Playwright)
+- Complete user workflows
+- Chat functionality testing
+- Cross-browser compatibility
+
+### Testing Principles
+- **No Mocking**: Tests use real external services
+- **Real Dependencies**: Connect to actual APIs and services
+- **Meaningful Tests**: Tests validate actual functionality
+
+## 🎨 Styling and Theming
+
+- **Tailwind CSS**: Utility-first styling
+- **CSS Variables**: Dynamic theming support
+- **Responsive Design**: Mobile-first approach
+- **Component Variants**: Consistent design system
+
+## 🔌 Configuration
+
+### Chat App Configurations
+- Stored in `public/configs/`
+- JSON-based configuration files
+- Dynamic loading and hot-reloading
+- Theme and agent configuration
+
+### Environment Variables
+- Clerk authentication configuration
+- API endpoints and keys
+- Development/production settings
+
+## 📚 Key Patterns and Conventions
+
+### Component Structure
+```typescript
+// Component with Effect service integration
+export function MyComponent({ config }: MyComponentProps) {
+  const [state, setState] = useState(initialState)
+  
+  const handleAction = useCallback(() => {
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* MyService
+        const result = yield* service.performAction()
+        setState(result)
+      }).pipe(Effect.provide(serviceLayer))
+    )
+  }, [])
+
+  return <div>{/* JSX */}</div>
+}
+```
+
+### Service Definition
+```typescript
+export class MyService extends Effect.Service<MyServiceApi>()(
+  "MyService",
+  {
+    scoped: Effect.gen(function* () {
+      const dependency = yield* DependencyService
+      
+      const performAction = () =>
+        Effect.gen(function* () {
+      // Implementation
+        }).pipe(
+          Effect.mapError((cause) =>
+            new MyServiceError({ message: "Action failed", cause })
+          )
+        )
+
+      return { performAction } satisfies MyServiceApi
+    }),
+    dependencies: [DependencyService.Default],
+  },
+) {}
+```
+
+### Error Handling
+```typescript
+export class MyServiceError extends Data.TaggedError("MyServiceError")<{
+  readonly message: string
+  readonly cause?: unknown
+}> {}
+```
+
+## 🔄 State Management
+
+### Effect Services
+- Business logic and data management
+- Cross-component state coordination
+- Async operations and side effects
+
+### XState Stores
+- UI-specific state (sidebar open/closed, etc.)
+- Component-local state management
+- Reactive state updates
+
+### React State
+- Component-local UI state only
+- Form inputs and temporary state
+- No business logic in React state
+
+## 🚦 Development Guidelines
+
+### Do's ✅
+- Use Effect services for all business logic
+- Follow the MDX service pattern
+- Write comprehensive tests
+- Use TypeScript strictly
+- Document complex functionality
+
+### Don'ts ❌
+- Mix React state with business logic
+- Use Context.Tag (banned pattern)
+- Skip error handling in services
+- Create services without following MDX pattern
+- Use mocking in tests
+
+## 🔧 Build and Deployment
+
+### Build Process
+- Next.js production build
+- TypeScript compilation
+- Asset optimization
+- Static generation where possible
+
+### Deployment
+- Vercel deployment ready
+- Environment variable configuration
+- Analytics integration
+- Error boundary protection
+
+## 📖 Additional Documentation
+
+- [Service Pattern Documentation](src/docs/service-pattern.md)
+- [Component Guidelines](src/components/README.md)
+- [Testing Strategy](src/__tests__/README.md)
+- [Configuration Management](src/services/config-lifecycle/README.md)
+
+## 🤝 Contributing
+
+1. Follow the established patterns
+2. Write tests for new functionality
+3. Update documentation
+4. Ensure TypeScript compliance
+5. Test across different browsers
+
+## 📄 License
+
+[Add your license information here]
+
+---
+
+**Built with ❤️ using Next.js, Effect.js, and TypeScript**

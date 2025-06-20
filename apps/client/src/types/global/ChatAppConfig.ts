@@ -31,8 +31,8 @@ export class ChatAppConfig extends Schema.Class<ChatAppConfig>("ChatAppConfig")(
       }),
     ),
 
-    // Theme object (keeping as unknown since it's just styling data)
-    theme: Schema.optional(Schema.Unknown),
+    // Style object (keeping as unknown since it's just styling data)
+    style: Schema.optional(Schema.Unknown),
   },
 ) {}
 

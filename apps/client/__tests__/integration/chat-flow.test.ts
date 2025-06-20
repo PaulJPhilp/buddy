@@ -11,7 +11,7 @@ const AGENT_PORT = 8080; // or your configured port
 const AGENT_URL = `ws://localhost:${AGENT_PORT}/chat`;
 
 describe("ChatApp <-> LLM-Agent integration", () => {
-  beforeAll((done) => {
+  beforeAll(async () => {
     // Try to start the agent as a child process
     try {
       agentProcess = spawn("bun", ["run", "start"], {
@@ -26,11 +26,10 @@ describe("ChatApp <-> LLM-Agent integration", () => {
       });
 
       // Wait a bit for the server to start
-      setTimeout(done, 2000);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     } catch (error) {
       console.warn("Failed to spawn agent process:", error);
       agentProcess = null;
-      done();
     }
   });
 

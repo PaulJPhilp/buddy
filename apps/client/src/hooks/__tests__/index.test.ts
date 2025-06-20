@@ -4,22 +4,14 @@
  */
 
 import { describe, expect, test } from "vitest";
-import {
-  useAgentSession,
-  useChatAppRuntime,
-  useDynamicToolbar,
-} from "../index";
+import { useDynamicToolbar } from "../index";
 
 describe("Hooks Index", () => {
   test("should export all hooks", () => {
-    expect(useAgentSession).toBeDefined();
-    expect(useChatAppRuntime).toBeDefined();
     expect(useDynamicToolbar).toBeDefined();
   });
 
   test("all hooks should be functions", () => {
-    expect(typeof useAgentSession).toBe("function");
-    expect(typeof useChatAppRuntime).toBe("function");
     expect(typeof useDynamicToolbar).toBe("function");
   });
 });

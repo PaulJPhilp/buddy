@@ -16,19 +16,21 @@ export async function GET(request: NextRequest) {
 
   try {
     if (!filename) {
-      // Return list of available config files with metadata
-      const files = readdirSync(configsDir)
-        .filter((f) => f.endsWith(".json"))
+      // Return array of parsed config objects
+      const files = readdirSync(configsDir).filter((f) => f.endsWith(".json"));
+      const configs = files
         .map((f) => {
           const filePath = path.join(configsDir, f);
-          const stats = statSync(filePath);
-          return {
-            name: f,
-            lastModified: stats.mtime.getTime(),
-            size: stats.size,
-          };
-        });
-      return NextResponse.json(files);
+          try {
+            const content = readFileSync(filePath, "utf-8");
+            return JSON.parse(content);
+          } catch (e) {
+            // Optionally log error, skip invalid file
+            return null;
+          }
+        })
+        .filter(Boolean);
+      return NextResponse.json(configs);
     }
 
     // Return specific config file with metadata
@@ -116,9 +118,9 @@ export async function PUT(request: NextRequest) {
     const filePath = path.join(configsDir, filename);
     const body = await request.json();
     // Check if file exists
-    let originalStats: Stats
+    let originalStats: Stats;
     try {
-      originalStats = statSync(filePath)
+      originalStats = statSync(filePath);
     } catch {
       return NextResponse.json(
         { error: "Config file not found" },

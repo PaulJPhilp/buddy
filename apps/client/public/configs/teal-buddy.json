@@ -19,7 +19,7 @@
     "tools": []
   },
 
-  "theme": {
+  "style": {
     "colors": {
       "primary": "#14b8a6",
       "secondary": "#ccfbf1",

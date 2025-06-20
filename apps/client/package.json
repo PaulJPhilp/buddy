@@ -12,8 +12,13 @@
     "typecheck": "tsc --noEmit",
     "test": "bunx vitest",
     "test:coverage": "bunx vitest run --coverage",
+    "test:integration": "bun run __tests__/integration/run-integration-tests.ts",
+    "test:integration:e2e": "bun run __tests__/integration/run-integration-tests.ts \"ChatApp E2E\"",
+    "test:integration:services": "bun run __tests__/integration/run-integration-tests.ts \"Chat Services\"",
+    "test:integration:performance": "bun run __tests__/integration/run-integration-tests.ts \"Performance\"",
+    "test:integration:websocket": "bun run __tests__/integration/run-integration-tests.ts \"WebSocket Protocol\"",
     "start:llm": "bun run src/scripts/start-llm-server.ts",
-    "start:ws": "node src/dev/websocket-test-server.js",
+    "start:ws": "bun run src/services/websocket/__tests__/websocket-test-server.ts",
     "dev:full": "concurrently \"bun run start:ws\" \"bun run dev\""
   },
   "dependencies": {
@@ -69,12 +74,14 @@
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.5.2",
     "@vitest/coverage-v8": "^3.2.3",
+    "@vitest/ui": "^3.2.4",
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-playwright": "^0.11.1",
     "concurrently": "^9.1.2",
     "happy-dom": "^17.6.3",
     "jsdom": "^26.1.0",
     "vite-tsconfig-paths": "^4.3.2",
+    "vitest": "^3.2.4",
     "ws": "^8.18.2"
   }
 }

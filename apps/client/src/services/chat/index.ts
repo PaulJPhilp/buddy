@@ -12,11 +12,7 @@ export {
   StateUpdateError,
 } from "./errors";
 export type { ChatServiceError } from "./errors";
-export {
-  ChatService,
-  ChatServiceLive,
-  createChatServiceForId,
-} from "./service";
+export { ChatService } from "./service";
 export type {
   ChatHistoryApi,
   ChatHistoryPage,

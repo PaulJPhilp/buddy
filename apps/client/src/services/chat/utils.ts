@@ -33,7 +33,7 @@ export function createUserMessage(
 }
 
 /**
- * Finalizes a streaming message by compiling MDX and creating the final message
+ * Finalizes a streaming message by compiling llm-ui and creating the final message
  */
 export function finalizeStreamingMessage(
   streamId: string,
@@ -47,23 +47,23 @@ export function finalizeStreamingMessage(
       accumulatedText,
     );
 
-    // Set rendering state to true when MDX compilation starts
+    // Set rendering state to true when llm-ui compilation starts
     console.log(
-      "[ChatUtils] Starting MDX compilation - setting isRendering to true",
+      "[ChatUtils] Starting llm-ui compilation - setting isRendering to true",
     );
     // TODO: Handle rendering state in the calling component
 
     const mdxService = yield* MdxService;
     const compiledResult = yield* mdxService
-      .compile(accumulatedText, {
+      .compileForLlmUi(accumulatedText, {
         development: process.env.NODE_ENV === "development",
       })
       .pipe(
         Effect.catchAll(() =>
           Effect.succeed({
-            compiledSource: accumulatedText,
+            rawMarkdown: accumulatedText,
             frontmatter: {},
-            metadata: { mdxError: true },
+            metadata: { llmUiError: true },
           }),
         ),
       );
@@ -75,15 +75,15 @@ export function finalizeStreamingMessage(
       timestamp: Date.now(),
       metadata: {
         streaming: false,
-        mdx: compiledResult,
+        llmUi: compiledResult,
       },
     };
 
     console.log("[ChatUtils] Finalized streaming message:", result);
 
-    // Set rendering state to false when MDX compilation completes
+    // Set rendering state to false when llm-ui compilation completes
     console.log(
-      "[ChatUtils] MDX compilation complete - setting isRendering to false",
+      "[ChatUtils] llm-ui compilation complete - setting isRendering to false",
     );
     // TODO: Handle rendering state in the calling component
 

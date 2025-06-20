@@ -8,8 +8,10 @@ export interface MdxCompileOptions {
   outputFormat?: "function-body" | "program";
 }
 
-export interface MdxCompilationResult {
-  compiledSource: string;
+// --- llm-ui Integration Types ---
+export interface LlmUiCompilationResult {
+  rawMarkdown: string;
   frontmatter: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+  // llm-ui will handle the actual rendering
 }

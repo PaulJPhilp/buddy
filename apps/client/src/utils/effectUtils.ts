@@ -12,6 +12,7 @@ import type {
   JsonParseError,
 } from "@/types/errors";
 import { Effect } from "effect";
+import { debugLog } from "./debugLogger";
 
 /**
  * Type representing any valid JSON value
@@ -78,3 +79,8 @@ export const parseJsonEffect = (
     }),
   });
 };
+
+export const effectDebug =
+  (scope: string) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    Effect.tap(effect, (value) => Effect.sync(() => debugLog(scope, value)));

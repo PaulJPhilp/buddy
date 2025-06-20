@@ -125,8 +125,6 @@ This layer acts as an adapter between the LLM's output and our state machine.
 
 The core data model and state machine logic are defined in `uiMachine.ts`.
 
-*(The full code for `uiMachine.ts` as defined in our previous message would be included here for completeness.)*
-
 ### 6. Testing Strategy
 
 The decoupled nature of this architecture allows for targeted and effective testing.

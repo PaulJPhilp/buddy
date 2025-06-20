@@ -7,4 +7,4 @@ export {
 } from "./errors";
 export type { MdxError } from "./errors";
 export { MdxService } from "./service";
-export type { MdxCompilationResult, MdxCompileOptions } from "./types";
+export type { LlmUiCompilationResult, MdxCompileOptions } from "./types";

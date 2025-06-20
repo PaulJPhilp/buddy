@@ -1,9 +1,15 @@
-// Re-export types from protocol
-export type { WebSocketMessage } from "@buddy/protocol";
+// Simplified protocol types - matching the server implementation
+export interface SimpleMessage {
+  readonly id: string;
+  readonly type: string;
+  readonly content: string;
+  readonly timestamp: number;
+}
 
 // Type aliases for compatibility
-export type ProtocolMessage = import("@buddy/protocol").WebSocketMessage;
-export type WebSocketEnvelope = import("@buddy/protocol").WebSocketMessage;
+export type ProtocolMessage = SimpleMessage;
+export type WebSocketEnvelope = SimpleMessage;
+export type WebSocketMessage = SimpleMessage;
 
 export interface UserMessage {
   readonly text: string;

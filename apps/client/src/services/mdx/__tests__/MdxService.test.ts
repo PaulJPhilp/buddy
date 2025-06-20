@@ -30,19 +30,21 @@ describe("MdxService", () => {
     });
   });
 
-  it("should compile simple markdown to HTML", () =>
+  it("should compile simple markdown for llm-ui", () =>
     Effect.gen(function* () {
       const service = yield* MdxService;
-      const result = yield* service.compile(
+      const result = yield* service.compileForLlmUi(
         "# Hello World\n\nThis is **bold** text.",
       );
 
-      expect(result.compiledSource).toContain("<h1>Hello World</h1>");
-      expect(result.compiledSource).toContain("<strong>bold</strong>");
+      expect(result.rawMarkdown).toBe(
+        "# Hello World\n\nThis is **bold** text.",
+      );
       expect(result.frontmatter).toEqual({});
+      expect(result.metadata).toEqual({ llmUiMode: true });
     }).pipe(Effect.provide(TestLayer)));
 
-  it("should parse frontmatter correctly", () =>
+  it("should parse frontmatter correctly for llm-ui", () =>
     Effect.gen(function* () {
       const service = yield* MdxService;
       const mdxWithFrontmatter = `---
@@ -54,51 +56,23 @@ author: Test Author
 
 This is the main content.`;
 
-      const result = yield* service.compile(mdxWithFrontmatter);
+      const result = yield* service.compileForLlmUi(mdxWithFrontmatter);
 
       expect(result.frontmatter).toEqual({
         title: "Test Document",
         author: "Test Author",
       });
-      expect(result.compiledSource).toContain("<h1>Content</h1>");
-      expect(result.compiledSource).not.toContain("title: Test Document");
+      expect(result.rawMarkdown).toBe("# Content\n\nThis is the main content.");
+      expect(result.metadata).toEqual({ llmUiMode: true });
     }).pipe(Effect.provide(TestLayer)));
 
-  it("should handle GitHub Flavored Markdown features", () =>
+  it("should handle empty content for llm-ui", () =>
     Effect.gen(function* () {
       const service = yield* MdxService;
-      const gfmContent = `
-| Column 1 | Column 2 |
-|----------|----------|
-| Cell 1   | Cell 2   |
+      const result = yield* service.compileForLlmUi("");
 
-~~strikethrough~~
-`;
-
-      const result = yield* service.compile(gfmContent);
-
-      expect(result.compiledSource).toContain("<table>");
-      expect(result.compiledSource).toContain("<del>strikethrough</del>");
-    }).pipe(Effect.provide(TestLayer)));
-
-  it("should handle empty content", () =>
-    Effect.gen(function* () {
-      const service = yield* MdxService;
-      const result = yield* service.compile("");
-
-      expect(result.compiledSource).toBe("");
+      expect(result.rawMarkdown).toBe("");
       expect(result.frontmatter).toEqual({});
-    }).pipe(Effect.provide(TestLayer)));
-
-  it("should fail when compileFile is called in browser environment", () =>
-    Effect.gen(function* () {
-      const service = yield* MdxService;
-
-      const result = yield* service.compileFile().pipe(Effect.either);
-
-      expect(result._tag).toBe("Left");
-      if (result._tag === "Left") {
-        expect(result.left._tag).toBe("MdxCompilationError");
-      }
+      expect(result.metadata).toEqual({ llmUiMode: true });
     }).pipe(Effect.provide(TestLayer)));
 });

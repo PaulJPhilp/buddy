@@ -9,9 +9,7 @@ import Script from "next/script";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
-import { AppShell } from "@/components/app-shell/AppShell";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ChatAppProvider } from "@/contexts/ChatAppContext";
+import { AppShell } from "@/components/AppShell/AppShell";
 
 import { AgentService } from "@/services/agent";
 import { AppService } from "@/services/app";
@@ -23,7 +21,7 @@ import { Effect, Layer } from "effect";
 import { ErrorBoundary } from "@ui/components/ui/error-boundary";
 
 import "./globals.css";
-import ChatContainer from "@/components/chat/ChatContainer";
+import ChatContainer from "@/components/Chat/ChatContainer";
 
 // Configure Geist font variables
 // Use variable to set the CSS variable name for the font
@@ -53,7 +51,7 @@ export default function RootLayout({
   const [activeConfig, setActiveConfig] = useState<ChatAppConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load all chat app configs on mount (no activeConfig dependency)
+  // Load all chat app configs on mount and auto-select first one
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -62,7 +60,13 @@ export default function RootLayout({
         const appService = yield* AppService;
 
         const apps = yield* appService.getAll();
-        if (!cancelled) setChatApps(apps);
+        if (!cancelled) {
+          setChatApps(apps);
+          // Auto-select first app if available
+          if (apps.length > 0) {
+            setActiveConfig(apps[0]);
+          }
+        }
       }).pipe(Effect.provide(serviceLayer)),
     ).finally(() => {
       if (!cancelled) setLoading(false);
@@ -71,8 +75,6 @@ export default function RootLayout({
       cancelled = true;
     };
   }, []);
-
-  // Note: No automatic chat app display - users select from dropdown
 
   // Listen for additive chat app events
   useEffect(() => {
@@ -138,40 +140,36 @@ export default function RootLayout({
         !!appConfig.theme,
       );
 
-      Effect.runPromise(
-        Effect.sync(() => {
-          let cfg = appConfig;
+      // Process config synchronously to avoid race conditions in tests
+      let cfg = appConfig;
 
-          // Use embedded theme if available
-          if (cfg.theme) {
-            console.log("🎧 Layout: Using embedded theme:", cfg.theme);
-            // Theme is already embedded, no need to load from service
-          } else {
-            console.log("🎧 Layout: No theme available, using default");
-            cfg = { ...cfg, theme: {} } as ChatAppConfig;
-          }
+      // Use embedded theme if available
+      if (cfg.theme) {
+        console.log("🎧 Layout: Using embedded theme:", cfg.theme);
+        // Theme is already embedded, no need to load from service
+      } else {
+        console.log("🎧 Layout: No theme available, using default");
+        cfg = { ...cfg, theme: {} } as ChatAppConfig;
+      }
 
-          console.log("🎧 Layout: Final config with theme:", cfg);
-          return cfg;
-        }).pipe(Effect.provide(serviceLayer)),
-      ).then((cfg) => {
-        console.log(`🎧 Layout: Adding config ${cfg.id} to displayedConfigs`);
-        setDisplayedConfigs((prev) => {
-          const next = [...prev, cfg];
-          console.log(
-            `🎧 Layout: Updated displayedConfigs:`,
-            next.map((c) => c.id),
-          );
-          return next;
-        });
-        setActiveConfig(cfg);
-        console.log("🎧 Layout: Config object:", cfg);
-        console.log("🎧 Layout: Config.theme:", cfg.theme);
-        console.log("🎧 Layout: Applying config style:", cfg.theme);
+      console.log("🎧 Layout: Final config with theme:", cfg);
+      console.log(`🎧 Layout: Adding config ${cfg.id} to displayedConfigs`);
+
+      setDisplayedConfigs((prev) => {
+        const next = [...prev, cfg];
         console.log(
-          `🎧 Layout: Successfully added and activated config ${cfg.id}`,
+          `🎧 Layout: Updated displayedConfigs:`,
+          next.map((c) => c.id),
         );
+        return next;
       });
+      setActiveConfig(cfg);
+      console.log("🎧 Layout: Config object:", cfg);
+      console.log("🎧 Layout: Config.theme:", cfg.theme);
+      console.log("🎧 Layout: Applying config style:", cfg.theme);
+      console.log(
+        `🎧 Layout: Successfully added and activated config ${cfg.id}`,
+      );
     };
 
     window.addEventListener("buddy:addChatApp", handler);
@@ -190,35 +188,6 @@ export default function RootLayout({
       setActiveConfig(displayedConfigs[0]);
     }
   }, [displayedConfigs, activeConfig]);
-
-  // Note: Removed global style application - each ChatContainer now applies its own style
-
-  // Helper to update theme for a specific config
-  const handleThemeChangeFor = (config: ChatAppConfig, newTheme: any) => {
-    console.log("[Layout] handleThemeChangeFor", config.id, newTheme);
-
-    // Update displayedConfigs array immutably
-    setDisplayedConfigs((prev) => {
-      const next = prev.map((c) =>
-        c.id === config.id ? { ...c, theme: newTheme } : c,
-      );
-      return next;
-    });
-
-    // Update activeConfig if this config is currently active
-    if (activeConfig?.id === config.id) {
-      setActiveConfig({ ...config, theme: newTheme });
-    }
-
-    // Persist via services in background
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const appService = yield* AppService;
-
-        yield* appService.update(config.id, { theme: newTheme });
-      }).pipe(Effect.provide(serviceLayer)),
-    );
-  };
 
   // Determine if we should show the multi-app grid or children
   const isHomePage = pathname === "/";
@@ -270,71 +239,25 @@ export default function RootLayout({
             `}
           </Script>
           <ErrorBoundary>
-            <ThemeProvider>
-              <Toaster position="top-center" />
-              {loading ? (
-                <div className="h-screen w-full flex items-center justify-center">
-                  Loading...
-                </div>
-              ) : shouldShowMultiAppGrid ? (
-                <AppShell>
-                  {displayedConfigs.length === 1 ? (
-                    <div className="flex-1 h-full flex flex-col min-h-0">
-                      <ChatAppProvider
-                        key={displayedConfigs[0].id}
-                        activeChatAppConfig={displayedConfigs[0]}
-                        onThemeChange={(t) =>
-                          handleThemeChangeFor(displayedConfigs[0], t)
-                        }
-                      >
-                        <ChatContainer config={displayedConfigs[0]} />
-                      </ChatAppProvider>
-                    </div>
-                  ) : (
-                    <div
-                      className="grid gap-4 p-4 justify-center h-full"
-                      style={{
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(350px, 1fr))",
-                      }}
-                    >
-                      {displayedConfigs.map((cfg) => (
-                        <ChatAppProvider
-                          key={cfg.id}
-                          activeChatAppConfig={cfg}
-                          onThemeChange={(t) => handleThemeChangeFor(cfg, t)}
-                        >
-                          <ChatContainer config={cfg} />
-                        </ChatAppProvider>
-                      ))}
-                    </div>
-                  )}
-                </AppShell>
-              ) : isHomePage && displayedConfigs.length === 0 ? (
-                <AppShell>
-                  <div className="h-full w-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-6xl mb-6">💬</div>
-                      <h2 className="text-2xl font-bold mb-4">
-                        Welcome to Buddy Chat
-                      </h2>
-                      <p className="text-muted-foreground mb-6 max-w-md">
-                        No chat applications are currently displayed. Use the
-                        dropdown in the toolbar to select and add chat apps.
-                      </p>
-                      <div className="text-sm text-muted-foreground">
-                        Available chat apps will appear in the toolbar dropdown
-                        once loaded.
-                      </div>
-                    </div>
+            <Toaster position="top-center" />
+            {loading ? (
+              <div className="h-screen w-full flex items-center justify-center">
+                Loading...
+              </div>
+            ) : isHomePage ? (
+              <AppShell>
+                {activeConfig ? (
+                  <ChatContainer config={activeConfig} />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p>No chat app selected</p>
                   </div>
-                </AppShell>
-              ) : (
-                // For non-home pages or when no configs, render children
-                <AppShell>{children}</AppShell>
-              )}
-              <Analytics />
-            </ThemeProvider>
+                )}
+              </AppShell>
+            ) : (
+              <AppShell>{children}</AppShell>
+            )}
+            <Analytics />
           </ErrorBoundary>
         </ClerkProvider>
       </body>

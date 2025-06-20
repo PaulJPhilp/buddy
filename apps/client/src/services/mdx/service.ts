@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import matter from "gray-matter";
 import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
@@ -24,9 +24,9 @@ export class MdxService extends Effect.Service<MdxServiceApi>()("MdxService", {
       .use(remarkRehype)
       .use(rehypeStringify);
 
-    const compile = (mdxContent: string, options?: MdxCompileOptions) =>
+    const compileForLlmUi = (mdxContent: string, options?: MdxCompileOptions) =>
       Effect.gen(function* () {
-        // Parse frontmatter
+        // Parse frontmatter (same as regular compile)
         const { content, data: frontmatter } = yield* Effect.try({
           try: () => matter(mdxContent),
           catch: (err) =>
@@ -36,53 +36,25 @@ export class MdxService extends Effect.Service<MdxServiceApi>()("MdxService", {
             }),
         });
 
-        // Process the markdown content
-        const result = yield* Effect.tryPromise({
-          try: () => processor.process(content),
-          catch: (err) =>
-            new MdxCompilationError({
-              message: "Markdown to HTML compilation failed",
-              cause: err,
-            }),
-        });
-
-        const htmlOutput = String(result.value);
-
+        // For llm-ui, we return the raw markdown instead of compiled HTML
+        // llm-ui will handle the markdown processing itself
         return {
-          compiledSource: htmlOutput,
+          rawMarkdown: content,
           frontmatter,
-          metadata: result.data || {},
+          metadata: { llmUiMode: true },
         };
       }).pipe(
         Effect.mapError(
           (error) =>
             new MdxCompilationError({
-              message: "Failed to compile MDX content",
+              message: "Failed to prepare content for llm-ui",
               cause: error,
             }),
         ),
       );
 
-    const compileFile = (filePath: string, options?: MdxCompileOptions) =>
-      Effect.gen(function* () {
-        // Read file content
-        const content = yield* Effect.tryPromise({
-          try: () => Bun.file(filePath).text(),
-          catch: (err) =>
-            new MdxParsingError({
-              message: "Failed to read MDX file",
-              filePath,
-              cause: err,
-            }),
-        });
-
-        // Compile MDX
-        return yield* compile(content, options);
-      });
-
     return {
-      compile,
-      compileFile,
+      compileForLlmUi,
     } satisfies MdxServiceApi;
   }),
   dependencies: [],

@@ -1,5 +1,5 @@
-import { parseMessage } from "@buddy/protocol";
-import { Effect, Queue, Stream } from "effect";
+// import { parseMessage } from "@buddy/protocol";
+import { Effect, Queue, Ref, Stream } from "effect";
 import WebSocket from "isomorphic-ws";
 import type { WebSocketServiceApi } from "./api";
 import { WebSocketConnectionError, WebSocketSendError } from "./errors";
@@ -12,74 +12,64 @@ export {
   WebSocketError,
 } from "./errors";
 
+// Simplified protocol format matching the server
+interface SimpleMessage {
+  id: string;
+  type: string;
+  content: string;
+  timestamp: number;
+}
+
+// Helper functions for simplified protocol
+const createMessage = (type: string, content: string): SimpleMessage => ({
+  id: Math.random().toString(36).substring(7),
+  type,
+  content,
+  timestamp: Date.now(),
+});
+
+const parseMessage = (data: string): SimpleMessage | null => {
+  try {
+    const parsed = JSON.parse(data);
+    if (
+      parsed &&
+      typeof parsed.type === "string" &&
+      typeof parsed.content === "string"
+    ) {
+      return parsed as SimpleMessage;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * WebSocket service class implementing the Effect.Service pattern
- * Following llm-agent patterns for simplicity and reliability
+ * Using simplified protocol matching the server
  */
 export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
   "WebSocketService",
   {
-    effect: Effect.gen(function* () {
+    scoped: Effect.gen(function* () {
       const instanceId = Math.random().toString(36).substring(7);
       console.log(
         "[WebSocketService] Service construction started, instanceId:",
         instanceId,
       );
 
-      // Create fresh message queue for each service instance
+      // Create message queue and stream
       const messageQueue = yield* Queue.unbounded<ProtocolMessage>();
       const messageStream = Stream.fromQueue(messageQueue);
 
-      // Create a simple callback-based message notification system
-      const messageCallbacks = new Set<(message: ProtocolMessage) => void>();
+      console.log(
+        `[WebSocketService:${instanceId}] Created messageQueue and messageStream`,
+      );
 
-      const addMessageCallback = (
-        callback: (message: ProtocolMessage) => void,
-      ) => {
-        console.log("[WebSocketService] Adding message callback");
-        messageCallbacks.add(callback);
-        return Effect.sync(() => {
-          console.log("[WebSocketService] Removing message callback");
-          messageCallbacks.delete(callback);
-        });
-      };
+      // Create connection ref
+      const connectionRef = yield* Ref.make<WebSocket | null>(null);
 
-      const notifyMessageCallbacks = (message: ProtocolMessage) => {
-        console.log(
-          "[WebSocketService] Notifying",
-          messageCallbacks.size,
-          "callbacks for message:",
-          message.id,
-        );
-        for (const callback of messageCallbacks) {
-          try {
-            callback(message);
-          } catch (error) {
-            console.error(
-              "[WebSocketService] Error in message callback:",
-              error,
-            );
-          }
-        }
-      };
-
-      // Create a simple stream that uses the callback system
-      const callbackMessageStream = Stream.async<ProtocolMessage>((emit) => {
-        console.log(
-          "[WebSocketService] Setting up callback-based message stream",
-        );
-        const callback = (message: ProtocolMessage) => {
-          console.log(
-            "[WebSocketService] Stream callback received message:",
-            message.id,
-          );
-          emit.single(message);
-        };
-
-        return addMessageCallback(callback);
-      });
-
-      // Create service instance with fresh state (no shared connection)
+      // Create service implementation
       const service = {
         _tag: "WebSocketService" as const,
         instanceId,
@@ -88,7 +78,7 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
           Effect.gen(function* () {
             console.log("[WebSocketService] Connecting to:", url);
 
-            // Use Effect.promise directly (like llm-agent)
+            // Use Effect.promise directly
             const ws = yield* Effect.promise(() => {
               console.log("[WebSocketService] Creating WebSocket connection");
 
@@ -108,9 +98,12 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
                 };
 
                 websocket.onerror = (error) => {
-                  console.error("[WebSocketService] Connection error:", error);
+                  console.error(
+                    "[WebSocketService] Connection error:",
+                    error?.type || error,
+                  );
                   clearTimeout(timeout);
-                  reject(error);
+                  reject(new Error("WebSocket connection error"));
                 };
 
                 websocket.onclose = (event) => {
@@ -130,130 +123,86 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
               });
             });
 
-            // Set up message handling (following llm-agent pattern)
-            ws.onmessage = (event) => {
+            // Set up message handling
+            const handleMessage = (event: MessageEvent) => {
               console.log(
                 `[WebSocketService:${instanceId}] Raw message received:`,
                 event.data,
               );
 
-              console.log(
-                "[WebSocketService] About to call parseMessage with:",
-                typeof event.data,
-                Buffer.isBuffer(event.data),
-              );
+              const parsed = parseMessage(event.data);
+              if (parsed) {
+                console.log(
+                  `[WebSocketService:${instanceId}] Parsed message successfully, type:`,
+                  parsed.type,
+                );
 
-              // Parse message using protocol parser with proper error handling
-              const parseEffect = parseMessage(event.data);
-              console.log("[WebSocketService] Created parseMessage effect");
+                // Convert to protocol message format
+                const protocolMessage: ProtocolMessage = {
+                  id: parsed.id,
+                  type: "RESPONSE" as any,
+                  agentRuntimeId: "simplified-agent",
+                  timestamp: parsed.timestamp,
+                  sequence: 0,
+                  payload: {
+                    type: parsed.type,
+                    content: parsed.content,
+                  },
+                  metadata: {
+                    __tag: "Metadata" as const,
+                  },
+                  __tag: "WebSocketMessage" as const,
+                };
 
-              // Use the custom message handler to directly notify stream consumers
-              Effect.runPromise(parseEffect)
-                .then((parsed) => {
-                  console.log(
-                    `[WebSocketService:${instanceId}] Parsed message successfully, type:`,
-                    parsed.type,
-                    "id:",
-                    parsed.id,
-                  );
-
-                  // Call the message handler directly if it exists
-                  if (messageCallbacks.size > 0) {
+                // Offer to queue
+                Effect.runFork(
+                  Effect.gen(function* () {
+                    yield* Queue.offer(messageQueue, protocolMessage);
                     console.log(
-                      `[WebSocketService:${instanceId}] Calling message handler for:`,
-                      parsed.id,
+                      `[WebSocketService:${instanceId}] ✅ Message offered to queue:`,
+                      parsed.type,
                     );
-                    notifyMessageCallbacks(parsed);
-                  } else {
-                    console.log(
-                      `[WebSocketService:${instanceId}] No message handler available for:`,
-                      parsed.id,
-                    );
-                  }
-                })
-                .catch((error) => {
-                  console.error("[WebSocketService] Parse error:", error);
-                  console.error(
-                    "[WebSocketService] Parse error message:",
-                    (error as Error).message,
-                  );
-                  console.error(
-                    "[WebSocketService] Parse error stack:",
-                    (error as Error).stack,
-                  );
-                  // Don't add malformed messages to the queue
-                });
+                  }),
+                );
+              }
             };
 
-            ws.onerror = (error) => {
-              console.error("[WebSocketService] WebSocket error:", error);
-            };
-
-            ws.onclose = (event) => {
-              console.log(
-                "[WebSocketService] WebSocket closed:",
-                event.code,
-                event.reason,
-              );
-            };
-
+            ws.onmessage = handleMessage;
+            yield* Ref.set(connectionRef, ws);
             console.log(
               "[WebSocketService] Connection established successfully",
             );
-
-            // Store the WebSocket in the service context for later use
-            (service as any)._currentConnection = ws;
-          }).pipe(
-            Effect.mapError(
-              (error) =>
-                new WebSocketConnectionError({
-                  code: "CONNECT_ERROR",
-                  message: "Failed to connect to WebSocket server",
-                  cause: error,
-                }),
-            ),
-          ),
+          }),
 
         disconnect: () =>
           Effect.gen(function* () {
-            console.log("[WebSocketService] Disconnecting...");
-            const currentConnection = (service as any)._currentConnection;
+            const currentConnection = yield* Ref.get(connectionRef);
             if (currentConnection) {
               yield* Effect.sync(() => {
                 if (currentConnection.readyState === WebSocket.OPEN) {
                   currentConnection.close();
                 }
-                (service as any)._currentConnection = null;
               });
+              yield* Ref.set(connectionRef, null);
             }
-          }).pipe(
-            Effect.mapError(
-              (error) =>
-                new WebSocketConnectionError({
-                  code: "DISCONNECT_ERROR",
-                  message: "Failed to disconnect from WebSocket server",
-                  cause: error,
-                }),
-            ),
-          ),
+          }),
 
         cleanup: () =>
           Effect.gen(function* () {
-            console.log("[WebSocketService] Cleaning up...");
-            const currentConnection = (service as any)._currentConnection;
+            const currentConnection = yield* Ref.get(connectionRef);
             if (currentConnection) {
               yield* Effect.sync(() => {
                 if (currentConnection.readyState === WebSocket.OPEN) {
                   currentConnection.close();
                 }
-                (service as any)._currentConnection = null;
               });
+              yield* Ref.set(connectionRef, null);
             }
           }),
 
         send: (message: UserMessage | WebSocketEnvelope) =>
           Effect.gen(function* () {
-            const currentConnection = (service as any)._currentConnection;
+            const currentConnection = yield* Ref.get(connectionRef);
             if (
               !currentConnection ||
               currentConnection.readyState !== WebSocket.OPEN
@@ -266,42 +215,35 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
               );
             }
 
-            try {
-              const messageStr = JSON.stringify(message);
-              currentConnection.send(messageStr);
-              console.log("[WebSocketService] Message sent:", message);
-            } catch (error) {
-              return yield* Effect.fail(
-                new WebSocketSendError({
-                  code: "SEND_ERROR",
-                  message: "Failed to send message",
-                  cause: error,
-                }),
-              );
-            }
+            const simpleMessage =
+              "text" in message
+                ? createMessage("USER_MESSAGE", message.text)
+                : createMessage("USER_MESSAGE", JSON.stringify(message));
+
+            const messageStr = JSON.stringify(simpleMessage);
+            currentConnection.send(messageStr);
+            console.log(
+              "[WebSocketService] Message sent successfully:",
+              messageStr,
+            );
           }),
 
-        isConnected: Effect.sync(() => {
-          const currentConnection = (service as any)._currentConnection;
+        isConnected: Effect.gen(function* () {
+          const currentConnection = yield* Ref.get(connectionRef);
           return (
             currentConnection !== null &&
-            currentConnection !== undefined &&
             currentConnection.readyState === WebSocket.OPEN
           );
         }),
 
-        messageStream: callbackMessageStream,
-        receive: callbackMessageStream,
-        addMessageCallback: (callback: (message: ProtocolMessage) => void) =>
-          Effect.succeed(addMessageCallback(callback)),
-        removeMessageCallback: (callback: (message: ProtocolMessage) => void) =>
-          Effect.sync(() => {
-            console.log("[WebSocketService] Removing message callback");
-            messageCallbacks.delete(callback);
-          }),
+        messageStream,
+        receive: messageStream,
       } satisfies WebSocketServiceApi;
 
-      console.log("[WebSocketService] Service construction complete");
+      console.log(
+        "[WebSocketService] Service construction complete, instanceId:",
+        instanceId,
+      );
       return service;
     }),
     dependencies: [],

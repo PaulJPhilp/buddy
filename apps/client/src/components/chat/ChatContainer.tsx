@@ -38,7 +38,7 @@ export default function ChatContainer({ config }: ChatContainerProps) {
   console.log("[ChatContainer] Mounted with config:", config);
 
   // Apply this config's style to this container only
-  const containerRef = useApplyChatContainerStyle(config.theme);
+  const containerRef = useApplyChatContainerStyle(config?.style);
 
   return (
     <div

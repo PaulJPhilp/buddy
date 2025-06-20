@@ -18,7 +18,7 @@
     "tools": []
   },
 
-  "theme": {
+  "style": {
     "colors": {
       "primary": "#db2777",
       "secondary": "#fce7f3",
@@ -53,8 +53,8 @@
       "padding": "0.5rem"
     },
     "header": {
-      "background": "#db2777",
-      "text": "white",
+      "background": "#fce7f3",
+      "text": "#db2777",
       "borderBottom": "1px solid #fbcfe8",
       "padding": "0.5rem 1rem"
     },

@@ -36,7 +36,7 @@ export class LlmWorkspaceBridge extends Effect.Service<LlmWorkspaceBridge>()(
     scoped: Effect.gen(function* () {
       console.log("[Bridge] Service construction started");
       let isStarted = false;
-      let messageCallback: ((message: WebSocketMessage) => void) | null = null;
+      let fiber = null;
 
       const startWithWebSocket = (ws: WebSocketService) => {
         console.log(
@@ -56,44 +56,29 @@ export class LlmWorkspaceBridge extends Effect.Service<LlmWorkspaceBridge>()(
             (ws as any).instanceId,
           );
 
-          // Create message callback function
-          messageCallback = (message: WebSocketMessage) => {
-            console.log(
-              "[Bridge] [CALLBACK] Received message:",
-              message.id,
-              message.type,
-            );
-
-            // Message is already parsed by WebSocketService, no need to parse again
-            if (!isWorkspaceEvent(message)) {
-              console.log(
-                "[Bridge] [CALLBACK] Not a workspace event, ignoring:",
-                message.type,
-                (message.payload as any)?.eventType,
-              );
-              return;
-            }
-
-            const event = message.payload.data.event;
-            console.log(
-              "[Bridge] [CALLBACK] Dispatching event to workspaceStore:",
-              event.type,
-              event,
-            );
-            workspaceStore.send(event);
-            console.log(
-              "[Bridge] [CALLBACK] Event dispatched successfully:",
-              event.type,
-            );
-          };
-
-          // Register the callback with WebSocketService
-          console.log(
-            "[Bridge] [startWithWebSocket] Registering message callback",
-          );
-          yield* ws.addMessageCallback(messageCallback);
-          console.log(
-            "[Bridge] [startWithWebSocket] Message callback registered",
+          // Fork a background Effect to consume the message stream
+          fiber = yield* Effect.fork(
+            Stream.runForEach(ws.messageStream, (message) =>
+              Effect.sync(() => {
+                if (
+                  message.type === "EVENT" &&
+                  typeof message.payload === "object" &&
+                  (message.payload as any).eventType === "workspaceEvent"
+                ) {
+                  const event = message.payload.data.event;
+                  console.log(
+                    "[Bridge] [STREAM] Dispatching event to workspaceStore:",
+                    event.type,
+                    event,
+                  );
+                  workspaceStore.send(event);
+                  console.log(
+                    "[Bridge] [STREAM] Event dispatched successfully:",
+                    event.type,
+                  );
+                }
+              }),
+            ),
           );
 
           isStarted = true;
@@ -126,12 +111,11 @@ export class LlmWorkspaceBridge extends Effect.Service<LlmWorkspaceBridge>()(
             return;
           }
 
-          // Remove the message callback if it exists
-          if (messageCallback) {
-            const ws = yield* WebSocketService;
-            yield* ws.removeMessageCallback(messageCallback);
-            messageCallback = null;
-            console.log("[Bridge] stop: removed message callback");
+          // Interrupt the background fiber if it exists
+          if (fiber) {
+            yield* fiber.interrupt();
+            fiber = null;
+            console.log("[Bridge] stop: interrupted stream fiber");
           }
 
           isStarted = false;

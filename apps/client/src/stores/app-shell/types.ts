@@ -15,68 +15,26 @@ export interface AppLayoutState {
     readonly toolbarHeight: number;
 
     // Layout preferences
-    readonly layoutMode: 'default' | 'compact' | 'wide';
+  readonly layoutMode: "default" | "compact" | "wide";
 
     // Responsive state
     readonly isMobile: boolean;
-    readonly screenSize: 'sm' | 'md' | 'lg' | 'xl';
+  readonly screenSize: "sm" | "md" | "lg" | "xl";
 
     // Animation state
     readonly isAnimating: boolean;
 }
 
 export type AppLayoutEvent =
-    | { type: 'toggleSidebar' }
-    | { type: 'setSidebarOpen'; isOpen: boolean }
-    | { type: 'setSidebarWidth'; width: number }
-    | { type: 'setLayoutMode'; mode: AppLayoutState['layoutMode'] }
-    | { type: 'setScreenSize'; size: AppLayoutState['screenSize'] }
-    | { type: 'setToolbarVisible'; visible: boolean }
-    | { type: 'setMobile'; isMobile: boolean }
-    | { type: 'startAnimation' }
-    | { type: 'endAnimation' };
-
-// Theme Store Types
-export interface ThemeState {
-    // Current themes
-    readonly activeThemeId: string;
-    readonly defaultThemeId: string;
-
-    // Editing state
-    readonly isEditing: boolean;
-    readonly editingThemeId: string | null;
-    readonly editingColors: Record<string, string>;
-    readonly hasUnsavedChanges: boolean;
-
-    // UI state
-    readonly colorPickerOpen: string | null;
-    readonly selectedColorKey: string | null;
-
-    // Import/export state
-    readonly isImporting: boolean;
-    readonly isExporting: boolean;
-    readonly importError: string | null;
-    readonly exportError: string | null;
-}
-
-export type ThemeEvent =
-    | { type: 'setActiveTheme'; themeId: string }
-    | { type: 'startEditing'; themeId: string }
-    | { type: 'stopEditing' }
-    | { type: 'saveChanges' }
-    | { type: 'discardChanges' }
-    | { type: 'updateColor'; key: string; value: string }
-    | { type: 'openColorPicker'; key: string }
-    | { type: 'closeColorPicker' }
-    | { type: 'startImport' }
-    | { type: 'importTheme'; theme: any; themeId: string }
-    | { type: 'importError'; error: string }
-    | { type: 'startExport'; themeId: string }
-    | { type: 'exportComplete' }
-    | { type: 'exportError'; error: string }
-    | { type: 'createTheme'; themeId: string; baseTheme?: any }
-    | { type: 'deleteTheme'; themeId: string }
-    | { type: 'duplicateTheme'; sourceThemeId: string; newThemeId: string };
+  | { type: "toggleSidebar" }
+  | { type: "setSidebarOpen"; isOpen: boolean }
+  | { type: "setSidebarWidth"; width: number }
+  | { type: "setLayoutMode"; mode: AppLayoutState["layoutMode"] }
+  | { type: "setScreenSize"; size: AppLayoutState["screenSize"] }
+  | { type: "setToolbarVisible"; visible: boolean }
+  | { type: "setMobile"; isMobile: boolean }
+  | { type: "startAnimation" }
+  | { type: "endAnimation" };
 
 // Navigation Store Types
 export interface BreadcrumbItem {
@@ -98,7 +56,7 @@ export interface NavigationState {
     readonly canGoForward: boolean;
 
     // Active sections
-    readonly activeSection: 'chat' | 'settings' | 'help' | 'dashboard';
+  readonly activeSection: "chat" | "settings" | "help" | "dashboard";
     readonly activeChatId: string | null;
     readonly activeToolId: string | null;
 
@@ -111,17 +69,17 @@ export interface NavigationState {
 }
 
 export type NavigationEvent =
-    | { type: 'navigate'; route: string }
-    | { type: 'goBack' }
-    | { type: 'goForward' }
-    | { type: 'setActiveSection'; section: NavigationState['activeSection'] }
-    | { type: 'setActiveChatId'; chatId: string | null }
-    | { type: 'setActiveToolId'; toolId: string | null }
-    | { type: 'updateBreadcrumbs'; breadcrumbs: BreadcrumbItem[] }
-    | { type: 'startNavigation' }
-    | { type: 'navigationComplete' }
-    | { type: 'navigationError'; error: string }
-    | { type: 'clearNavigationError' };
+  | { type: "navigate"; route: string }
+  | { type: "goBack" }
+  | { type: "goForward" }
+  | { type: "setActiveSection"; section: NavigationState["activeSection"] }
+  | { type: "setActiveChatId"; chatId: string | null }
+  | { type: "setActiveToolId"; toolId: string | null }
+  | { type: "updateBreadcrumbs"; breadcrumbs: BreadcrumbItem[] }
+  | { type: "startNavigation" }
+  | { type: "navigationComplete" }
+  | { type: "navigationError"; error: string }
+  | { type: "clearNavigationError" };
 
 // Shared types
 export interface StoreSelectors<TState> {
@@ -139,4 +97,9 @@ export type StoreConfig<TState, TEvent> = {
 };
 
 // Re-export for convenience
-export type { AppLayoutEvent as LayoutEvent, AppLayoutState as LayoutState, NavigationEvent, NavigationState, ThemeEvent, ThemeState };
+export type {
+  AppLayoutEvent as LayoutEvent,
+  AppLayoutState as LayoutState,
+  NavigationEvent,
+  NavigationState,
+};

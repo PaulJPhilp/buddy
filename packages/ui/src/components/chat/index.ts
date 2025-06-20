@@ -2,4 +2,6 @@
  * Chat components exports
  */
 
-export * from "./ChatBubble";
+export * from "./ChatBubbleLlmUi";
+export * from "./CustomTable";
+export * from "./InteractiveScrollableTable";

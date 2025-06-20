@@ -2,7 +2,7 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   transpilePackages: ["@api/core", "@buddy/ui", "@clerk/nextjs"],
   images: {
     domains: [],
@@ -14,6 +14,7 @@ const config: NextConfig = {
     serverActions: {
       allowedOrigins: ["localhost:3000"],
     },
+    disableOptimizedLoading: true,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
