@@ -60,7 +60,7 @@ export function ChatAppShell({
       data-testid="chat-app-root"
       aria-label={config.name}
       aria-expanded={isExpanded ? "true" : "false"}
-      className={`h-full flex flex-col overflow-hidden${isExpanded ? " expanded" : ""}`}
+      className={`chat-app-shell h-full flex flex-col overflow-hidden${isExpanded ? " expanded" : ""}`}
       style={{
         backgroundColor: "var(--color-chat-background)",
         color: "var(--color-chat-foreground)",

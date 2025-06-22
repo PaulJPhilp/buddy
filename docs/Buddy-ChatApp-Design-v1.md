@@ -93,15 +93,13 @@ The primary goal is to design and implement a modular, composable, and maintaina
     *   **Updating State:** These instance-specific `Ref`s are updated directly within the `ChatApp` instance's Effect-TS workflows (e.g., using `Ref.update`, `Ref.set`).
     *   **Lifecycle:** The lifecycle of these `Ref`s is inherently tied to the lifecycle of the `ChatApp` instance's main Effect program. They are created when the instance initializes and are garbage collected or finalized when the instance terminates.
 
-*   **5.3. `@effect/react` (Bridging Effect-TS State to UI):**
-    *   The `@effect/react` library (or custom hooks built upon the Effect runtime) is the designated mechanism for bridging all Effect-managed state—including core operational state and instance-specific `Ref`s/`Stream`s—into React components.
-    *   This enables reactive UI updates based on changes in Effect-TS managed state, allowing React components to subscribe to `Ref` values, `Stream` emissions, or the success/failure of Effects.
+*   **5.3. Effect-TS Layer (for operational concerns):**
+    *   This layer will manage all dynamic, operational aspects of the chat application, including fetching configurations, managing chat instances, and handling WebSocket connections.
 
-*   **5.4. Global UI State Store (e.g., Zustand, for non-operational concerns):**
-    *   For UI state that is truly global and not tied to the operational lifecycle of a specific `ChatApp` instance (e.g., application-wide theme, global user preferences, state of an overarching "App Harness" if one exists).
-    *   A lightweight store like Zustand (as potentially indicated by existing files like `appShellStore.ts`) can be used for these concerns, ensuring a clear separation from Effect-TS's role in managing the dynamic, operational state of chat instances.
+*   **5.4. Global UI State Store (e.g., XState, for non-operational concerns):**
+    *   A lightweight store like XState (as potentially indicated by existing files like `appShellStore.ts`) can be used for these concerns, ensuring a clear separation from Effect-TS's role in managing the dynamic, operational state of the application.
 
-*   **5.5. React `useState`/`useReducer` (Component-Local UI State):**
+*   **5.5. React Components (for presentation):**
     *   Remains appropriate for simple, ephemeral UI state that is local to a single React component and does not need to be shared, persisted, or managed by Effect-TS (e.g., dropdown open/close status, temporary input field values before validation/submission to an Effect).
 
 **6. Agent Communication**

@@ -198,3 +198,14 @@ html,
 body {
   height: 100%;
 }
+
+/* ===== CHAT APP LAYOUT ===== */
+.chat-app-shell {
+  transition: all 0.3s ease-in-out;
+  flex-shrink: 0;
+}
+
+.chat-app-shell.expanded {
+  flex-grow: 5;
+  max-width: 800px;
+}

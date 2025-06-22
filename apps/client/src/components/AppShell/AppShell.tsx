@@ -1,57 +1,55 @@
 "use client";
 
-import { Toolbar, getToolbarConfig } from "@/components/Toolbar";
-import { useDynamicToolbar } from "@/hooks/dynamic-toolbar";
-import { appLayoutStore } from "@/stores/appLayoutStore";
-
-import { useLlmWorkspaceBridge } from "@/workspace-llm/client/useLlmWorkspaceBridge";
-import { useSelector } from "@xstate/store/react";
+import {
+  useAppLayoutActions,
+  useAppLayoutStore,
+} from "@/stores/appLayoutStore";
+import { useWorkspaceLoader } from "@/workspace/useWorkspace";
+import { UserButton } from "@clerk/nextjs";
 import React from "react";
+import { MenuIcon } from "../ui/icons";
 import { AppSidebar } from "./AppSidebar";
 
 interface AppShellProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
-  // Mount the LLM → Workspace WebSocket bridge once for the entire app.
-  useLlmWorkspaceBridge();
+  // Initialize workspace loading
+  useWorkspaceLoader();
 
-  // Get layout state from stores
+  const { send } = useAppLayoutActions();
+  const { isSidebarOpen } = useAppLayoutStore((s) => ({
+    isSidebarOpen: s.isSidebarOpen,
+  }));
 
-  // Use useSelector consistently for all stores to ensure reactivity
-  const isSidebarOpen = useSelector(
-    appLayoutStore,
-    (state) => state.context.isSidebarOpen,
-  );
-  const isMobile = useSelector(
-    appLayoutStore,
-    (state) => state.context.isMobile,
-  );
-
-  // Get dynamic toolbar configuration with active states
-  const baseConfig = getToolbarConfig(isMobile);
-  const toolbarConfig = useDynamicToolbar(baseConfig);
+  const handleToggleSidebar = () => {
+    send({ type: "toggleSidebar" });
+  };
 
   return (
-    <div className="h-screen w-full flex flex-col">
-      {/* Main toolbar at the top */}
-      <Toolbar config={toolbarConfig} />
-
-      {/* Main content area with sidebar */}
-      <div className="flex-1 flex relative">
-        <AppSidebar
-          isOpen={isSidebarOpen}
-          onToggleAction={() => {}} // Toolbar handles this now
-        />
-        <main
-          className="flex-1 flex flex-col h-full relative"
-          id="main-content"
-        >
-          {/* Sidebar Tool positioned at top, pushes content down */}
-
-          <div className="flex-1 h-full flex flex-col">{children}</div>
-        </main>
+    <div className="flex h-screen w-full">
+      <AppSidebar />
+      <div
+        className={`flex flex-1 flex-col transition-all duration-200 ${
+          isSidebarOpen ? "ml-[100px]" : "ml-0"
+        }`}
+      >
+        <header className="flex h-6 items-center gap-3 border-b bg-muted/40 px-4">
+          <button
+            type="button"
+            onClick={handleToggleSidebar}
+            className="shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
+          >
+            <MenuIcon className="h-4 w-4" />
+            <span className="sr-only">Toggle navigation menu</span>
+          </button>
+          <div className="flex-1">{/* Can add title here */}</div>
+          <div className="scale-75">
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto p-3">{children}</main>
       </div>
     </div>
   );

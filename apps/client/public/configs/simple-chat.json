@@ -6,6 +6,9 @@
   "themeId": "simple-theme",
   "description": "A simple chat application for testing",
   "version": "1.0.0",
+  "isDefault": true,
+  "isShared": true,
+  "spaceId": "default-space",
 
   "agent": {
     "id": "simple-agent",

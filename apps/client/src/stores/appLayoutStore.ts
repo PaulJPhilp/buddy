@@ -1,8 +1,8 @@
 import { createStore } from "@xstate/store";
-import { useStore } from "@xstate/store/react";
+import { createStoreHooks } from "./createStoreHooks";
 
 // App layout store state interface
-interface AppLayoutState {
+export interface AppLayoutState {
   readonly isSidebarOpen: boolean;
   readonly sidebarWidth: number;
   readonly sidebarCollapsedWidth: number;
@@ -12,11 +12,29 @@ interface AppLayoutState {
   readonly isMobile: boolean;
   readonly screenSize: "sm" | "md" | "lg" | "xl";
   readonly isAnimating: boolean;
-  readonly activeSidebarEditor: string | null;
+  readonly activeSidebarEditor: "stashed" | "workspace" | null;
+  readonly activeChatAppId: string | null;
 }
 
-// Initial state factory
-const createInitialState = (): AppLayoutState => ({
+// App layout store events
+export type AppLayoutAction =
+  | { type: "toggleSidebar" }
+  | { type: "openSidebar" }
+  | { type: "closeSidebar" }
+  | { type: "setSidebarWidth"; width: number }
+  | { type: "toggleToolbar" }
+  | { type: "setLayoutMode"; mode: "default" | "compact" | "wide" }
+  | {
+      type: "setScreenSize";
+      size: "sm" | "md" | "lg" | "xl";
+      isMobile: boolean;
+    }
+  | { type: "setAnimating"; isAnimating: boolean }
+  | { type: "setActiveSidebarEditor"; editor: "stashed" | "workspace" | null }
+  | { type: "clearActiveSidebarEditor" };
+
+// Create a stable initial state object.
+export const initialState: AppLayoutState = {
   isSidebarOpen: false,
   sidebarWidth: 280,
   sidebarCollapsedWidth: 60,
@@ -27,16 +45,26 @@ const createInitialState = (): AppLayoutState => ({
   screenSize: "lg",
   isAnimating: false,
   activeSidebarEditor: null,
-});
+  activeChatAppId: null,
+};
 
 // App layout store
 export const appLayoutStore = createStore({
-  context: createInitialState(),
+  context: initialState,
   on: {
-    toggleSidebar: (context) => ({
-      ...context,
-      isSidebarOpen: !context.isSidebarOpen,
-    }),
+    toggleSidebar: (context) => {
+      console.log(
+        `appLayoutStore: toggleSidebar received. Current isSidebarOpen: ${context.isSidebarOpen}`,
+      );
+      const newContext = {
+        ...context,
+        isSidebarOpen: !context.isSidebarOpen,
+      };
+      console.log(
+        `appLayoutStore: New isSidebarOpen: ${newContext.isSidebarOpen}`,
+      );
+      return newContext;
+    },
 
     openSidebar: (context) => ({
       ...context,
@@ -83,7 +111,10 @@ export const appLayoutStore = createStore({
       isAnimating: event.isAnimating,
     }),
 
-    setActiveSidebarEditor: (context, event: { editor: string | null }) => ({
+    setActiveSidebarEditor: (
+      context,
+      event: { editor: "stashed" | "workspace" | null },
+    ) => ({
       ...context,
       activeSidebarEditor: event.editor,
       isSidebarOpen: !!event.editor,
@@ -95,16 +126,19 @@ export const appLayoutStore = createStore({
   },
 });
 
-// Hook for components to use layout store
-export function useAppLayoutStore() {
-  const store = useStore(appLayoutStore);
-  return store.context || createInitialState();
-}
+// Create and export the hooks using the new factory
+const { useSelector, useDispatch } = createStoreHooks(
+  appLayoutStore,
+  initialState,
+);
+
+export const useAppLayoutStore = useSelector;
+export const useAppLayoutActions = useDispatch;
 
 // Hook for just sidebar state (most common use case)
 export function useSidebarState() {
-  const store = useStore(appLayoutStore);
-  const state = store.context || createInitialState();
+  const store = useSelector(appLayoutStore);
+  const state = store.context || initialState;
   return {
     isOpen: state.isSidebarOpen,
     width: state.isSidebarOpen

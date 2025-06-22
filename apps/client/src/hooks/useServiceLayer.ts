@@ -1,3 +1,4 @@
+import { ChatAppConfig } from "@/types/global";
 import { Effect, Layer } from "effect";
 import { useMemo } from "react";
 
@@ -35,6 +36,17 @@ console.log(
   ++layerCreationCount,
 );
 
+const fullServiceLayer = Layer.mergeAll(
+  AppService.Default,
+  AgentService.Default,
+  ToolbarService.Default,
+  ChatService.Default,
+  ChatBridge.Default,
+  MdxService.Default,
+  WebSocketService.Default,
+  ConfigService.Default,
+);
+
 /**
  * Core service layer logic without React hooks for testing
  */
@@ -67,7 +79,10 @@ export function createServiceLayerLogic(deps: ReadonlyArray<unknown> = []): {
  *
  * The Layer is recreated whenever the provided `deps` array changes.
  */
-export function useServiceLayer(deps: ReadonlyArray<unknown> = []): {
+export function useServiceLayer(
+  config?: ChatAppConfig,
+  deps: ReadonlyArray<unknown> = [],
+): {
   readonly layer: Layer.Layer<any, never, never>;
   readonly runWithServices: <A, E = never>(
     effect: Effect.Effect<A, E, any>,
@@ -77,12 +92,23 @@ export function useServiceLayer(deps: ReadonlyArray<unknown> = []): {
   console.log(
     "[useServiceLayer] Hook called, call count:",
     serviceLayerCallCount,
+    "with config:",
+    config?.id,
   );
 
-  // Always use the shared layer
-  debugLog("useServiceLayer:construct", deps);
-  console.log("[useServiceLayer] Using shared service layer");
-  const layer = sharedServiceLayer;
+  const layer = useMemo(() => {
+    if (config) {
+      debugLog("useServiceLayer:construct:config", config);
+      // Create a layer with a specific config
+      const configLayer = Layer.succeed(ConfigService, {
+        load: Effect.succeed(config),
+      });
+
+      return Layer.provide(fullServiceLayer, configLayer);
+    }
+    debugLog("useServiceLayer:construct:shared", deps);
+    return sharedServiceLayer;
+  }, [config, deps]);
 
   /**
    * Convenience helper so that callers do not need to repeat

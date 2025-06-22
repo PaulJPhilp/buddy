@@ -71,7 +71,7 @@ export function ChatApp({ config }: ChatAppProps) {
   const [currentAgentId, setCurrentAgentId] = useState<string>(config.agentId);
 
   // Build the Effect Layer once per `config.id`
-  const { layer, runWithServices } = useServiceLayer([config.id]);
+  const { layer, runWithServices } = useServiceLayer(config, [config.id]);
 
   // Resolve ChatService from the layer
   const chatService = useChatService(layer);

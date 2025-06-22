@@ -32,7 +32,7 @@
 ## Stage 3: State Management & Effect-TS Integration
 - Integrate Effect-TS for chat state, message history, input, attachments.
 - Use `@effect/react` or custom hooks for React state bridge.
-- Use Zustand for global UI state if needed.
+- Use XState for global UI state if needed.
 
 ---
 
@@ -69,3 +69,6 @@
 - All stages must strictly adhere to design doc principles: compactness, composability, consistent styling, and Effect-TS state.
 - Document all deviations from design and justify them in the plan.
 - Review and update the plan after each major milestone.
+
+## Component Library
+- Use Radix UI for accessible, unstyled primitives.

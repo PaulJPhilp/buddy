@@ -1,52 +1,100 @@
-import { ToolbarConfig, isCommand } from "@/components/Toolbar/types";
-import { appLayoutStore } from "@/stores/appLayoutStore";
+"use client"
 
-import { useSelector } from "@xstate/store/react";
-import { useMemo } from "react";
+import { useState, useEffect, useCallback } from "react"
+import { ToolbarConfig, isCommand } from "@/components/toolbar/types"
 
-/**
- * Core dynamic toolbar logic without React hooks for testing
- */
-export function createDynamicToolbarLogic(
-  baseConfig: ToolbarConfig,
-  storeState: { isSidebarOpen: boolean },
-): ToolbarConfig {
-  const updatedItems = baseConfig.items.map((item) => {
-    if (!isCommand(item)) {
-      return item;
-    }
+const createEmptyConfig = (): ToolbarConfig => ({
+  id: "empty",
+  name: "Empty",
+  version: "1.0.0",
+  commands: [],
+})
 
-    // Update active states based on store state
-    switch (item.id) {
-      case "toggle-sidebar":
-        return { ...item, active: storeState.isSidebarOpen };
-
-      default:
-        // Keep original item unchanged
-        return item;
-    }
-  });
-
-  return {
-    ...baseConfig,
-    items: updatedItems,
-  };
+export interface DynamicToolbarState {
+  config: ToolbarConfig
+  isLoading: boolean
+  error: string | null
 }
 
-/**
- * Hook that creates a dynamic toolbar configuration with active states
- * synchronized to store state
- */
-export function useDynamicToolbar(baseConfig: ToolbarConfig): ToolbarConfig {
-  // Use useSelector consistently for all stores to ensure reactivity
-  const isSidebarOpen = useSelector(
-    appLayoutStore,
-    (state) => state.context.isSidebarOpen,
-  );
+export interface DynamicToolbarActions {
+  loadConfig: (configId: string) => Promise<void>
+  executeCommand: (commandId: string) => Promise<void>
+  clearError: () => void
+}
 
-  const dynamicConfig = useMemo((): ToolbarConfig => {
-    return createDynamicToolbarLogic(baseConfig, { isSidebarOpen });
-  }, [baseConfig, isSidebarOpen]);
+export interface UseDynamicToolbarResult {
+  state: DynamicToolbarState
+  actions: DynamicToolbarActions
+}
 
-  return dynamicConfig;
+export function useDynamicToolbar(initialConfig?: ToolbarConfig): UseDynamicToolbarResult {
+  const [state, setState] = useState<DynamicToolbarState>({
+    config: initialConfig || createEmptyConfig(),
+    isLoading: !initialConfig,
+    error: null,
+  })
+
+  useEffect(() => {
+    if (initialConfig) {
+      setState(prev => ({ ...prev, config: initialConfig, isLoading: false }))
+    }
+  }, [initialConfig])
+
+  const loadConfig = useCallback(async (configId: string) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }))
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      const mockConfig: ToolbarConfig = {
+        id: configId,
+        name: `Config ${configId}`,
+        version: "1.0.0",
+        commands: [
+          {
+            id: "test-command",
+            type: "button",
+            label: "Test Command",
+            icon: "play",
+            action: {
+              type: "function",
+              handler: async () => console.log("Test command executed"),
+            },
+          },
+        ],
+      }
+      setState(prev => ({ ...prev, config: mockConfig, isLoading: false }))
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "Failed to load config",
+        isLoading: false,
+      }))
+    }
+  }, [])
+
+  const executeCommand = useCallback(
+    async (commandId: string) => {
+      const command = state.config.commands.find(cmd => cmd.id === commandId)
+      if (!command) {
+        throw new Error(`Command not found: ${commandId}`)
+      }
+      if (isCommand(command) && command.action.type === "function") {
+        await command.action.handler()
+      }
+    },
+    [state.config],
+  )
+
+  const clearError = useCallback(() => {
+    setState(prev => ({ ...prev, error: null }))
+  }, [])
+
+  return {
+    state,
+    actions: {
+      loadConfig,
+      executeCommand,
+      clearError,
+    },
+  }
 }

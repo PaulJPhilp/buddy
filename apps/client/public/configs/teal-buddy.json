@@ -69,5 +69,9 @@
       "fontFamily": "Inter, sans-serif",
       "fontSize": "0.95rem"
     }
-  }
+  },
+
+  "isDefault": false,
+  "isShared": true,
+  "spaceId": "default-space"
 }

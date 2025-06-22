@@ -1,12 +1,27 @@
 # Building a Customized Chat Application
 
-This guide explains how to build a modern, customizable chat application using React, TypeScript, and Zustand. Our implementation focuses on modularity, maintainability, and extensibility.
+This guide explains how to build a modern, customizable chat application using React, TypeScript, and XState. Our implementation focuses on modularity, maintainability, and extensibility.
+
+## Core Concepts
+
+1.  **Component-Based Architecture**: Modular and reusable components
+2.  **Configuration-Driven**: Chat apps defined by JSON
+3.  **Effect-TS Integration**: Robust async and state management
+4.  **State Management**: XState store for centralized state
+5.  **Reactive UI**: Hooks for reactive state updates
+6.  **Custom Styling**: Tailwind CSS for custom themes
+
+## State Management
+
+The XState store manages all application state:
+
+*   **Chat Sessions**: Active, inactive, and new sessions
 
 ## Architecture Overview
 
 The chat application is built with the following key components:
 
-1. **State Management**: Zustand store for centralized state
+1. **State Management**: XState store for centralized state
 2. **UI Components**: React components with TypeScript
 3. **Layout**: Tailwind CSS v4 for styling
 4. **File Handling**: Support for attachments
@@ -16,7 +31,7 @@ The chat application is built with the following key components:
 
 ### 1. State Management (appShellStore.ts)
 
-The Zustand store manages all application state:
+The XState store manages all application state:
 
 ```typescript
 interface AppShellState {
@@ -133,7 +148,7 @@ Messages support:
    cd my-chat-app
    
    # Install dependencies
-   npm install zustand @tailwindcss/forms effect
+   npm install @xstate/react @tailwindcss/forms effect
    ```
 
 2. **Configure Tailwind**
@@ -155,7 +170,7 @@ Messages support:
 3. **Create Store**
    ```typescript
    // src/stores/appShellStore.ts
-   import { create } from 'zustand';
+   import { create } from 'xstate';
    
    export const useAppShellStore = create((set, get) => ({
      // Initialize state and actions
@@ -268,7 +283,7 @@ Messages support:
 Common issues and solutions:
 
 1. **State Updates Not Reflecting**
-   - Check Zustand store subscriptions
+   - Check XState store subscriptions
    - Verify component re-render triggers
 
 2. **Type Errors**

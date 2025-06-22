@@ -1,17 +1,23 @@
 "use client";
 
-export default function Home() {
-  // This page is no longer used since layout.tsx handles chat app rendering directly
+import { AppShell } from "@/components/AppShell/AppShell";
+import { ClientOnly } from "@/components/ClientOnly";
+
+export default function Page() {
   return (
-    <div className="flex-1 flex items-center justify-center text-muted-foreground">
-      <div className="text-center">
-        <div className="text-6xl mb-6">💬</div>
-        <h2 className="text-2xl font-bold mb-4">Welcome to Buddy Chat</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
-          Chat applications are managed by the layout. This page should not be
-          reached.
-        </p>
+    <ClientOnly
+      fallback={
+        <div className="h-full flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p>Initializing Workspace...</p>
+          </div>
+        </div>
+      }
+    >
+      <div className="h-full flex flex-col">
+        <AppShell />
       </div>
-    </div>
+    </ClientOnly>
   );
 }

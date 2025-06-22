@@ -33,6 +33,12 @@ export class ChatAppConfig extends Schema.Class<ChatAppConfig>("ChatAppConfig")(
 
     // Style object (keeping as unknown since it's just styling data)
     style: Schema.optional(Schema.Unknown),
+
+    // New properties
+    updatedAt: Schema.Date,
+    ownerId: Schema.String,
+    spaceId: Schema.String,
+    theme: Schema.optional(Schema.Unknown),
   },
 ) {}
 

@@ -1,3 +1,4 @@
+import { ChatAppConfig } from "@/types/global";
 import type { MessageValidation } from "../types/chat";
 import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from "../types/chat";
 
