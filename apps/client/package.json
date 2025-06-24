@@ -22,6 +22,9 @@
     "dev:full": "concurrently \"bun run start:ws\" \"bun run dev\""
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/google": "^1.2.19",
+    "@ai-sdk/openai": "^1.0.0",
     "@api/core": "*",
     "@buddy/protocol": "workspace:*",
     "@buddy/ui": "*",
@@ -43,6 +46,7 @@
     "@types/react": "^19.1.8",
     "@xstate/react": "^5.0.5",
     "@xstate/store": "^3.7.0",
+    "ai": "^4.3.16",
     "class-variance-authority": "^0.7.1",
     "client": "workspace:*",
     "clsx": "^2.1.1",

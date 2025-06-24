@@ -1,0 +1,86 @@
+stateDiagram-v2
+    [*] --> Initializing
+    
+    Initializing --> Active : createDefaultWorkspace
+    
+    state Active {
+        state "Workspace Management" as WM {
+            [*] --> WM_Idle
+            
+            WM_Idle --> WM_Idle : WORKSPACE_ADDED
+            WM_Idle --> WM_Idle : WORKSPACE_UPDATED
+            WM_Idle --> WM_Idle : WORKSPACE_ACTIVATED
+            WM_Idle --> WM_Idle : WORKSPACE_ARCHIVED
+            WM_Idle --> WM_EnforcingCapacity : WORKSPACE_MAX_EXPANDED_APPS_UPDATED
+            
+            WM_EnforcingCapacity --> WM_Idle : enforceMaxExpandedApps
+        }
+        
+        state "Chat App Management" as CAM {
+            [*] --> CAM_NoApps
+            
+            CAM_NoApps --> CAM_ManagingApps : CHAT_APP_ADDED
+            
+            state CAM_ManagingApps {
+                state "Capacity Control" as CC {
+                    [*] --> CC_CheckingCapacity
+                    
+                    CC_CheckingCapacity --> CC_WithinCapacity : Apps ≤ maxExpandedApps
+                    CC_CheckingCapacity --> CC_ExceedsCapacity : Apps > maxExpandedApps
+                    
+                    CC_WithinCapacity --> CC_CheckingCapacity : CHAT_APP_EXPANDED
+                    CC_WithinCapacity --> CC_CheckingCapacity : CHAT_APP_COMPACTED
+                    
+                    CC_ExceedsCapacity --> CC_CheckingCapacity : compactOldestExpandedApp
+                }
+                
+                state "Focus Mode" as FM {
+                    [*] --> FM_Normal
+                    
+                    FM_Normal --> FM_Focused : CHAT_APP_FOCUS_ENTERED
+                    FM_Focused --> FM_Normal : CHAT_APP_FOCUS_EXITED
+                }
+                
+                state "Active App Tracking" as AT {
+                    [*] --> AT_NoActiveApp
+                    
+                    AT_NoActiveApp --> AT_HasActiveApp : CHAT_APP_ACTIVATED
+                    AT_NoActiveApp --> AT_HasActiveApp : CHAT_APP_EXPANDED
+                    
+                    AT_HasActiveApp --> AT_HasActiveApp : CHAT_APP_ACTIVATED
+                    AT_HasActiveApp --> AT_NoActiveApp : CHAT_APP_STASHED<br/>(if active app)
+                    AT_HasActiveApp --> AT_HasActiveApp : CHAT_APP_COMPACTED<br/>(updateActiveAppOnCompact)
+                    AT_HasActiveApp --> AT_NoActiveApp : CHAT_APP_REMOVED<br/>(if active app)
+                }
+            }
+            
+            CAM_ManagingApps --> CAM_NoApps : CHAT_APP_REMOVED<br/>(last app)
+        }
+    }
+    
+    note right of WM_EnforcingCapacity
+        Automatically compacts excess<br/>
+        expanded apps when limit<br/>
+        is reduced
+    end note
+    
+    note right of CC_ExceedsCapacity
+        Uses lastActiveAt timestamps<br/>
+        for chronological sorting.<br/>
+        Oldest expanded app is<br/>
+        compacted automatically.
+    end note
+    
+    note right of FM_Focused
+        Single app expanded.<br/>
+        Others hidden with<br/>
+        previousStatus preserved<br/>
+        for restoration.
+    end note
+    
+    note right of AT_HasActiveApp
+        Only one activeAppId<br/>
+        per workspace.<br/>
+        Auto-assigned on expand.<br/>
+        Smart fallback selection.
+    end note 

@@ -13,6 +13,21 @@ export interface WorkspaceEntry {
   readonly lastActiveAt: Date;
   readonly isArchived: boolean;
   readonly availableAgents: string[]; // must have at least 1
+
+  // Chat App Management Configuration
+  /**
+   * Maximum number of expanded chat apps allowed simultaneously in this workspace.
+   * Default: 2, configurable per workspace.
+   */
+  readonly maxExpandedApps: number;
+
+  /**
+   * ID of the currently active chat app in this workspace.
+   * Only the active app accepts user input.
+   * null if no app is currently active.
+   */
+  readonly activeAppId: string | null;
+
   // Layout preferences per workspace
   readonly layoutPreferences?: {
     readonly sidebarWidth?: number;
@@ -31,9 +46,19 @@ export interface ChatAppEntry {
   readonly status: ChatAppStatus;
   readonly isArchived: boolean;
   /**
+   * Timestamp of the last time this chat app was interacted with.
+   * Used for sorting when determining which apps to compact/expand.
+   */
+  readonly lastActiveAt: Date;
+  /**
    * The full configuration for this chat application.
    */
   readonly config: ChatAppConfig;
+  /**
+   * Optional field to store the previous status during focus mode.
+   * Used to restore the app to its previous state when exiting focus mode.
+   */
+  readonly previousStatus?: "expanded" | "compact";
 }
 
 export interface UIState {
@@ -104,6 +129,11 @@ export type UIEvent =
       layoutPreferences: WorkspaceEntry["layoutPreferences"];
     }
   | {
+      type: "WORKSPACE_MAX_EXPANDED_APPS_UPDATED";
+      workspaceId: string;
+      maxExpandedApps: number;
+    }
+  | {
       type: "CHAT_APP_ADDED";
       workspaceId: string;
       appId: string;
@@ -148,6 +178,25 @@ export type UIEvent =
       type: "CHAT_APP_RESTORED";
       workspaceId: string;
       appId: string;
+    }
+  | {
+      type: "CHAT_APP_ACTIVATED";
+      workspaceId: string;
+      appId: string;
+    }
+  | {
+      type: "CHAT_APP_STASHED";
+      workspaceId: string;
+      appId: string;
+    }
+  | {
+      type: "CHAT_APP_FOCUS_ENTERED";
+      workspaceId: string;
+      appId: string;
+    }
+  | {
+      type: "CHAT_APP_FOCUS_EXITED";
+      workspaceId: string;
     }
   | {
       type: "RESET";

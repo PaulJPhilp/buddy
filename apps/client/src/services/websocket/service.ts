@@ -1,6 +1,11 @@
 // import { parseMessage } from "@buddy/protocol";
 import { Effect, Queue, Ref, Stream } from "effect";
-import WebSocket from "isomorphic-ws";
+import {
+  AgentKitBridge,
+  type AgentKitMessage,
+  type AgentKitResponse,
+} from "../agentkit-bridge/service";
+// import WebSocket from "isomorphic-ws";
 import type { WebSocketServiceApi } from "./api";
 import { WebSocketConnectionError, WebSocketSendError } from "./errors";
 import type { ProtocolMessage, UserMessage, WebSocketEnvelope } from "./types";
@@ -28,25 +33,9 @@ const createMessage = (type: string, content: string): SimpleMessage => ({
   timestamp: Date.now(),
 });
 
-const parseMessage = (data: string): SimpleMessage | null => {
-  try {
-    const parsed = JSON.parse(data);
-    if (
-      parsed &&
-      typeof parsed.type === "string" &&
-      typeof parsed.content === "string"
-    ) {
-      return parsed as SimpleMessage;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-};
-
 /**
  * WebSocket service class implementing the Effect.Service pattern
- * Using simplified protocol matching the server
+ * Now using AgentKitBridge instead of actual WebSocket
  */
 export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
   "WebSocketService",
@@ -54,9 +43,12 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
     scoped: Effect.gen(function* () {
       const instanceId = Math.random().toString(36).substring(7);
       console.log(
-        "[WebSocketService] Service construction started, instanceId:",
+        "[WebSocketService] Service construction started (AgentKit mode), instanceId:",
         instanceId,
       );
+
+      // Get the AgentKit bridge
+      const agentKitBridge = yield* AgentKitBridge;
 
       // Create message queue and stream
       const messageQueue = yield* Queue.unbounded<ProtocolMessage>();
@@ -66,8 +58,29 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
         `[WebSocketService:${instanceId}] Created messageQueue and messageStream`,
       );
 
-      // Create connection ref
-      const connectionRef = yield* Ref.make<WebSocket | null>(null);
+      // Create connection ref (simulated)
+      const connectionRef = yield* Ref.make<boolean>(false);
+
+      // Helper to convert AgentKit response to protocol message
+      const convertToProtocolMessage = (
+        response: AgentKitResponse,
+      ): ProtocolMessage => ({
+        id: response.id,
+        type: "RESPONSE" as any,
+        agentRuntimeId: "agentkit-embedded",
+        timestamp: response.timestamp,
+        sequence: 0,
+        payload: {
+          type: "AGENT_RESPONSE",
+          content: response.content,
+          usage: response.usage,
+          finishReason: response.finishReason,
+        },
+        metadata: {
+          __tag: "Metadata" as const,
+        },
+        __tag: "WebSocketMessage" as const,
+      });
 
       // Create service implementation
       const service = {
@@ -76,164 +89,81 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
 
         connect: (url: string) =>
           Effect.gen(function* () {
-            console.log("[WebSocketService] Connecting to:", url);
-
-            // Use Effect.promise directly
-            const ws = yield* Effect.promise(() => {
-              console.log("[WebSocketService] Creating WebSocket connection");
-
-              return new Promise<WebSocket>((resolve, reject) => {
-                const websocket = new WebSocket(url);
-
-                const timeout = setTimeout(() => {
-                  console.log("[WebSocketService] Connection timeout");
-                  websocket.close();
-                  reject(new Error("Connection timeout after 5000ms"));
-                }, 5000);
-
-                websocket.onopen = () => {
-                  console.log("[WebSocketService] Connection opened");
-                  clearTimeout(timeout);
-                  resolve(websocket);
-                };
-
-                websocket.onerror = (error) => {
-                  console.error(
-                    "[WebSocketService] Connection error:",
-                    error?.type || error,
-                  );
-                  clearTimeout(timeout);
-                  reject(new Error("WebSocket connection error"));
-                };
-
-                websocket.onclose = (event) => {
-                  console.log(
-                    "[WebSocketService] Connection closed:",
-                    event.code,
-                  );
-                  clearTimeout(timeout);
-                  if (event.code !== 1000) {
-                    reject(
-                      new Error(
-                        `Connection closed with code ${event.code}: ${event.reason}`,
-                      ),
-                    );
-                  }
-                };
-              });
-            });
-
-            // Set up message handling
-            const handleMessage = (event: MessageEvent) => {
-              console.log(
-                `[WebSocketService:${instanceId}] Raw message received:`,
-                event.data,
-              );
-
-              const parsed = parseMessage(event.data);
-              if (parsed) {
-                console.log(
-                  `[WebSocketService:${instanceId}] Parsed message successfully, type:`,
-                  parsed.type,
-                );
-
-                // Convert to protocol message format
-                const protocolMessage: ProtocolMessage = {
-                  id: parsed.id,
-                  type: "RESPONSE" as any,
-                  agentRuntimeId: "simplified-agent",
-                  timestamp: parsed.timestamp,
-                  sequence: 0,
-                  payload: {
-                    type: parsed.type,
-                    content: parsed.content,
-                  },
-                  metadata: {
-                    __tag: "Metadata" as const,
-                  },
-                  __tag: "WebSocketMessage" as const,
-                };
-
-                // Offer to queue
-                Effect.runFork(
-                  Effect.gen(function* () {
-                    yield* Queue.offer(messageQueue, protocolMessage);
-                    console.log(
-                      `[WebSocketService:${instanceId}] ✅ Message offered to queue:`,
-                      parsed.type,
-                    );
-                  }),
-                );
-              }
-            };
-
-            ws.onmessage = handleMessage;
-            yield* Ref.set(connectionRef, ws);
             console.log(
-              "[WebSocketService] Connection established successfully",
+              "[WebSocketService] Simulated connection to:",
+              url,
+              "(using AgentKit)",
+            );
+
+            // Simulate connection success
+            yield* Ref.set(connectionRef, true);
+            console.log(
+              "[WebSocketService] AgentKit bridge connected successfully",
             );
           }),
 
         disconnect: () =>
           Effect.gen(function* () {
-            const currentConnection = yield* Ref.get(connectionRef);
-            if (currentConnection) {
-              yield* Effect.sync(() => {
-                if (currentConnection.readyState === WebSocket.OPEN) {
-                  currentConnection.close();
-                }
-              });
-              yield* Ref.set(connectionRef, null);
+            const isConnected = yield* Ref.get(connectionRef);
+            if (isConnected) {
+              yield* Ref.set(connectionRef, false);
+              console.log("[WebSocketService] AgentKit bridge disconnected");
             }
           }),
 
         cleanup: () =>
           Effect.gen(function* () {
-            const currentConnection = yield* Ref.get(connectionRef);
-            if (currentConnection) {
-              yield* Effect.sync(() => {
-                if (currentConnection.readyState === WebSocket.OPEN) {
-                  currentConnection.close();
-                }
-              });
-              yield* Ref.set(connectionRef, null);
+            const isConnected = yield* Ref.get(connectionRef);
+            if (isConnected) {
+              yield* Ref.set(connectionRef, false);
+              console.log("[WebSocketService] AgentKit bridge cleaned up");
             }
           }),
 
         send: (message: UserMessage | WebSocketEnvelope) =>
           Effect.gen(function* () {
-            const currentConnection = yield* Ref.get(connectionRef);
-            if (
-              !currentConnection ||
-              currentConnection.readyState !== WebSocket.OPEN
-            ) {
+            const isConnected = yield* Ref.get(connectionRef);
+            if (!isConnected) {
               return yield* Effect.fail(
                 new WebSocketConnectionError({
                   code: "NOT_CONNECTED",
-                  message: "Not connected to WebSocket server",
+                  message: "Not connected to AgentKit service",
                 }),
               );
             }
 
-            const simpleMessage =
-              "text" in message
-                ? createMessage("USER_MESSAGE", message.text)
-                : createMessage("USER_MESSAGE", JSON.stringify(message));
+            // Convert message to AgentKit format
+            const content =
+              "text" in message ? message.text : JSON.stringify(message);
+            const agentMessage: AgentKitMessage = {
+              id: Math.random().toString(36).substring(7),
+              type: "USER_MESSAGE",
+              content,
+              timestamp: Date.now(),
+            };
 
-            const messageStr = JSON.stringify(simpleMessage);
-            currentConnection.send(messageStr);
             console.log(
-              "[WebSocketService] Message sent successfully:",
-              messageStr,
+              "[WebSocketService] Sending message via AgentKit:",
+              content,
+            );
+
+            // Use AgentKit to generate response
+            const response =
+              yield* agentKitBridge.generateMessage(agentMessage);
+
+            // Convert response to protocol message and add to queue
+            const protocolMessage = convertToProtocolMessage(response);
+            yield* Queue.offer(messageQueue, protocolMessage);
+
+            console.log(
+              "[WebSocketService] AgentKit response received and queued:",
+              response.content.substring(0, 100) + "...",
             );
           }),
 
         isConnected: Effect.gen(function* () {
-          const currentConnection = yield* Ref.get(connectionRef);
-          return (
-            currentConnection !== null &&
-            currentConnection.readyState === WebSocket.OPEN
-          );
+          const isConnected = yield* Ref.get(connectionRef);
+          return isConnected;
         }),
 
         messageStream,
@@ -241,11 +171,11 @@ export class WebSocketService extends Effect.Service<WebSocketServiceApi>()(
       } satisfies WebSocketServiceApi;
 
       console.log(
-        "[WebSocketService] Service construction complete, instanceId:",
+        "[WebSocketService] Service construction complete (AgentKit mode), instanceId:",
         instanceId,
       );
       return service;
     }),
-    dependencies: [],
+    dependencies: [AgentKitBridge.Default],
   },
 ) {}

@@ -50,6 +50,52 @@ const selectWorkspaceStats = createSelector(
   },
 );
 
+// New selectors for active workspaces (workspaces with active chat apps)
+//
+// IMPORTANT: "Active Workspace" vs "Current Workspace" distinction:
+// - Current Workspace: The workspace currently being viewed/managed in the UI
+// - Active Workspace: A workspace that has at least one active chat app
+//   (i.e., chat apps that are "expanded" or "compact", but not "stashed" or "closed")
+//
+// A workspace is considered "active" if it has running/visible chat applications.
+// Multiple workspaces can be active simultaneously, but only one is "current".
+const selectActiveWorkspaceIds = createSelector(
+  [selectChatApps],
+  (chatApps) => {
+    const activeWorkspaceIds = new Set<string>();
+
+    for (const app of Object.values(chatApps)) {
+      // A workspace is active if it has at least one chat app that's not stashed or closed
+      if (
+        app.status !== "stashed" &&
+        app.status !== "closed" &&
+        !app.isArchived
+      ) {
+        activeWorkspaceIds.add(app.workspaceId);
+      }
+    }
+
+    return Array.from(activeWorkspaceIds);
+  },
+);
+
+const selectActiveWorkspaces = createSelector(
+  [selectWorkspaces, selectActiveWorkspaceIds],
+  (workspaces, activeWorkspaceIds) => {
+    return activeWorkspaceIds
+      .map((id) => workspaces[id])
+      .filter(Boolean) // Filter out any undefined workspaces
+      .filter((workspace) => !workspace.isArchived); // Only include non-archived workspaces
+  },
+);
+
+const selectIsWorkspaceActive = createSelector(
+  [selectActiveWorkspaceIds, (_: UIState, workspaceId: string) => workspaceId],
+  (activeWorkspaceIds, workspaceId) => {
+    return activeWorkspaceIds.includes(workspaceId);
+  },
+);
+
 // Re-export the base store hook
 export const useWorkspaceStore = useWorkspaceStoreBase;
 
@@ -103,6 +149,32 @@ export const useWorkspaceStats = () => {
   return useWorkspaceStoreBase(selectWorkspaceStats);
 };
 
+// New hooks for active workspaces
+/**
+ * Returns all workspaces that have at least one active chat app.
+ * Active chat apps are those with status "expanded" or "compact" (not "stashed" or "closed").
+ */
+export const useActiveWorkspaces = () => {
+  return useWorkspaceStoreBase(selectActiveWorkspaces);
+};
+
+/**
+ * Returns an array of workspace IDs that have at least one active chat app.
+ */
+export const useActiveWorkspaceIds = () => {
+  return useWorkspaceStoreBase(selectActiveWorkspaceIds);
+};
+
+/**
+ * Returns true if the specified workspace has at least one active chat app.
+ * @param workspaceId - The ID of the workspace to check
+ */
+export const useIsWorkspaceActive = (workspaceId: string) => {
+  return useWorkspaceStoreBase((state) =>
+    selectIsWorkspaceActive(state, workspaceId),
+  );
+};
+
 export function useChatAppActions() {
   const { send } = useWorkspaceDispatch();
 
@@ -127,6 +199,21 @@ export function useChatAppActions() {
     [send],
   );
 
+  // New chat app state machine actions
+  const activateChatApp = useCallback(
+    (workspaceId: string, appId: string) => {
+      send({ type: "CHAT_APP_ACTIVATED", workspaceId, appId });
+    },
+    [send],
+  );
+
+  const stashChatApp = useCallback(
+    (workspaceId: string, appId: string) => {
+      send({ type: "CHAT_APP_STASHED", workspaceId, appId });
+    },
+    [send],
+  );
+
   const setChatAppStatus = useCallback(
     (
       workspaceId: string,
@@ -141,12 +228,36 @@ export function useChatAppActions() {
           compactChatApp(workspaceId, id);
           break;
         case "stashed":
-          // Note: There's no CHAT_APP_STASHED event in the types, using compact instead
-          compactChatApp(workspaceId, id);
+          stashChatApp(workspaceId, id);
           break;
       }
     },
-    [expandChatApp, compactChatApp],
+    [expandChatApp, compactChatApp, stashChatApp],
+  );
+
+  const enterFocusMode = useCallback(
+    (workspaceId: string, appId: string) => {
+      send({ type: "CHAT_APP_FOCUS_ENTERED", workspaceId, appId });
+    },
+    [send],
+  );
+
+  const exitFocusMode = useCallback(
+    (workspaceId: string) => {
+      send({ type: "CHAT_APP_FOCUS_EXITED", workspaceId });
+    },
+    [send],
+  );
+
+  const updateMaxExpandedApps = useCallback(
+    (workspaceId: string, maxExpandedApps: number) => {
+      send({
+        type: "WORKSPACE_MAX_EXPANDED_APPS_UPDATED",
+        workspaceId,
+        maxExpandedApps,
+      });
+    },
+    [send],
   );
 
   return {
@@ -154,6 +265,11 @@ export function useChatAppActions() {
     compactChatApp,
     closeChatApp,
     setChatAppStatus,
+    activateChatApp,
+    stashChatApp,
+    enterFocusMode,
+    exitFocusMode,
+    updateMaxExpandedApps,
   };
 }
 
@@ -245,6 +361,9 @@ export function useWorkspaceActions() {
     [send],
   );
 
+  // Get chat app actions
+  const chatAppActions = useChatAppActions();
+
   return {
     createWorkspace,
     updateWorkspace,
@@ -254,5 +373,7 @@ export function useWorkspaceActions() {
     addChatApps,
     addAgentToWorkspace,
     removeAgentFromWorkspace,
+    // Include all chat app actions
+    ...chatAppActions,
   };
 }

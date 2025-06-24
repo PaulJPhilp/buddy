@@ -3,6 +3,7 @@
 import { WorkspaceManagementDialog } from "@/components/Workspaces/WorkspaceManagementDialog";
 import { useAppLayoutStore } from "@/stores/appLayoutStore";
 import {
+  useActiveWorkspaceIds,
   useCurrentWorkspace,
   useWorkspaceActions,
   useWorkspaceStore,
@@ -25,6 +26,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
   const allWorkspaces = useWorkspaceStore((state) =>
     Object.values(state.workspaces).filter((w) => !w.isArchived),
   );
+  const activeWorkspaceIds = useActiveWorkspaceIds();
   const { activateWorkspace, createWorkspace } = useWorkspaceActions();
 
   // Dialog state
@@ -116,57 +118,65 @@ export function AppSidebar({ className }: AppSidebarProps) {
 
         {/* Always show all workspaces */}
         <div className="space-y-0.5">
-          {allWorkspaces.map((workspace) => (
-            <div
-              key={workspace.id}
-              className={cn(
-                "p-1 rounded hover:bg-muted/30 transition-colors group",
-                workspace.id === currentWorkspace?.id && "bg-muted/50",
-              )}
-              title={
-                workspace.id === currentWorkspace?.id
-                  ? `Current: ${workspace.name}`
-                  : `Switch to ${workspace.name}`
-              }
-            >
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="flex items-center gap-1 flex-1 min-w-0 text-left"
-                  onClick={() => handleWorkspaceClick(workspace.id)}
-                >
-                  <div className="relative">
-                    <span className="text-xs leading-none">
-                      {workspace.icon}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate text-xs font-medium leading-tight">
-                      {workspace.name}
-                    </div>
-                    {workspace.description && (
-                      <div className="truncate text-xs text-muted-foreground leading-tight">
-                        {workspace.description}
-                      </div>
-                    )}
-                  </div>
-                </button>
-                <div className="flex items-center gap-0.5">
-                  {workspace.id === currentWorkspace?.id && (
-                    <div className="w-1 h-1 bg-primary rounded-full flex-shrink-0" />
-                  )}
+          {allWorkspaces.map((workspace) => {
+            const isActive = activeWorkspaceIds.includes(workspace.id);
+
+            return (
+              <div
+                key={workspace.id}
+                className={cn(
+                  "p-1 rounded hover:bg-muted/30 transition-colors group",
+                  workspace.id === currentWorkspace?.id && "bg-muted/50",
+                )}
+                title={
+                  workspace.id === currentWorkspace?.id
+                    ? `Current: ${workspace.name}${isActive ? " (Active)" : ""}`
+                    : `Switch to ${workspace.name}${isActive ? " (Active)" : ""}`
+                }
+              >
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={(e) => handleEditWorkspace(workspace, e)}
-                    className="p-0.5 opacity-30 hover:opacity-100 hover:bg-muted/50 rounded transition-all"
-                    title="Edit workspace"
+                    className="flex items-center gap-1 flex-1 min-w-0 text-left"
+                    onClick={() => handleWorkspaceClick(workspace.id)}
                   >
-                    <Settings className="h-2 w-2" />
+                    <div className="relative">
+                      <span className="text-xs leading-none">
+                        {workspace.icon}
+                      </span>
+                      {/* Active workspace indicator - small dot on the icon */}
+                      {isActive && (
+                        <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-background" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate text-xs font-medium leading-tight">
+                        {workspace.name}
+                      </div>
+                      {workspace.description && (
+                        <div className="truncate text-xs text-muted-foreground leading-tight">
+                          {workspace.description}
+                        </div>
+                      )}
+                    </div>
                   </button>
+                  <div className="flex items-center gap-0.5">
+                    {workspace.id === currentWorkspace?.id && (
+                      <div className="w-1 h-1 bg-primary rounded-full flex-shrink-0" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => handleEditWorkspace(workspace, e)}
+                      className="p-0.5 opacity-30 hover:opacity-100 hover:bg-muted/50 rounded transition-all"
+                      title="Edit workspace"
+                    >
+                      <Settings className="h-2 w-2" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {allWorkspaces.length === 0 && (

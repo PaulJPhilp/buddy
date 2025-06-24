@@ -57,94 +57,86 @@ describe("LlmWorkspaceBridge (integration)", () => {
   });
 
   it("dispatches event into store", async () => {
-    // Use the real WebSocketService and connect to TEST_URL
-    // 1. Create a shared WebSocketService layer
-    // 2. Connect WebSocketService to TEST_URL and start LlmWorkspaceBridge
-    // 3. Send a workspace event message
-    // 4. Wait and verify store state
-
-    console.log("[BridgeTest] Connecting WebSocketService to", TEST_URL);
-
-    // Create a single shared layer
+    // Use the same pattern as the working invalid test
     const AppLayer = Layer.merge(
       WebSocketService.Default,
       LlmWorkspaceBridge.Default,
     );
 
-    const { wsService, bridge } = await Effect.runPromise(
+    await Effect.runPromise(
       Effect.gen(function* () {
-        console.log("[BridgeTest] About to get WebSocketService");
-        // Get the WebSocketService first and connect it
-        const service = yield* WebSocketService;
-        console.log(
-          "[BridgeTest] Got WebSocketService instance:",
-          (service as any).instanceId,
-        );
-        yield* service.connect(TEST_URL);
-        console.log("[BridgeTest] Connected WebSocketService");
+        console.log("[BridgeTest] Starting test within Effect runtime");
 
-        // Now start the Bridge - it should get the same WebSocketService instance
-        console.log("[BridgeTest] Starting LlmWorkspaceBridge");
-        const b = yield* LlmWorkspaceBridge;
-        yield* b.start();
-        console.log("[BridgeTest] Started LlmWorkspaceBridge");
+        // 1. Get services
+        const wsService = yield* WebSocketService;
+        const bridge = yield* LlmWorkspaceBridge;
+        console.log("[BridgeTest] Got services");
 
-        return { wsService: service, bridge: b };
-      }).pipe(Effect.provide(AppLayer)),
+        // 2. Connect WebSocket
+        yield* wsService.connect(TEST_URL);
+        console.log("[BridgeTest] Connected WebSocket");
+
+        // 3. Start bridge
+        yield* bridge.start();
+        console.log("[BridgeTest] Started bridge");
+
+        // 4. Send workspace event messages
+        // First, send TAB_ADDED event
+        const tabEvent: UiEventPayload = {
+          type: "TAB_ADDED",
+          tabId: "t0",
+          name: "Test Tab",
+        };
+        const tabMessage = createMessage("EVENT", {
+          eventType: "workspaceEvent",
+          data: { userId: "user-1", event: tabEvent },
+          __tag: "EventPayload" as const,
+        });
+        console.log("[BridgeTest] Sending TAB_ADDED message");
+        yield* wsService.send(tabMessage);
+
+        // Now send CHAT_APP_ADDED event
+        const ev: UiEventPayload = {
+          type: "CHAT_APP_ADDED",
+          tabId: "t0",
+          appId: "a1",
+        };
+        const message = createMessage("EVENT", {
+          eventType: "workspaceEvent",
+          data: { userId: "user-1", event: ev },
+          __tag: "EventPayload" as const,
+        });
+        console.log("[BridgeTest] Sending CHAT_APP_ADDED message");
+        yield* wsService.send(message);
+
+        // 5. Wait for processing within the Effect runtime
+        console.log("[BridgeTest] Waiting for messages to be processed...");
+        yield* Effect.sleep("500 millis");
+
+        // 6. Cleanup
+        yield* wsService.disconnect();
+        console.log("[BridgeTest] Disconnected WebSocket");
+      }).pipe(Effect.provide(AppLayer), Effect.timeout("10 seconds")),
     );
 
-    // 3. Send a workspace event message
-    // First, send TAB_ADDED event so the tab exists
-    const tabEvent: UiEventPayload = {
-      type: "TAB_ADDED",
-      tabId: "t0",
-      name: "Test Tab",
-    };
-    const tabMessage = createMessage("EVENT", {
-      eventType: "workspaceEvent",
-      data: { userId: "user-1", event: tabEvent },
-      __tag: "EventPayload" as const,
-    });
-    console.log("[BridgeTest] Sending TAB_ADDED message:", tabMessage);
-    await Effect.runPromise(wsService.send(tabMessage));
-    console.log("[BridgeTest] Sent TAB_ADDED message");
-
-    // Now send CHAT_APP_ADDED event
-    const ev: UiEventPayload = {
-      type: "CHAT_APP_ADDED",
-      tabId: "t0",
-      appId: "a1",
-    };
-    const message = createMessage("EVENT", {
-      eventType: "workspaceEvent",
-      data: { userId: "user-1", event: ev },
-      __tag: "EventPayload" as const,
-    });
-    console.log("[BridgeTest] Sending CHAT_APP_ADDED message:", message);
-    await Effect.runPromise(wsService.send(message));
-    console.log("[BridgeTest] Sent CHAT_APP_ADDED message");
-
-    // 4. Wait longer and verify store state
-    console.log("[BridgeTest] Waiting for messages to be processed...");
-    await Effect.runPromise(Effect.sleep("500 millis"));
-
-    let state = workspaceStore.getSnapshot().context;
-    console.log("[BridgeTest] Current store state:", state);
-
-    // If no messages received, wait a bit more
-    if (Object.keys(state.chatApps).length === 0) {
-      console.log("[BridgeTest] No messages received yet, waiting longer...");
-      await Effect.runPromise(Effect.sleep("1000 millis"));
-      state = workspaceStore.getSnapshot().context;
-      console.log("[BridgeTest] Final store state:", state);
-    }
+    // 7. Verify store state after Effect completes
+    const state = workspaceStore.getSnapshot().context;
+    console.log("[BridgeTest] Final store state:", state);
 
     expect(state.chatApps).toBeDefined();
     expect(state.chatApps).toEqual({
       a1: {
         id: "a1",
-        tabId: "t0",
-        status: "compact",
+        workspaceId: "default-workspace",
+        status: "stashed",
+        isArchived: false,
+        lastActiveAt: expect.any(Date),
+        config: {
+          id: "a1",
+          name: "Chat App a1",
+          agentId: "default-agent",
+          theme: {},
+        },
       },
     });
   });

@@ -132,17 +132,19 @@ const { useSelector, useDispatch } = createStoreHooks(
   initialState,
 );
 
-export const useAppLayoutStore = useSelector;
+// Hook that returns the complete app layout state
+export function useAppLayoutStore() {
+  return useSelector((state) => state);
+}
+
 export const useAppLayoutActions = useDispatch;
 
 // Hook for just sidebar state (most common use case)
 export function useSidebarState() {
-  const store = useSelector(appLayoutStore);
-  const state = store.context || initialState;
-  return {
+  return useSelector((state) => ({
     isOpen: state.isSidebarOpen,
     width: state.isSidebarOpen
       ? state.sidebarWidth
       : state.sidebarCollapsedWidth,
-  };
+  }));
 }

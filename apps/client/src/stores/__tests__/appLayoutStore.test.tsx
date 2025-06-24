@@ -275,6 +275,7 @@ describe("App Layout Store Hooks", () => {
           "screenSize",
           "isAnimating",
           "activeSidebarEditor",
+          "activeChatAppId",
         ];
 
         for (const prop of expectedProperties) {

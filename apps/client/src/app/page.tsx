@@ -2,6 +2,7 @@
 
 import { AppShell } from "@/components/AppShell/AppShell";
 import { ClientOnly } from "@/components/ClientOnly";
+import { TestChatApp } from "@/components/chat/TestChatApp";
 
 export default function Page() {
   return (
@@ -16,7 +17,9 @@ export default function Page() {
       }
     >
       <div className="h-full flex flex-col">
-        <AppShell />
+        <AppShell>
+          <TestChatApp />
+        </AppShell>
       </div>
     </ClientOnly>
   );

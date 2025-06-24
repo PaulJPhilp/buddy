@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 // Effect service imports
 import { AgentService } from "@/services/agent";
+import { AgentKitBridge } from "@/services/agentkit-bridge/service";
 import { AppService } from "@/services/app";
 import { ChatService } from "@/services/chat";
 import { ChatBridge } from "@/services/chat-bridge";
@@ -25,9 +26,10 @@ const sharedServiceLayer = Layer.mergeAll(
   ToolbarService.Default,
   ChatService.Default, // Essential for input field to be enabled
   ChatBridge.Default, // Needed for agent communication and responses
+  AgentKitBridge.Default, // New embedded AgentKit bridge
+  WebSocketService.Default, // Now uses AgentKit instead of real WebSocket
   // Keeping these disabled for now to maintain fast loading
   // MdxService.Default,
-  // WebSocketService.Default,
   // ConfigService.Default,
 );
 
@@ -42,6 +44,7 @@ const fullServiceLayer = Layer.mergeAll(
   ToolbarService.Default,
   ChatService.Default,
   ChatBridge.Default,
+  AgentKitBridge.Default,
   MdxService.Default,
   WebSocketService.Default,
   ConfigService.Default,

@@ -8,6 +8,7 @@ import { ChatAppStatus, UIEvent, UIState, WorkspaceEntry } from "./types";
 
 export const MAX_WORKSPACES = 10;
 export const DEFAULT_WORKSPACE_NAME = "Untitled";
+export const DEFAULT_MAX_EXPANDED_APPS = 2; // Default maximum expanded apps per workspace
 const DEFAULT_AGENTS = ["default-agent"]; // Default agent set
 
 // ---------------------------------------------------------------------------
@@ -25,6 +26,8 @@ export function createDefaultWorkspace(): WorkspaceEntry {
     color: "#3b82f6",
     description: "",
     icon: "🚀",
+    maxExpandedApps: DEFAULT_MAX_EXPANDED_APPS,
+    activeAppId: null,
   };
 }
 
@@ -137,6 +140,8 @@ const handlers = {
       lastActiveAt: now,
       isArchived: false,
       availableAgents: [...event.availableAgents],
+      maxExpandedApps: DEFAULT_MAX_EXPANDED_APPS,
+      activeAppId: null,
     };
 
     const newWorkspaces = {
@@ -366,6 +371,65 @@ const handlers = {
     };
   },
 
+  WORKSPACE_MAX_EXPANDED_APPS_UPDATED: (
+    context: UIState,
+    event: Extract<UIEvent, { type: "WORKSPACE_MAX_EXPANDED_APPS_UPDATED" }>,
+  ): UIState => {
+    const workspace = context.workspaces[event.workspaceId];
+    if (!workspace) return context;
+
+    // Validate the new max value (must be at least 1)
+    if (event.maxExpandedApps < 1) {
+      console.warn(
+        `[workspaceStore] Cannot set maxExpandedApps to ${event.maxExpandedApps}: must be at least 1`,
+      );
+      return context;
+    }
+
+    const updatedWorkspace: WorkspaceEntry = {
+      ...workspace,
+      maxExpandedApps: event.maxExpandedApps,
+    };
+
+    // If the new limit is lower than current expanded apps, we need to compact some
+    const workspaceChatApps = Object.values(context.chatApps).filter(
+      (app) =>
+        app.workspaceId === event.workspaceId && app.status === "expanded",
+    );
+
+    let updatedChatApps = context.chatApps;
+    if (workspaceChatApps.length > event.maxExpandedApps) {
+      // Compact the oldest expanded apps (keep the most recent ones)
+      const sortedApps = workspaceChatApps.sort(
+        (a, b) =>
+          // Sort by lastActiveAt (oldest first, so we compact the oldest ones)
+          a.lastActiveAt.getTime() - b.lastActiveAt.getTime(),
+      );
+
+      const appsToCompact = sortedApps.slice(
+        0,
+        workspaceChatApps.length - event.maxExpandedApps,
+      );
+
+      updatedChatApps = { ...context.chatApps };
+      for (const app of appsToCompact) {
+        updatedChatApps[app.id] = {
+          ...app,
+          status: "compact",
+        };
+      }
+    }
+
+    return {
+      ...context,
+      workspaces: {
+        ...context.workspaces,
+        [event.workspaceId]: updatedWorkspace,
+      },
+      chatApps: updatedChatApps,
+    };
+  },
+
   CHAT_APP_ADDED: (
     context: UIState,
     event: Extract<UIEvent, { type: "CHAT_APP_ADDED" }>,
@@ -383,6 +447,7 @@ const handlers = {
         workspaceId: event.workspaceId,
         status: "stashed" as ChatAppStatus,
         isArchived: false,
+        lastActiveAt: new Date(),
         config: event.config,
       },
     };
@@ -423,7 +488,7 @@ const handlers = {
         workspaceId,
         status: "stashed",
         isArchived: false,
-        lastInteraction: new Date(),
+        lastActiveAt: new Date(),
         config,
       };
     }
@@ -475,17 +540,58 @@ const handlers = {
     event: Extract<UIEvent, { type: "CHAT_APP_EXPANDED" }>,
   ): UIState => {
     const app = context.chatApps[event.appId];
-    if (!app || app.workspaceId !== event.workspaceId) return context;
+    const workspace = context.workspaces[event.workspaceId];
+
+    if (!app || !workspace || app.workspaceId !== event.workspaceId) {
+      return context;
+    }
+
+    // Get current expanded apps in this workspace
+    const workspaceExpandedApps = Object.values(context.chatApps).filter(
+      (chatApp) =>
+        chatApp.workspaceId === event.workspaceId &&
+        chatApp.status === "expanded" &&
+        !chatApp.isArchived,
+    );
+
+    const updatedChatApps = { ...context.chatApps };
+
+    // If we're at the max limit, compact the oldest expanded app
+    if (workspaceExpandedApps.length >= workspace.maxExpandedApps) {
+      // Sort by lastActiveAt (oldest first)
+      const sortedExpandedApps = workspaceExpandedApps.sort(
+        (a, b) => a.lastActiveAt.getTime() - b.lastActiveAt.getTime(),
+      );
+
+      // Compact the oldest expanded app
+      const appToCompact = sortedExpandedApps[0];
+      updatedChatApps[appToCompact.id] = {
+        ...appToCompact,
+        status: "compact",
+      };
+    }
+
+    // Expand the target app and update its timestamp
+    updatedChatApps[event.appId] = {
+      ...app,
+      status: "expanded",
+      lastActiveAt: new Date(),
+    };
+
+    // Update workspace to track the new active app
+    const updatedWorkspace: WorkspaceEntry = {
+      ...workspace,
+      activeAppId: event.appId,
+      lastActiveAt: new Date(),
+    };
 
     return {
       ...context,
-      chatApps: {
-        ...context.chatApps,
-        [event.appId]: {
-          ...app,
-          status: "expanded",
-        },
+      workspaces: {
+        ...context.workspaces,
+        [event.workspaceId]: updatedWorkspace,
       },
+      chatApps: updatedChatApps,
     };
   },
 
@@ -494,16 +600,53 @@ const handlers = {
     event: Extract<UIEvent, { type: "CHAT_APP_COMPACTED" }>,
   ): UIState => {
     const app = context.chatApps[event.appId];
-    if (!app || app.workspaceId !== event.workspaceId) return context;
+    const workspace = context.workspaces[event.workspaceId];
+
+    if (!app || !workspace || app.workspaceId !== event.workspaceId) {
+      return context;
+    }
+
+    // Update the app status to compact and timestamp
+    const updatedApp: ChatAppEntry = {
+      ...app,
+      status: "compact",
+      lastActiveAt: new Date(),
+    };
+
+    let updatedWorkspace = workspace;
+
+    // If this was the active app, we need to find a new active app
+    // The most recently active expanded app should become the new active app
+    if (workspace.activeAppId === event.appId) {
+      const workspaceExpandedApps = Object.values(context.chatApps).filter(
+        (chatApp) =>
+          chatApp.workspaceId === event.workspaceId &&
+          chatApp.status === "expanded" &&
+          !chatApp.isArchived &&
+          chatApp.id !== event.appId, // Exclude the app being compacted
+      );
+
+      // Find the most recently active expanded app
+      const newActiveApp = workspaceExpandedApps.sort(
+        (a, b) => b.lastActiveAt.getTime() - a.lastActiveAt.getTime(),
+      )[0];
+
+      updatedWorkspace = {
+        ...workspace,
+        activeAppId: newActiveApp?.id || null,
+        lastActiveAt: new Date(),
+      };
+    }
 
     return {
       ...context,
+      workspaces: {
+        ...context.workspaces,
+        [event.workspaceId]: updatedWorkspace,
+      },
       chatApps: {
         ...context.chatApps,
-        [event.appId]: {
-          ...app,
-          status: "compact",
-        },
+        [event.appId]: updatedApp,
       },
     };
   },
@@ -579,6 +722,181 @@ const handlers = {
 
     return { ...context, chatApps: updatedApps };
   },
+
+  // ---------------------------------------------------------------------------
+  // Sophisticated Chat App State Machine Handlers
+  // ---------------------------------------------------------------------------
+
+  CHAT_APP_ACTIVATED: (
+    context: UIState,
+    event: Extract<UIEvent, { type: "CHAT_APP_ACTIVATED" }>,
+  ): UIState => {
+    const app = context.chatApps[event.appId];
+    const workspace = context.workspaces[event.workspaceId];
+
+    if (!app || !workspace || app.workspaceId !== event.workspaceId) {
+      return context;
+    }
+
+    // Update workspace to track the new active app
+    const updatedWorkspace: WorkspaceEntry = {
+      ...workspace,
+      activeAppId: event.appId,
+      lastActiveAt: new Date(),
+    };
+
+    // Update the app's lastActiveAt timestamp
+    const updatedApp: ChatAppEntry = {
+      ...app,
+      lastActiveAt: new Date(),
+    };
+
+    return {
+      ...context,
+      workspaces: {
+        ...context.workspaces,
+        [event.workspaceId]: updatedWorkspace,
+      },
+      chatApps: {
+        ...context.chatApps,
+        [event.appId]: updatedApp,
+      },
+    };
+  },
+
+  CHAT_APP_STASHED: (
+    context: UIState,
+    event: Extract<UIEvent, { type: "CHAT_APP_STASHED" }>,
+  ): UIState => {
+    const app = context.chatApps[event.appId];
+    const workspace = context.workspaces[event.workspaceId];
+
+    if (!app || !workspace || app.workspaceId !== event.workspaceId) {
+      return context;
+    }
+
+    // Update the app status to stashed
+    const updatedApp: ChatAppEntry = {
+      ...app,
+      status: "stashed",
+      lastActiveAt: new Date(),
+    };
+
+    let updatedWorkspace = workspace;
+
+    // If this was the active app, clear the activeAppId
+    if (workspace.activeAppId === event.appId) {
+      updatedWorkspace = {
+        ...workspace,
+        activeAppId: null,
+      };
+    }
+
+    return {
+      ...context,
+      workspaces: {
+        ...context.workspaces,
+        [event.workspaceId]: updatedWorkspace,
+      },
+      chatApps: {
+        ...context.chatApps,
+        [event.appId]: updatedApp,
+      },
+    };
+  },
+
+  CHAT_APP_FOCUS_ENTERED: (
+    context: UIState,
+    event: Extract<UIEvent, { type: "CHAT_APP_FOCUS_ENTERED" }>,
+  ): UIState => {
+    const app = context.chatApps[event.appId];
+    const workspace = context.workspaces[event.workspaceId];
+
+    if (!app || !workspace || app.workspaceId !== event.workspaceId) {
+      return context;
+    }
+
+    // In focus mode, the target app becomes expanded and all others in the workspace become hidden
+    const workspaceChatApps = Object.values(context.chatApps).filter(
+      (chatApp) =>
+        chatApp.workspaceId === event.workspaceId && !chatApp.isArchived,
+    );
+
+    const updatedChatApps = { ...context.chatApps };
+
+    // Set the focused app to expanded and update its timestamp
+    updatedChatApps[event.appId] = {
+      ...app,
+      status: "expanded",
+      lastActiveAt: new Date(),
+    };
+
+    // Store the previous states of other apps so we can restore them later
+    // Only hide apps that were visible (expanded or compact), preserve stashed apps
+    for (const chatApp of workspaceChatApps) {
+      if (
+        chatApp.id !== event.appId &&
+        (chatApp.status === "expanded" || chatApp.status === "compact")
+      ) {
+        updatedChatApps[chatApp.id] = {
+          ...chatApp,
+          status: "stashed", // Hide other apps during focus mode
+          // Store previous status for restoration
+          previousStatus: chatApp.status as "expanded" | "compact",
+        };
+      }
+    }
+
+    // Update workspace to track the active app
+    const updatedWorkspace: WorkspaceEntry = {
+      ...workspace,
+      activeAppId: event.appId,
+      lastActiveAt: new Date(),
+    };
+
+    return {
+      ...context,
+      workspaces: {
+        ...context.workspaces,
+        [event.workspaceId]: updatedWorkspace,
+      },
+      chatApps: updatedChatApps,
+    };
+  },
+
+  CHAT_APP_FOCUS_EXITED: (
+    context: UIState,
+    event: Extract<UIEvent, { type: "CHAT_APP_FOCUS_EXITED" }>,
+  ): UIState => {
+    const workspace = context.workspaces[event.workspaceId];
+
+    if (!workspace) return context;
+
+    // Exit focus mode - restore previous layout
+    const workspaceChatApps = Object.values(context.chatApps).filter(
+      (chatApp) =>
+        chatApp.workspaceId === event.workspaceId && !chatApp.isArchived,
+    );
+
+    const updatedChatApps = { ...context.chatApps };
+
+    // Restore apps that were hidden during focus mode to their previous status
+    // Only restore apps that have a previousStatus (were hidden during focus)
+    for (const chatApp of workspaceChatApps) {
+      if (chatApp.status === "stashed" && (chatApp as any).previousStatus) {
+        const { previousStatus, ...cleanApp } = chatApp as any;
+        updatedChatApps[chatApp.id] = {
+          ...cleanApp,
+          status: previousStatus,
+        };
+      }
+    }
+
+    return {
+      ...context,
+      chatApps: updatedChatApps,
+    };
+  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -608,6 +926,8 @@ export function createWorkspaceStore(initial?: UIState) {
         handlers.WORKSPACE_AGENT_REMOVED(context, event as any),
       WORKSPACE_LAYOUT_PREFERENCES_UPDATED: (context, event) =>
         handlers.WORKSPACE_LAYOUT_PREFERENCES_UPDATED(context, event as any),
+      WORKSPACE_MAX_EXPANDED_APPS_UPDATED: (context, event) =>
+        handlers.WORKSPACE_MAX_EXPANDED_APPS_UPDATED(context, event as any),
       CHAT_APP_ADDED: (context, event) =>
         handlers.CHAT_APP_ADDED(context, event as any),
       CHAT_APPS_ADDED: (context, event) =>
@@ -626,6 +946,14 @@ export function createWorkspaceStore(initial?: UIState) {
         handlers.CHAT_APP_ARCHIVED(context, event as any),
       CHAT_APP_RESTORED: (context, event) =>
         handlers.CHAT_APP_RESTORED(context, event as any),
+      CHAT_APP_ACTIVATED: (context, event) =>
+        handlers.CHAT_APP_ACTIVATED(context, event as any),
+      CHAT_APP_STASHED: (context, event) =>
+        handlers.CHAT_APP_STASHED(context, event as any),
+      CHAT_APP_FOCUS_ENTERED: (context, event) =>
+        handlers.CHAT_APP_FOCUS_ENTERED(context, event as any),
+      CHAT_APP_FOCUS_EXITED: (context, event) =>
+        handlers.CHAT_APP_FOCUS_EXITED(context, event as any),
     },
   });
 
