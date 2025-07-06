@@ -1,9 +1,11 @@
+"use client";
+
 import { markdownLookBack } from "@llm-ui/markdown";
 import { type LLMOutputComponent, useLLMOutput } from "@llm-ui/react";
-import { CustomTable, CustomTableCell } from "@ui/components/chat";
 import { useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CustomTable, CustomTableCell } from "./CustomTable";
 
 export interface ChatBubbleLlmUiProps {
   role: "user" | "assistant";

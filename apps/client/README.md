@@ -4,12 +4,12 @@ A modern, real-time chat application built with Next.js, Effect.js, and TypeScri
 
 ## 🏗️ Architecture Overview
 
-This application follows the **Pure Effect Service Pattern** with a clean component architecture that separates concerns and maintains scalability.
+This application follows the **Effect.js Service Pattern** with clean separation between domain logic, UI state, and React components.
 
 ### Core Principles
 
-- **Pure Effect Services**: All business logic lives in Effect.js services, not React hooks
-- **Clean Component Structure**: Each component has a single responsibility
+- **Pure Effect Services**: All business logic lives in Effect.js services
+- **Domain/UI Separation**: Clean separation between business domain models and UI state
 - **Type Safety**: Full TypeScript coverage with strict typing
 - **Service-First Design**: React components are thin wrappers around Effect services
 
@@ -18,72 +18,65 @@ This application follows the **Pure Effect Service Pattern** with a clean compon
 ```
 apps/client/
 ├── src/
-│   ├── components/           # UI Components (7 core components)
-│   │   ├── AppShell/        # Application layout and structure
-│   │   ├── ChatApp/         # Main chat orchestrator
-│   │   ├── ChatArea/        # Message display area
-│   │   ├── ChatContainer/   # Chat wrapper and configuration
-│   │   ├── HeaderBar/       # Chat controls and status
-│   │   ├── Toolbar/         # Application toolbar system
-│   │   └── UserArea/        # User input and interactions
-│   ├── services/            # Effect.js business logic services
-│   │   ├── agent/          # Agent management and communication
-│   │   ├── app/            # Application state and configuration
+│   ├── components/          # React integration components
+│   │   ├── app/            # App-level React containers
+│   │   ├── chatapp/        # Chat app React containers
+│   │   ├── workspace/      # Workspace React containers
+│   │   └── core/           # Core React integration
+│   ├── services/           # Effect.js business logic services
 │   │   ├── chat/           # Chat functionality and messaging
-│   │   ├── chat-runtime/   # Real-time chat operations
-│   │   ├── config-lifecycle/ # Configuration management
-│   │   ├── mdx/            # MDX processing and rendering
-│   │   ├── toolbar/        # Toolbar state and commands
-│   │   └── websocket/      # WebSocket communication
-│   ├── hooks/              # React hooks (minimal, UI-focused only)
-│   ├── stores/             # XState stores for UI state
+│   │   ├── chatbridge/     # Chat service bridge
+│   │   └── config/         # Configuration management
+│   ├── managers/           # Higher-level business coordination
+│   │   ├── chat/           # Chat management
+│   │   ├── chatapps/       # Chat app management
+│   │   └── core/           # Core management
+│   ├── domain/             # Pure domain models
+│   │   ├── workspace.ts    # Workspace business logic
+│   │   ├── chatapp.ts      # Chat app business logic
+│   │   ├── agent.ts        # Agent business logic
+│   │   └── app.ts          # App domain composition
+│   ├── ui-state/           # UI state models
+│   │   ├── workspace-ui-state.ts  # Workspace presentation state
+│   │   ├── chatapp-ui-state.ts    # Chat app presentation state
+│   │   └── app-ui-state.ts        # App presentation state
 │   ├── types/              # TypeScript type definitions
 │   └── utils/              # Utility functions
 ├── __tests__/              # Integration tests
-├── tests/                  # E2E tests (Playwright)
 └── public/                 # Static assets and configurations
 ```
 
-## 🧩 Component Architecture
+## 🧩 Architecture Layers
 
-### Core Chat Components
+### 1. Domain Layer (`src/domain/`)
+Pure business logic models with no UI concerns:
+- **WorkspaceModel**: Business rules, permissions, app management
+- **ChatAppModel**: Agent associations, capabilities, business state
+- **AgentModel**: LLM parameters, permissions, business configuration
 
-#### `ChatApp/` - Main Chat Orchestrator
-- **Purpose**: Coordinates all chat functionality using Effect services
-- **Pattern**: Pure Effect Service integration
-- **Services**: `ChatService`, `AgentService`, `AppService`, `ToolbarService`
-- **Features**: Message handling, agent communication, state management
+### 2. UI State Layer (`src/ui-state/`)
+Pure presentation state with no business logic:
+- **WorkspaceUIState**: Layout modes, themes, window positioning
+- **ChatAppUIState**: Styling, window management, presentation
+- **AppUIState**: Global theme, layout state, UI preferences
 
-#### `ChatArea/` - Message Display
-- **Purpose**: Renders chat messages and conversation history
-- **Features**: Auto-scrolling, message formatting, empty state handling
-- **Integration**: Receives messages from `ChatService`
+### 3. Service Layer (`src/services/`)
+Effect.js services implementing business operations:
+- **ConfigService**: Configuration loading and management
+- **ChatService**: Message handling and conversation management
+- **ChatBridge**: Service communication coordination
 
-#### `HeaderBar/` - Chat Controls
-- **Purpose**: Provides chat controls and status information
-- **Features**: Expand/collapse, clear conversation, status indicators
-- **Integration**: Toolbar commands and chat state
+### 4. Manager Layer (`src/managers/`)
+Higher-level business logic coordination:
+- **ChatManager**: Chat lifecycle and operations
+- **ChatAppsManager**: Multi-chat coordination
+- **CoreManager**: Application-level coordination
 
-#### `UserArea/` - User Input
-- **Purpose**: Handles user input and message composition
-- **Features**: Message input, file attachments, agent selection
-- **Components**: `MinimalInput`, `AttachmentBar`, `AgentToolBar`
-
-### Infrastructure Components
-
-#### `AppShell/` - Application Layout
-- **Purpose**: Provides overall application structure
-- **Features**: Toolbar integration, sidebar management, responsive layout
-- **Components**: `AppShell`, `AppSidebar`, `AppToolbar`
-
-#### `Toolbar/` - Command System
-- **Purpose**: Extensible toolbar with dynamic commands
-- **Features**: Command registration, state synchronization, responsive design
-- **Pattern**: Command pattern with XState integration
-
-#### `Chat/` - Container Wrapper
-- **Purpose**: Chat configuration and layout coordination
-- **Features**: Configuration management, theme application
+### 5. Component Layer (`src/components/`)
+React integration components:
+- **AppContainer**: React wrapper for app services
+- **WorkspaceContainer**: React wrapper for workspace services  
+- **ChatAppContainer**: React wrapper for chat app services
 
 ## 🔧 Service Architecture
 
@@ -99,15 +92,6 @@ services/service-name/
 ├── service.ts  # Effect.Service implementation
 └── index.ts    # Barrel exports
 ```
-
-#### Key Services
-
-- **`ChatService`**: Message handling, conversation management
-- **`AgentService`**: Agent communication and management
-- **`AppService`**: Application configuration and state
-- **`ConfigLifecycleService`**: Dynamic configuration management
-- **`WebSocketService`**: Real-time communication
-- **`ToolbarService`**: Toolbar state and command management
 
 ### Service Integration Rules
 
@@ -139,35 +123,28 @@ bun run build
 
 # Run tests
 bun run test
-
-# Run E2E tests
-bunx playwright test
 ```
 
 ### Development Workflow
 
-1. **Services First**: Implement business logic in Effect services
-2. **Component Integration**: Create React components that use services
-3. **Type Safety**: Ensure full TypeScript coverage
-4. **Testing**: Write integration and E2E tests
-5. **Documentation**: Update relevant README files
+1. **Domain First**: Define business models in `src/domain/`
+2. **Services**: Implement business operations in Effect services
+3. **UI State**: Define presentation state in `src/ui/`
+4. **Components**: Create React integration components
+5. **Testing**: Write integration tests with real services
 
 ## 🧪 Testing Strategy
 
-### Integration Tests
-- Service integration testing
-- Component behavior testing
-- Effect service testing with real dependencies
-
-### E2E Tests (Playwright)
-- Complete user workflows
-- Chat functionality testing
-- Cross-browser compatibility
+### Integration Tests (`__tests__/integration/`)
+- **Real Services**: Tests use actual Effect services, no mocking
+- **Network Integration**: Tests connect to real WebSocket and HTTP services
+- **Complete Flows**: End-to-end chat functionality testing
+- **Performance**: Stress testing with 100+ concurrent messages
 
 ### Testing Principles
-- **No Mocking**: Tests use real external services
-- **Real Dependencies**: Connect to actual APIs and services
-- **Meaningful Tests**: Tests validate actual functionality
+- **No Mocking**: Tests use real external services [[memory:28905]]
+- **Real Dependencies**: Connect to actual APIs and WebSocket servers
+- **Meaningful Tests**: Tests validate actual production behavior
 
 ## 🎨 Styling and Theming
 
@@ -178,137 +155,79 @@ bunx playwright test
 
 ## 🔌 Configuration
 
-### Chat App Configurations
-- Stored in `public/configs/`
+### App Configurations
+- Stored in `public/static/configs/`
 - JSON-based configuration files
 - Dynamic loading and hot-reloading
-- Theme and agent configuration
+- Workspace, agent, and chat app configurations
 
 ### Environment Variables
 - Clerk authentication configuration
 - API endpoints and keys
 - Development/production settings
 
-## 📚 Key Patterns and Conventions
+## 📚 Key Patterns
 
-### Component Structure
+### Domain/UI Separation
 ```typescript
-// Component with Effect service integration
-export function MyComponent({ config }: MyComponentProps) {
-  const [state, setState] = useState(initialState)
-  
-  const handleAction = useCallback(() => {
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const service = yield* MyService
-        const result = yield* service.performAction()
-        setState(result)
-      }).pipe(Effect.provide(serviceLayer))
-    )
-  }, [])
+// Domain model - pure business logic
+interface WorkspaceModel {
+  readonly id: string
+  readonly chatappIds: string[]
+  readonly permissions: Permission[]
+  readonly isDefault: boolean
+}
 
-  return <div>{/* JSX */}</div>
+// UI state - pure presentation
+interface WorkspaceUIState {
+  readonly layoutMode: "grid" | "list"
+  readonly theme: "light" | "dark"
+  readonly expandedApps: Set<string>
 }
 ```
 
-### Service Definition
+### Effect Service Integration
 ```typescript
-export class MyService extends Effect.Service<MyServiceApi>()(
-  "MyService",
-  {
-    scoped: Effect.gen(function* () {
-      const dependency = yield* DependencyService
-      
-      const performAction = () =>
-        Effect.gen(function* () {
-      // Implementation
-        }).pipe(
-          Effect.mapError((cause) =>
-            new MyServiceError({ message: "Action failed", cause })
-          )
-        )
-
-      return { performAction } satisfies MyServiceApi
-    }),
-    dependencies: [DependencyService.Default],
-  },
-) {}
+// Service with dependencies
+export const MyServiceLive = Layer.scoped(
+  MyServiceTag,
+  Effect.gen(function* () {
+    const dependency = yield* DependencyService
+    return new MyServiceImpl(dependency)
+  })
+).pipe(
+  Layer.provide(DependencyService.Default)
+)
 ```
 
-### Error Handling
+### React Integration
 ```typescript
-export class MyServiceError extends Data.TaggedError("MyServiceError")<{
-  readonly message: string
-  readonly cause?: unknown
-}> {}
+// React component using Effect services
+export function MyContainer() {
+  const [state, setState] = useState(initialState)
+  
+  useEffect(() => {
+    const subscription = Effect.runSync(
+      myService.subscribe().pipe(
+        Effect.provide(serviceLayer)
+      )
+    )
+    return () => subscription.interrupt()
+  }, [])
+  
+  return <MyComponent state={state} />
+}
 ```
 
-## 🔄 State Management
+## 🔗 Related Projects
 
-### Effect Services
-- Business logic and data management
-- Cross-component state coordination
-- Async operations and side effects
+- **CLI**: `apps/cli/` - Command-line workspace management
+- **UI Package**: `packages/ui/` - Shared UI components
+- **Schemas**: `packages/schemas/` - Shared type definitions
 
-### XState Stores
-- UI-specific state (sidebar open/closed, etc.)
-- Component-local state management
-- Reactive state updates
+## 📈 Performance
 
-### React State
-- Component-local UI state only
-- Form inputs and temporary state
-- No business logic in React state
-
-## 🚦 Development Guidelines
-
-### Do's ✅
-- Use Effect services for all business logic
-- Follow the MDX service pattern
-- Write comprehensive tests
-- Use TypeScript strictly
-- Document complex functionality
-
-### Don'ts ❌
-- Mix React state with business logic
-- Use Context.Tag (banned pattern)
-- Skip error handling in services
-- Create services without following MDX pattern
-- Use mocking in tests
-
-## 🔧 Build and Deployment
-
-### Build Process
-- Next.js production build
-- TypeScript compilation
-- Asset optimization
-- Static generation where possible
-
-### Deployment
-- Vercel deployment ready
-- Environment variable configuration
-- Analytics integration
-- Error boundary protection
-
-## 📖 Additional Documentation
-
-- [Service Pattern Documentation](src/docs/service-pattern.md)
-- [Component Guidelines](src/components/README.md)
-- [Testing Strategy](src/__tests__/README.md)
-- [Configuration Management](src/services/config-lifecycle/README.md)
-
-## 🤝 Contributing
-
-1. Follow the established patterns
-2. Write tests for new functionality
-3. Update documentation
-4. Ensure TypeScript compliance
-5. Test across different browsers
-
-## 📄 License
-
-[Add your license information here]
-
----
-
-**Built with ❤️ using Next.js, Effect.js, and TypeScript**
+- **Effect.js**: Efficient functional programming with proper resource management
+- **React Integration**: Minimal React overhead with Effect service integration
+- **Real-time**: WebSocket-based chat with streaming message processing
+- **Configuration**: Dynamic loading without application restarts

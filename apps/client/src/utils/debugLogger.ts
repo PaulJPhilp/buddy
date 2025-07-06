@@ -13,6 +13,7 @@
 declare global {
   interface Window {
     buddyDebug?: boolean;
+    setBuddyDebug?: (value: boolean) => void;
   }
 }
 
@@ -26,7 +27,7 @@ export function debugLog(scope: string, ...args: unknown[]): void {
   console.log(
     `%c[Buddy-Debug] ${scope}`,
     "color:#888;font-size:0.8rem;font-weight:bold;",
-    ...args,
+    ...args
   );
 }
 

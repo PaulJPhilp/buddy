@@ -1,0 +1,69 @@
+{
+  "id": "science",
+  "name": "Science",
+  "agentId": "writing-agent",
+  "toolbarId": "default-toolbar",
+  "themeId": "indigo-theme",
+  "description": "A chat app for discussing scientific topics and research",
+  "version": "1.0.0",
+  "agent": {
+    "id": "writing-agent"
+  },
+  "toolbar": {
+    "id": "default-toolbar"
+  },
+  "style": {
+    "colors": {
+      "primary": "#4338ca",
+      "secondary": "#e0e7ff",
+      "accent": "#6366f1",
+      "background": "white",
+      "text": "gray-900"
+    },
+    "borders": {
+      "color": "#c7d2fe",
+      "thickness": "2px",
+      "radius": "0.75rem"
+    },
+    "bubbles": {
+      "user": {
+        "background": "#6366f1",
+        "text": "white",
+        "radius": "rounded-lg",
+        "border": "1px solid #a5b4fc",
+        "padding": "0.5rem 0.75rem"
+      },
+      "agent": {
+        "background": "#e0e7ff",
+        "text": "gray-900",
+        "radius": "rounded-lg",
+        "border": "1px solid #c7d2fe",
+        "padding": "0.5rem 0.75rem"
+      }
+    },
+    "userArea": {
+      "background": "#f0f4ff",
+      "inputRingColor": "indigo-500",
+      "padding": "0.5rem"
+    },
+    "header": {
+      "background": "#e0e7ff",
+      "text": "#4338ca",
+      "borderBottom": "1px solid #c7d2fe",
+      "padding": "0.5rem 1rem"
+    },
+    "chatArea": {
+      "background": "white",
+      "border": "2px solid #c7d2fe",
+      "radius": "0.75rem",
+      "padding": "0.75rem"
+    },
+    "typography": {
+      "fontFamily": "Inter, sans-serif",
+      "fontSize": "0.95rem"
+    }
+  },
+  "isDefault": false,
+  "isShared": true,
+  "spaceId": "writing"
+}

@@ -10,13 +10,11 @@ export async function POST(request: NextRequest) {
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       return NextResponse.json(
         { error: "Missing GOOGLE_GENERATIVE_AI_API_KEY" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
-    const model = google("gemini-1.5-flash", {
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    });
+    const model = google("gemini-1.5-flash");
 
     const result = await generateText({
       model,
@@ -32,7 +30,7 @@ export async function POST(request: NextRequest) {
     console.error("Agent generate error:", error);
     return NextResponse.json(
       { error: `Agent error: ${error}` },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

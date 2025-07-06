@@ -1,0 +1,69 @@
+{
+  "id": "science-fiction",
+  "name": "Science Fiction",
+  "agentId": "writing-agent",
+  "toolbarId": "default-toolbar",
+  "themeId": "purple-theme",
+  "description": "A chat app for exploring science fiction stories and concepts",
+  "version": "1.0.0",
+  "agent": {
+    "id": "writing-agent"
+  },
+  "toolbar": {
+    "id": "default-toolbar"
+  },
+  "style": {
+    "colors": {
+      "primary": "#7c3aed",
+      "secondary": "#f3e8ff",
+      "accent": "#8b5cf6",
+      "background": "white",
+      "text": "gray-900"
+    },
+    "borders": {
+      "color": "#e9d5ff",
+      "thickness": "2px",
+      "radius": "0.75rem"
+    },
+    "bubbles": {
+      "user": {
+        "background": "#8b5cf6",
+        "text": "white",
+        "radius": "rounded-lg",
+        "border": "1px solid #ddd6fe",
+        "padding": "0.5rem 0.75rem"
+      },
+      "agent": {
+        "background": "#f3e8ff",
+        "text": "gray-900",
+        "radius": "rounded-lg",
+        "border": "1px solid #e9d5ff",
+        "padding": "0.5rem 0.75rem"
+      }
+    },
+    "userArea": {
+      "background": "#faf5ff",
+      "inputRingColor": "purple-500",
+      "padding": "0.5rem"
+    },
+    "header": {
+      "background": "#f3e8ff",
+      "text": "#7c3aed",
+      "borderBottom": "1px solid #e9d5ff",
+      "padding": "0.5rem 1rem"
+    },
+    "chatArea": {
+      "background": "white",
+      "border": "2px solid #e9d5ff",
+      "radius": "0.75rem",
+      "padding": "0.75rem"
+    },
+    "typography": {
+      "fontFamily": "Inter, sans-serif",
+      "fontSize": "0.95rem"
+    }
+  },
+  "isDefault": false,
+  "isShared": true,
+  "spaceId": "writing"
+}

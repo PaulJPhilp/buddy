@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
@@ -36,10 +38,12 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           "flex w-full rounded-md bg-transparent px-2 py-1 text-xs shadow-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
-        style={{
-          ['--tw-ring-color' as string]: primaryColor || 'hsl(var(--ring))',
-          ...props.style
-        } as React.CSSProperties}
+        style={
+          {
+            ["--tw-ring-color" as string]: primaryColor || "hsl(var(--ring))",
+            ...props.style,
+          } as React.CSSProperties
+        }
         {...props}
       />
     );

@@ -1,3 +1,5 @@
+"use client";
+
 import { GripVertical } from "lucide-react";
 import * as React from "react";
 
@@ -32,7 +34,8 @@ export function ExtendableDrawer({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
 
-      const newWidth = position === "left" ? e.clientX : window.innerWidth - e.clientX;
+      const newWidth =
+        position === "left" ? e.clientX : window.innerWidth - e.clientX;
       setWidth(Math.min(Math.max(newWidth, minWidth), maxWidth));
     };
 
@@ -70,7 +73,10 @@ export function ExtendableDrawer({
           )}
           onMouseDown={handleMouseDown}
         >
-          <GripVertical className="w-3 h-3 text-muted-foreground" aria-hidden="true" />
+          <GripVertical
+            className="w-3 h-3 text-muted-foreground"
+            aria-hidden="true"
+          />
         </div>
       )}
     </div>

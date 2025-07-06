@@ -1,0 +1,36 @@
+import { ConfigProvider, Effect, Layer } from "effect";
+import { describe, expect, it } from "vitest";
+import { AppService } from "../service";
+
+describe("AppService", () => {
+  it("should dynamically load all chat app configurations", async () => {
+    // This test assumes the development server is running and can serve
+    // the /api/configs endpoint and the individual config files.
+
+    // Create a custom config provider for the test
+    const testConfigProvider = ConfigProvider.fromMap(
+      new Map([["API_BASE_URL", "http://localhost:3000"]]),
+    );
+
+    const program = Effect.gen(function* () {
+      const appService = yield* AppService;
+      return yield* appService.getAll();
+    }).pipe(Effect.provide(testConfigProvider)); // Provide the config to the program
+
+    // Provide the service layer to the configured program
+    const configs = await Effect.runPromise(
+      Effect.provide(program, AppService.Default),
+    );
+
+    // There should be at least one config file in the directory
+    expect(configs.length).toBeGreaterThan(0);
+
+    // Check if the loaded configs have the expected shape
+    const simpleChat = configs.find((c) => c.id === "simple-chat");
+    expect(simpleChat).toBeDefined();
+    expect(simpleChat?.name).toBe("Simple Chat");
+    expect(simpleChat?.agents).toBeDefined();
+    expect(simpleChat?.agents?.length).toBeGreaterThan(0);
+    expect(simpleChat?.agents?.[0].id).toBe("simple-agent");
+  }, 10000); // Increase timeout for network requests
+});

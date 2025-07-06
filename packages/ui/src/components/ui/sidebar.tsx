@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
@@ -119,4 +121,3 @@ SidebarSection.displayName = "SidebarSection";
 
 export { Sidebar, SidebarItem, SidebarSection };
 export type { SidebarItemProps, SidebarProps, SidebarSectionProps };
-

@@ -1,6 +1,28 @@
-import type { Payload, WebSocketMessage } from "@buddy/protocol";
 import { Effect } from "effect";
-import type { Agent } from "../features/chat/components/UserArea";
+
+// Local type definitions (replacing @buddy/protocol imports)
+export interface Payload {
+  type: string;
+  content?: string;
+  [key: string]: unknown;
+}
+
+export interface WebSocketMessage {
+  id: string;
+  type: string;
+  payload: Payload;
+  timestamp: number;
+  agentRuntimeId?: string;
+  sequence?: number;
+  metadata?: Record<string, unknown>;
+}
+// TODO: Fix Agent import - this should come from a proper types file
+export interface Agent {
+  id: string;
+  name: string;
+  description?: string;
+  avatar?: string;
+}
 
 export interface DisplayFile {
   id: string;
@@ -32,6 +54,7 @@ export interface Message {
   text: string;
   role: "user" | "assistant";
   timestamp: number;
+  status?: "sending" | "sent" | "error";
   attachments?: FileAttachment[];
   metadata?: Record<string, unknown>;
 }

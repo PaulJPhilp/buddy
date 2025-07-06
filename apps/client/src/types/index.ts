@@ -7,3 +7,6 @@ export * from "./utils";
 
 // Chat-related types
 export * from "./chat";
+
+// Global types and schemas
+export * from "./global";

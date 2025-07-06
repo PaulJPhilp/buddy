@@ -1,17 +1,47 @@
 import { ChatAppConfig } from "@/types/global";
-import type { ChatAppEntry, WorkspaceEntry } from "@/workspace/types";
+
+// Type definitions
+export type ChatAppStatus = "expanded" | "compact" | "stashed" | "closed";
+
+// LLM API data transfer objects
+export interface WorkspaceEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly icon?: string;
+  readonly color?: string;
+  readonly isActive: boolean;
+  readonly isArchived?: boolean;
+  readonly chatAppCount: number;
+  readonly activeChatAppCount: number;
+  readonly availableAgents: string[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface ChatAppEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly workspaceId: string;
+  readonly agentId: string;
+  readonly status: ChatAppStatus;
+  readonly isActive: boolean;
+  readonly isArchived?: boolean;
+  readonly createdAt: string;
+  readonly lastActiveAt: string;
+}
 
 // Global API interface for LLM tool-calling
 export interface BuddyWorkspaceAPI {
   // Workspace operations
   createWorkspace: (options: CreateWorkspaceOptions) => Promise<string>;
   listWorkspaces: (
-    options?: ListWorkspacesOptions,
+    options?: ListWorkspacesOptions
   ) => Promise<WorkspaceEntry[]>;
   activateWorkspace: (workspaceId: string) => Promise<void>;
   updateWorkspace: (
     workspaceId: string,
-    updates: Partial<WorkspaceEntry>,
+    updates: Partial<WorkspaceEntry>
   ) => Promise<void>;
   archiveWorkspace: (workspaceId: string) => Promise<void>;
   restoreWorkspace: (workspaceId: string) => Promise<void>;
@@ -19,13 +49,13 @@ export interface BuddyWorkspaceAPI {
   // Chat app operations
   addChatApp: (
     workspaceId: string,
-    config: ChatAppConfig | string,
+    config: ChatAppConfig | string
   ) => Promise<void>;
   listChatApps: (options?: ListChatAppsOptions) => Promise<ChatAppEntry[]>;
   setChatAppStatus: (
     workspaceId: string,
     appId: string,
-    status: ChatAppStatus,
+    status: ChatAppStatus
   ) => Promise<void>;
   enterFocusMode: (workspaceId: string, appId: string) => Promise<void>;
   exitFocusMode: (workspaceId: string) => Promise<void>;
@@ -54,8 +84,6 @@ export interface ListChatAppsOptions {
   status?: ChatAppStatus;
   includeArchived?: boolean;
 }
-
-export type ChatAppStatus = "expanded" | "compact" | "stashed" | "closed";
 
 export interface WorkspaceStats {
   totalWorkspaces: number;
@@ -329,19 +357,14 @@ export const ALL_WORKSPACE_TOOLS = [
   ...UTILITY_TOOLS,
 ] as const;
 
-// Global declaration for window object
-declare global {
-  interface Window {
-    buddyWorkspace?: BuddyWorkspaceAPI;
-  }
-}
+// Note: Window interface is declared in @/managers/workspace-manager-llm/types
 
 // Error types for tool operations
 export class WorkspaceToolError extends Error {
   constructor(
     public readonly operation: string,
     public readonly details: string,
-    public readonly cause?: unknown,
+    public readonly cause?: unknown
   ) {
     super(`Workspace ${operation} failed: ${details}`);
     this.name = "WorkspaceToolError";
@@ -352,7 +375,7 @@ export class ChatAppToolError extends Error {
   constructor(
     public readonly operation: string,
     public readonly details: string,
-    public readonly cause?: unknown,
+    public readonly cause?: unknown
   ) {
     super(`Chat app ${operation} failed: ${details}`);
     this.name = "ChatAppToolError";

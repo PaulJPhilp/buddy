@@ -1,0 +1,14 @@
+{
+  "id": "writing",
+  "name": "Writing",
+  "description": "Literature, Science Fiction, and Science writing",
+  "icon": "✍️",
+  "color": "#ec4899",
+  "availableAgents": ["dickens-agent", "asimov-agent", "dawkins-agent"],
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastActiveAt": "2024-01-01T00:00:00.000Z",
+  "isArchived": false,
+  "maxExpandedApps": 2,
+  "activeAppId": null,
+  "chatAppIds": ["literature", "science", "science-fiction"]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "productivity",
+  "name": "Productivity",
+  "description": "Email, tasks, and social media management",
+  "icon": "🚀",
+  "color": "#64748b",
+  "availableAgents": ["productivity-agent"],
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastActiveAt": "2024-01-01T00:00:00.000Z",
+  "isArchived": false,
+  "maxExpandedApps": 2,
+  "activeAppId": null,
+  "chatAppIds": ["tasks", "email", "social-media"]
+}

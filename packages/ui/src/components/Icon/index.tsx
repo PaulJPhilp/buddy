@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { LucideProps, icons } from 'lucide-react';
-import { forwardRef, useEffect, useState } from 'react';
+import { LucideProps, icons } from "lucide-react";
+import { forwardRef, useEffect, useState } from "react";
 
 export type IconName = keyof typeof icons;
 
-export interface IconProps extends Omit<LucideProps, 'ref'> {
+export interface IconProps extends Omit<LucideProps, "ref"> {
   name: IconName;
   size?: number;
 }
 
 export const Icon = forwardRef<SVGSVGElement, IconProps>(
-  ({ name, size = 16, className = '', ...props }, ref) => {
+  ({ name, size = 16, className = "", ...props }, ref) => {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -19,7 +19,7 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
     }, []);
 
     // Ensure consistent class name order
-    const baseClasses = ['lucide', `lucide-${name}`];
+    const baseClasses = ["lucide", `lucide-${name}`];
     if (className) {
       baseClasses.push(className);
     }
@@ -27,30 +27,30 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
     // Show placeholder during SSR
     if (!isClient) {
       return (
-        <span 
-          style={{ 
-            display: 'inline-block', 
-            width: `${size}px`, 
+        <span
+          style={{
+            display: "inline-block",
+            width: `${size}px`,
             height: `${size}px`,
-            backgroundColor: 'transparent'
-          }} 
+            backgroundColor: "transparent",
+          }}
         />
       );
     }
 
     const LucideIcon = icons[name];
-    
+
     return (
       <LucideIcon
         ref={ref}
         width={size}
         height={size}
-        className={baseClasses.join(' ')}
+        className={baseClasses.join(" ")}
         aria-hidden="true"
         {...props}
       />
     );
-  }
+  },
 );
 
-Icon.displayName = 'Icon';
+Icon.displayName = "Icon";

@@ -1,3 +1,5 @@
+"use client";
+
 import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
 import * as React from "react";

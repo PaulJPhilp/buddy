@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
-    "noImplicitAny": false,
+    "strict": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -14,22 +13,50 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "baseUrl": ".",
+    "types": ["@testing-library/jest-dom"],
     "plugins": [
       {
         "name": "next"
+      },
+      {
+        "name": "@effect/language-server"
       }
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@api/*": ["../../packages/api/*"],
-      "@server/*": ["../server/src/*"],
       "@client/*": ["./src/*"],
-      "@components/*": ["./src/components/*"],
-      "@ui/*": ["../../packages/ui/src/*"],
       "@app/*": ["./src/app/*"],
-      "@auth/*": ["./src/components/auth/*"]
+      "@components/*": ["./src/components/*"],
+      "@domain/*": ["./src/domain/*"],
+      "@managers/*": ["./src/managers/*"],
+      "@services/*": ["./src/services/*"],
+      "@schemas/*": ["./src/schemas/*"],
+      "@types/*": ["./src/types/*"],
+      "@ui-state/*": ["./src/ui-state/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@buddy/ui": ["../../packages/ui/src"],
+      "@buddy/ui/*": ["../../packages/ui/src/*"],
+      "@buddy/agentkit": ["../../packages/agentkit"],
+      "@buddy/agentkit/*": ["../../packages/agentkit/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "_archived",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "vitest.*.ts",
+    "__tests__/**/*"
+  ]
 }

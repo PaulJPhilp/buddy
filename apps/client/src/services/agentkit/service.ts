@@ -4,7 +4,6 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, streamText } from "ai";
 import { Effect, Stream } from "effect";
 import type {
-  AgentConfig,
   AgentResponse,
   AgentServiceApi,
   AgentStreamChunk,
@@ -16,6 +15,7 @@ import {
   InvalidAgentConfig,
   VercelAIError,
 } from "./errors";
+import type { AgentConfig } from "./types";
 
 function mapVercelError(error: unknown): AgentServiceError {
   console.log("[AgentService] Mapping error:", error);
@@ -44,7 +44,7 @@ function mapVercelError(error: unknown): AgentServiceError {
 }
 
 function toHistoryMessages(
-  input: string | ChatMessage[],
+  input: string | ChatMessage[]
 ): Array<{ role: "user" | "assistant" | "system"; content: string }> {
   if (typeof input === "string") {
     return [{ role: "user", content: input }];
@@ -58,17 +58,15 @@ function getProviderModel(config: AgentConfig) {
     case "openai":
       if (!process.env.OPENAI_API_KEY)
         throw new InvalidAgentConfig("Missing OPENAI_API_KEY");
-      return openai(config.model, { apiKey: process.env.OPENAI_API_KEY });
+      return openai(config.model);
     case "google":
       if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
         throw new InvalidAgentConfig("Missing GOOGLE_GENERATIVE_AI_API_KEY");
-      return google(config.model, {
-        apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-      });
+      return google(config.model);
     case "anthropic":
       if (!process.env.ANTHROPIC_API_KEY)
         throw new InvalidAgentConfig("Missing ANTHROPIC_API_KEY");
-      return anthropic(config.model, { apiKey: process.env.ANTHROPIC_API_KEY });
+      return anthropic(config.model);
     default:
       throw new InvalidAgentConfig(`Unknown provider: ${config.provider}`);
   }
@@ -93,7 +91,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                 {
                   model: config.model,
                   messagesCount: messages.length,
-                },
+                }
               );
 
               // PROVEN FIX: Use generateText (non-streaming) for all providers in generate method
@@ -109,13 +107,13 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                   hasText: !!result.text,
                   textLength: result.text?.length || 0,
                   usage: result.usage,
-                },
+                }
               );
 
               // Handle empty responses (common Gemini issue)
               if (!result.text || result.text.trim() === "") {
                 console.warn(
-                  `[AgentService] Empty response from ${config.provider}, retrying with different approach...`,
+                  `[AgentService] Empty response from ${config.provider}, retrying with different approach...`
                 );
 
                 // For Gemini, try a simple retry with a slightly different prompt
@@ -134,7 +132,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
 
                   if (retryResult.text && retryResult.text.trim() !== "") {
                     console.log(
-                      `[AgentService] Retry successful for ${config.provider}`,
+                      `[AgentService] Retry successful for ${config.provider}`
                     );
                     return {
                       content: retryResult.text,
@@ -146,7 +144,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
 
                 // If still empty, return a meaningful error
                 throw new VercelAIError(
-                  `${config.provider} returned empty response. This is a known issue with Gemini API.`,
+                  `${config.provider} returned empty response. This is a known issue with Gemini API.`
                 );
               }
 
@@ -169,7 +167,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                 const messages = toHistoryMessages(input);
 
                 console.log(
-                  "[AgentService] Using non-streaming approach for known streaming issues",
+                  "[AgentService] Using non-streaming approach for known streaming issues"
                 );
 
                 const result = await generateText({ model, messages });
@@ -180,12 +178,12 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                     hasText: !!result.text,
                     textLength: result.text?.length || 0,
                     usage: result.usage,
-                  },
+                  }
                 );
 
                 if (!result.text || result.text.trim() === "") {
                   console.warn(
-                    `[AgentService] ${config.provider} returned empty response`,
+                    `[AgentService] ${config.provider} returned empty response`
                   );
                   return {
                     content: `Sorry, ${config.provider} API returned an empty response. Please try again.`,
@@ -205,10 +203,10 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                 };
               },
               catch: mapVercelError,
-            }),
+            })
           );
         },
       }),
-  },
+  }
 ) {}
 // TODO: Add tool-calling and advanced agentic features using AI SDK 5 primitives

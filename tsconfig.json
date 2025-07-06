@@ -1,45 +1,32 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "strict": true,
-    "noEmit": true,
+    "skipLibCheck": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "noEmit": true,
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-
-      },
-      {
-        "name": "@effect/language-server"
-      }
-    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@api/*": ["./packages/api/*"],
-      "@server/*": ["./apps/server/src/*"],
-      "@client/*": ["./apps/client/src/*"],
-      "@components/*": ["./src/components/components/*"],
-      "@ui/*": ["./packages/ui/src/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@lib/*": ["./src/lib/*"]
+      "@buddy/ui": ["./packages/ui/src"],
+      "@buddy/ui/*": ["./packages/ui/src/*"],
+      "@buddy/agentkit": ["./packages/agentkit"],
+      "@buddy/agentkit/*": ["./packages/agentkit/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/**/*"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["packages/**/*", "apps/**/*"],
+  "exclude": ["node_modules", "**/node_modules", "**/dist", "**/.next"],
+  "references": [
+    { "path": "./apps/client" },
+    { "path": "./apps/cli" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/agentkit" }
+  ]
 }

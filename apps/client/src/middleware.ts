@@ -4,10 +4,21 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/app-manager(.*)", // Temporarily public for testing
+  "/app-manager-test(.*)", // Simple test route
+  "/app-manager-debug(.*)", // Debug route
+  "/simple-debug(.*)", // Simple debug route
+  "/test-hydration(.*)", // Hydration test route
+  "/test-no-clerk(.*)", // Test without Clerk
   "/api/webhooks(.*)",
   "/api/trpc(.*)",
   "/api/configs(.*)",
   "/api/agent(.*)",
+  "/api/hello(.*)",
+  "/api/workspace(.*)",
+  "/api/chatapps(.*)",
+  "/configs(.*)", // Allow access to static config files
+  "/static/configs(.*)", // Allow access to static config files in /static directory
   "/_next(.*)",
   "/(assets|images|favicon.ico)(.*)",
   "/theme-test(.*)",

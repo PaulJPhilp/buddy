@@ -1,0 +1,17 @@
+{
+  "workspaces": [
+    {
+      "id": "writing",
+      "configPath": "/static/configs/workspaces/writing/workspace.json"
+    },
+    {
+      "id": "ai",
+      "configPath": "/static/configs/workspaces/ai/workspace.json"
+    },
+    {
+      "id": "productivity",
+      "configPath": "/static/configs/workspaces/productivity/workspace.json"
+    }
+  ],
+  "generatedAt": "2024-01-01T00:00:00.000Z"
+}

@@ -6,13 +6,28 @@
  * JSON parsing, and other common tasks throughout the application.
  */
 
-import type {
-  FileReadError,
-  FileSystemUnavailableError,
-  JsonParseError,
-} from "@/types/errors";
 import { Effect } from "effect";
 import { debugLog } from "./debugLogger";
+
+// Local error type definitions
+export interface FileReadError {
+  readonly _tag: "FileReadError";
+  readonly message: string;
+  readonly path: string;
+  readonly cause: Error;
+}
+
+export interface FileSystemUnavailableError {
+  readonly _tag: "FileSystemUnavailableError";
+  readonly message: string;
+}
+
+export interface JsonParseError {
+  readonly _tag: "JsonParseError";
+  readonly message: string;
+  readonly cause: unknown;
+  readonly input: string;
+}
 
 /**
  * Type representing any valid JSON value

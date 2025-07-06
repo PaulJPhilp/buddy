@@ -1,0 +1,69 @@
+{
+  "id": "building-ai-chat",
+  "name": "Building AI",
+  "agentId": "ai-expert-agent",
+  "toolbarId": "default-toolbar",
+  "themeId": "cyan-theme",
+  "description": "A cyan-themed chat application for building AI",
+  "version": "1.0.0",
+  "agent": {
+    "id": "ai-agent"
+  },
+  "toolbar": {
+    "id": "default-toolbar"
+  },
+  "style": {
+    "colors": {
+      "primary": "#06b6d4",
+      "secondary": "#ecfeff",
+      "accent": "#22d3ee",
+      "background": "white",
+      "text": "gray-900"
+    },
+    "borders": {
+      "color": "#cffafe",
+      "thickness": "2px",
+      "radius": "0.75rem"
+    },
+    "bubbles": {
+      "user": {
+        "background": "#22d3ee",
+        "text": "white",
+        "radius": "rounded-lg",
+        "border": "1px solid #a5f3fc",
+        "padding": "0.5rem 0.75rem"
+      },
+      "agent": {
+        "background": "#ecfeff",
+        "text": "gray-900",
+        "radius": "rounded-lg",
+        "border": "1px solid #cffafe",
+        "padding": "0.5rem 0.75rem"
+      }
+    },
+    "userArea": {
+      "background": "#ecfeff",
+      "inputRingColor": "cyan-500",
+      "padding": "0.5rem"
+    },
+    "header": {
+      "background": "#cffafe",
+      "text": "#06b6d4",
+      "borderBottom": "1px solid #a5f3fc",
+      "padding": "0.5rem 1rem"
+    },
+    "chatArea": {
+      "background": "white",
+      "border": "2px solid #cffafe",
+      "radius": "0.75rem",
+      "padding": "0.75rem"
+    },
+    "typography": {
+      "fontFamily": "Inter, sans-serif",
+      "fontSize": "0.95rem"
+    }
+  },
+  "isDefault": false,
+  "isShared": true,
+  "spaceId": "ai"
+}

@@ -48,7 +48,7 @@ import { Effect } from 'effect'
 
 const loadConfig = (id: string) =>
   Effect.gen(function* () {
-    const response = yield* fetch(`/api/configs/${id}`)
+    const response = yield* fetch(`/api/urls/${id}`)
     const data = yield* response.json()
     
     // Parse with Effect error handling
@@ -61,7 +61,7 @@ const loadConfig = (id: string) =>
 ```typescript
 import { ChatAppConfig } from '@/types/global'
 
-export class ConfigService extends Effect.Service<ConfigService>()("ConfigService", {
+export class UrlService extends Effect.Service<UrlService>()("UrlService", {
   effect: Effect.gen(function* () {
     const save = (config: ChatAppConfig) =>
       Effect.gen(function* () {

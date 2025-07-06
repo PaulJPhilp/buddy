@@ -1,0 +1,31 @@
+{
+  "name": "@buddy/cli",
+  "version": "0.1.0",
+  "description": "Buddy Workspace CLI - Command line interface for managing Buddy workspaces",
+  "type": "module",
+  "main": "src/buddy-workspace-cli.ts",
+  "bin": {
+    "buddy": "src/buddy-workspace-cli.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/buddy-workspace-cli.ts",
+    "build": "bun build src/buddy-workspace-cli.ts --outdir=dist --target=bun",
+    "start": "bun run dist/buddy-workspace-cli.js"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10"
+  },
+  "keywords": [
+    "cli",
+    "workspace",
+    "buddy",
+    "management"
+  ],
+  "author": "Buddy Team",
+  "license": "MIT"
+}

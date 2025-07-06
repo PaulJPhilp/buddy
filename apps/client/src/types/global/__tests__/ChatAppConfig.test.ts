@@ -10,6 +10,8 @@ describe("ChatAppConfig Schema", () => {
     themeId: "test-theme",
     description: "A test chat application",
     version: "1.0.0",
+    updatedAt: "2024-01-01T00:00:00Z",
+    ownerId: "user-1",
   };
 
   const validConfigWithEmbedded = {
@@ -30,6 +32,10 @@ describe("ChatAppConfig Schema", () => {
         secondary: "#fce7f3",
       },
     },
+    description: "A test chat application",
+    version: "1.0.0",
+    updatedAt: "2024-01-01T00:00:00Z",
+    ownerId: "user-1",
   };
 
   describe("Schema Validation", () => {
@@ -99,6 +105,8 @@ describe("ChatAppConfig Schema", () => {
         themeId: "pink-theme",
         description: "A pink-themed chat application",
         version: "1.0.0",
+        updatedAt: "2024-01-01T00:00:00Z",
+        ownerId: "user-1",
         agent: {
           id: "pink-agent",
           initialAgentName: "Pink Agent",
