@@ -19,13 +19,17 @@
       "@buddy/ui/*": ["./packages/ui/src/*"],
       "@buddy/agentkit": ["./packages/agentkit"],
       "@buddy/agentkit/*": ["./packages/agentkit/*"]
-    }
+    },
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ]
   },
   "include": ["packages/**/*", "apps/**/*"],
   "exclude": ["node_modules", "**/node_modules", "**/dist", "**/.next"],
   "references": [
     { "path": "./apps/client" },
-    { "path": "./apps/cli" },
     { "path": "./packages/ui" },
     { "path": "./packages/agentkit" }
   ]

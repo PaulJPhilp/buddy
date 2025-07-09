@@ -1,5 +1,36 @@
-import { Effect, Layer, Ref } from "effect";
+import { Effect, Layer, Queue, Ref } from "effect";
 import type { ChatAppsManagerApi } from "./api";
+import type { ChatAppsCommand } from "./commands";
+import {
+  ArchiveChatApp,
+  CloseAllAppsInWorkspace,
+  CloseChatApp,
+  CompactChatApp,
+  EnforceCapacityLimits,
+  EnterFocusMode,
+  ExecuteChatAppsOperation,
+  ExitFocusMode,
+  ExpandChatApp,
+  ExpandMultipleChatApps,
+  MigrateChatApps,
+  OnWorkspaceActivated,
+  OnWorkspaceArchived,
+  RegisterChatApp,
+  ResetChatAppsState,
+  RestoreChatApp,
+  RestoreWorkspaceLayout,
+  SaveChatAppLayout,
+  SaveWorkspaceLayout,
+  SetActiveChatApp,
+  SetChatAppStatus,
+  SetChatAppsState,
+  SetWorkspaceMaxExpandedApps,
+  StashAllAppsInWorkspace,
+  StashChatApp,
+  SwitchChatAppAgent,
+  UnregisterChatApp,
+  UpdateChatAppConfig,
+} from "./commands";
 import {
   ChatAppAlreadyExistsError,
   ChatAppNotFoundError,
@@ -67,6 +98,19 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
       const listenersRef = yield* Ref.make<
         Set<(state: ChatAppsManagerState) => void>
       >(new Set());
+
+      // Command processing infrastructure
+      const commandQueue = yield* Queue.unbounded<ChatAppsCommand>();
+
+      // Process commands asynchronously
+      yield* Effect.fork(
+        Effect.forever(
+          Effect.gen(function* () {
+            const command = yield* Queue.take(commandQueue);
+            yield* handleCommand(command);
+          })
+        )
+      );
 
       // Helper functions
       const updateState = (
@@ -177,6 +221,164 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
           lastUpdated: new Date(),
         };
       };
+
+      // Command handler
+      const handleCommand = (
+        command: ChatAppsCommand
+      ): Effect.Effect<void, any, never> =>
+        Effect.gen(function* () {
+          switch (command._tag) {
+            case "SetChatAppsState":
+              yield* setState(command.updates);
+              break;
+
+            case "ResetChatAppsState":
+              yield* resetState();
+              break;
+
+            case "RegisterChatApp":
+              yield* registerChatApp(
+                command.workspaceId,
+                command.appId,
+                command.config
+              );
+              break;
+
+            case "UnregisterChatApp":
+              yield* unregisterChatApp(command.appId);
+              break;
+
+            case "SetChatAppStatus":
+              yield* setChatAppStatus(
+                command.appId,
+                command.status as ChatAppStatus
+              );
+              break;
+
+            case "ExpandChatApp":
+              yield* expandChatApp(command.appId);
+              break;
+
+            case "CompactChatApp":
+              yield* compactChatApp(command.appId);
+              break;
+
+            case "StashChatApp":
+              yield* stashChatApp(command.appId);
+              break;
+
+            case "CloseChatApp":
+              yield* closeChatApp(command.appId);
+              break;
+
+            case "ArchiveChatApp":
+              yield* archiveChatApp(command.appId);
+              break;
+
+            case "RestoreChatApp":
+              yield* restoreChatApp(command.appId);
+              break;
+
+            case "SetActiveChatApp":
+              yield* setActiveChatApp(command.appId);
+              break;
+
+            case "EnterFocusMode":
+              yield* enterFocusMode(command.appId, command.config);
+              break;
+
+            case "ExitFocusMode":
+              yield* exitFocusMode();
+              break;
+
+            case "ExpandMultipleChatApps":
+              yield* expandMultipleChatApps(command.appIds);
+              break;
+
+            case "StashAllAppsInWorkspace":
+              yield* stashAllAppsInWorkspace(
+                command.workspaceId,
+                command.exceptAppId
+              );
+              break;
+
+            case "CloseAllAppsInWorkspace":
+              yield* closeAllAppsInWorkspace(command.workspaceId);
+              break;
+
+            case "RestoreWorkspaceLayout":
+              yield* restoreWorkspaceLayout(command.workspaceId);
+              break;
+
+            case "UpdateChatAppConfig":
+              yield* updateChatAppConfig(command.appId, command.config);
+              break;
+
+            case "SwitchChatAppAgent":
+              yield* switchChatAppAgent(command.appId, command.agentId);
+              break;
+
+            case "SetWorkspaceMaxExpandedApps":
+              yield* setWorkspaceMaxExpandedApps(
+                command.workspaceId,
+                command.maxApps
+              );
+              break;
+
+            case "SaveChatAppLayout":
+              yield* saveChatAppLayout(
+                command.appId,
+                command.layout as LayoutConfig
+              );
+              break;
+
+            case "SaveWorkspaceLayout":
+              yield* saveWorkspaceLayout(
+                command.workspaceId,
+                command.layout as WorkspaceLayoutConfig
+              );
+              break;
+
+            case "OnWorkspaceActivated":
+              yield* onWorkspaceActivated(command.workspaceId);
+              break;
+
+            case "OnWorkspaceArchived":
+              yield* onWorkspaceArchived(command.workspaceId);
+              break;
+
+            case "MigrateChatApps":
+              yield* migrateChatAppsToWorkspace(
+                command.appIds,
+                command.targetWorkspaceId
+              );
+              break;
+
+            case "EnforceCapacityLimits":
+              yield* enforceCapacityLimits(command.workspaceId);
+              break;
+
+            case "ExecuteChatAppsOperation":
+              yield* executeOperation(command.operation);
+              break;
+
+            default:
+              // @ts-expect-error - exhaustive check
+              throw new Error(`Unknown command: ${command._tag}`);
+          }
+        }).pipe(
+          Effect.catchAll((error) =>
+            Effect.gen(function* () {
+              console.error(`Failed to handle command ${command._tag}:`, error);
+              // Update state with error if needed
+              yield* updateState((state) => ({
+                ...state,
+                lastError:
+                  error instanceof Error ? error.message : String(error),
+              }));
+            })
+          )
+        );
 
       // Core API Implementation
       const getState = () => Ref.get(stateRef);
@@ -449,15 +651,69 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
       const closeChatApp = (appId: string) => Effect.succeed(undefined);
       const archiveChatApp = (appId: string) => Effect.succeed(undefined);
       const restoreChatApp = (appId: string) => Effect.succeed(undefined);
-      const setActiveChatApp = (appId: string) => Effect.succeed(undefined);
+      const setActiveChatApp = (appId: string) =>
+        Effect.gen(function* () {
+          yield* validateChatAppExists(appId);
+
+          yield* updateState((state) => ({
+            ...state,
+            activeAppId: appId,
+            chatAppInstances: {
+              ...state.chatAppInstances,
+              [appId]: {
+                ...state.chatAppInstances[appId],
+                isActive: true,
+                lastActiveAt: new Date(),
+              },
+            },
+          }));
+        }).pipe(
+          Effect.mapError((cause) => {
+            if (cause instanceof ChatAppNotFoundError) {
+              return cause;
+            }
+            return new ChatAppsManagerOperationError({
+              message: `Failed to set active ChatApp: ${appId}`,
+              operation: "setActiveChatApp",
+              appId,
+              cause,
+            });
+          })
+        );
       const getActiveChatApp = () => Effect.succeed(null);
       const clearActiveChatApp = () => Effect.succeed(undefined);
       const setWorkspaceMaxExpandedApps = (
         workspaceId: string,
         maxApps: number
-      ) => Effect.succeed(undefined);
+      ) =>
+        Effect.gen(function* () {
+          yield* updateState((state) => ({
+            ...state,
+            workspaceCapacities: {
+              ...state.workspaceCapacities,
+              [workspaceId]: {
+                ...state.workspaceCapacities[workspaceId],
+                maxExpandedApps: maxApps,
+              },
+            },
+          }));
+        }).pipe(
+          Effect.mapError(
+            (cause) =>
+              new ChatAppsManagerOperationError({
+                message: `Failed to set workspace max expanded apps: ${workspaceId}`,
+                operation: "setWorkspaceMaxExpandedApps",
+                workspaceId,
+                cause,
+              })
+          )
+        );
+
       const getWorkspaceMaxExpandedApps = (workspaceId: string) =>
-        Effect.succeed(2);
+        Effect.gen(function* () {
+          const state = yield* Ref.get(stateRef);
+          return state.workspaceCapacities[workspaceId]?.maxExpandedApps || 2;
+        });
       const enforceCapacityLimits = (workspaceId: string) =>
         Effect.succeed(undefined);
       const getExpandedAppsInWorkspace = (workspaceId: string) =>
@@ -503,6 +759,10 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
         layout: WorkspaceLayoutConfig
       ) => Effect.succeed(undefined);
       const executeOperation = (operation: any) => Effect.succeed(undefined);
+
+      // Command dispatch method
+      const dispatch = (command: ChatAppsCommand) =>
+        Queue.offer(commandQueue, command);
 
       return {
         getState,
@@ -555,6 +815,7 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
         debugGetAllInstances,
         debugResetState,
         debugValidateState,
+        dispatch,
       } satisfies ChatAppsManagerApi;
     }),
     dependencies: [],

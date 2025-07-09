@@ -1,25 +1,29 @@
 "use client";
 
-import { Effect, Layer } from "effect";
-import { createContext, useContext, useEffect, useState } from "react";
+import { Effect, Layer, Runtime } from "effect";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { AppComponent } from "@/components/app";
-import { ChatAppComponent } from "@/components/chatapp";
-import { CoreComponent } from "@/components/core";
-import { WorkspaceComponent } from "@/components/workspace";
+import { AppComponent } from "@/components/app/service";
+import { ChatAppComponent } from "@/components/chatapp/service";
+import { WorkspaceComponent } from "@/components/workspace/service";
+import { ChatManager } from "@/managers/chat/service";
+import { ChatAppsManager } from "@/managers/chatapps/service";
+import { CoreManager } from "@/managers/core/service";
+import { WorkspaceManagerLive } from "@/managers/workspace";
 import { ChatService } from "@/services/chat";
 import { ChatBridge } from "@/services/chatbridge";
-import { ConfigService } from "@/services/config";
+import { ConfigService } from "@/services/config/service";
 
 interface EffectContextValue {
   readonly runWithServices: <A, E, R>(
     effect: Effect.Effect<A, E, R>,
   ) => Promise<A>;
+  readonly services: Layer.Layer<never, never, any>;
 }
 
 const EffectContext = createContext<EffectContextValue | null>(null);
 
-export function useEffectContext(): EffectContextValue {
+export function useEffectContext() {
   const context = useContext(EffectContext);
   if (!context) {
     throw new Error("useEffectContext must be used within an EffectProvider");
@@ -28,50 +32,32 @@ export function useEffectContext(): EffectContextValue {
 }
 
 export function EffectProvider({ children }: { children: React.ReactNode }) {
-  const [contextValue, setContextValue] = useState<EffectContextValue | null>(
-    null,
-  );
+  const [services, setServices] = useState<EffectContextValue | null>(null);
 
   useEffect(() => {
-    console.log("[EffectProvider] Initializing v2 services only");
-
-    // Create service layer with v2 services only
     const serviceLayer = Layer.mergeAll(
       ConfigService.Default,
-      CoreComponent.Default,
+      CoreManager.Default,
+      ChatManager.Default,
+      ChatAppsManager.Default,
+      WorkspaceManagerLive,
       AppComponent.Default,
-      WorkspaceComponent.Default,
       ChatAppComponent.Default,
-      ChatService.Default,
-      ChatBridge.Default,
+      WorkspaceComponent.Default,
     );
 
-    const runWithServices = <A, E, R>(
-      effect: Effect.Effect<A, E, R>,
-    ): Promise<A> => {
-      return Effect.runPromise(
-        Effect.provide(effect, serviceLayer) as Effect.Effect<A, E, never>,
-      );
-    };
-
-    setContextValue({ runWithServices });
-    console.log("[EffectProvider] v2 services initialized");
+    setServices({
+      runWithServices: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+        Effect.provide(effect, serviceLayer).pipe(Effect.runPromise),
+      services: serviceLayer,
+    });
   }, []);
 
-  if (!contextValue) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p>Initializing v2 services...</p>
-        </div>
-      </div>
-    );
+  if (!services) {
+    return null;
   }
 
   return (
-    <EffectContext.Provider value={contextValue}>
-      {children}
-    </EffectContext.Provider>
+    <EffectContext.Provider value={services}>{children}</EffectContext.Provider>
   );
 }

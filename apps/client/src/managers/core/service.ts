@@ -1,5 +1,17 @@
-import { Effect, Ref } from "effect";
+import { Effect, Queue, Ref } from "effect";
 import type { CoreManagerApi } from "./api";
+import type { CoreCommand } from "./commands";
+import {
+  CleanupCoreManager,
+  CoordinateOperation,
+  InitializeCoreManager,
+  OrchestrateOperation,
+  ResetCoreState,
+  RestartCoreManager,
+  SetCoreState,
+  StartCoreManager,
+  StopCoreManager,
+} from "./commands";
 import {
   CoreManagerCoordinationError,
   CoreManagerInitializationError,
@@ -22,6 +34,19 @@ export class CoreManager extends Effect.Service<CoreManagerApi>()(
         Set<(state: CoreManagerState) => void>
       >(new Set());
       const configRef = yield* Ref.make<CoreManagerConfig | null>(null);
+
+      // Command processing infrastructure
+      const commandQueue = yield* Queue.unbounded<CoreCommand>();
+
+      // Process commands asynchronously
+      yield* Effect.fork(
+        Effect.forever(
+          Effect.gen(function* () {
+            const command = yield* Queue.take(commandQueue);
+            yield* handleCommand(command);
+          })
+        )
+      );
 
       // Helper to notify subscribers
       const notifySubscribers = (state: CoreManagerState) =>
@@ -46,6 +71,69 @@ export class CoreManager extends Effect.Service<CoreManagerApi>()(
           yield* Ref.set(stateRef, newState);
           yield* notifySubscribers(newState);
         });
+
+      // Command handler
+      const handleCommand = (command: CoreCommand): Effect.Effect<void, any, never> =>
+        Effect.gen(function* () {
+          switch (command._tag) {
+            case "SetCoreState":
+              yield* setState(command.updates);
+              break;
+
+            case "ResetCoreState":
+              yield* Ref.set(stateRef, createDefaultManagerState());
+              yield* notifySubscribers(yield* Ref.get(stateRef));
+              break;
+
+            case "InitializeCoreManager":
+              yield* initialize(command.config as CoreManagerConfig);
+              break;
+
+            case "StartCoreManager":
+              yield* start();
+              break;
+
+            case "StopCoreManager":
+              yield* stop();
+              break;
+
+            case "RestartCoreManager":
+              // Restart = stop then start
+              yield* stop();
+              yield* start();
+              break;
+
+            case "CleanupCoreManager":
+              yield* cleanup();
+              break;
+
+            case "CoordinateOperation":
+              // Placeholder for coordination logic
+              yield* incrementOperationCount();
+              yield* Effect.log(`Coordinating operation: ${command.operationType}`);
+              break;
+
+            case "OrchestrateOperation":
+              // Placeholder for orchestration logic
+              yield* incrementOperationCount();
+              yield* Effect.log(`Orchestrating operation: ${command.operationType}`);
+              break;
+
+            default:
+              // @ts-expect-error - exhaustive check
+              throw new Error(`Unknown command: ${command._tag}`);
+          }
+        }).pipe(
+          Effect.catchAll((error) =>
+            Effect.gen(function* () {
+              console.error(`Failed to handle command ${command._tag}:`, error);
+              // Update state with error if needed
+              yield* setState({
+                error: error instanceof Error ? error.message : String(error),
+              });
+            })
+          )
+        );
 
       // Initialize manager
       const initialize = (config: CoreManagerConfig) =>
@@ -236,6 +324,9 @@ export class CoreManager extends Effect.Service<CoreManagerApi>()(
           )
         );
 
+      // Command dispatch method
+      const dispatch = (command: CoreCommand) => Queue.offer(commandQueue, command);
+
       return {
         initialize,
         getState,
@@ -244,6 +335,7 @@ export class CoreManager extends Effect.Service<CoreManagerApi>()(
         start,
         stop,
         cleanup,
+        dispatch,
       } satisfies CoreManagerApi;
     }),
     dependencies: [],

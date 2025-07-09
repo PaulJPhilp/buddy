@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { ChatCommand } from "./commands";
 import type { ChatManagerError } from "./errors";
 import type {
   AgentId,
@@ -118,4 +119,7 @@ export interface ChatManagerApi {
     },
     ChatManagerError
   >;
+
+  // Command Dispatch
+  readonly dispatch: (command: ChatCommand) => Effect.Effect<void, never>;
 }

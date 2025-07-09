@@ -9,6 +9,7 @@ export {
 } from "./errors";
 export type { CoreManagerError } from "./errors";
 export { CoreManager } from "./service";
+export * from "./commands";
 export type {
   CoreManagerState,
   CoreManagerConfig,

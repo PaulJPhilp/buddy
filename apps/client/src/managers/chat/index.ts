@@ -12,6 +12,7 @@ export {
 } from "./errors";
 export type { ChatManagerError } from "./errors";
 export { ChatManager } from "./service";
+export * from "./commands";
 export type {
   ChatManagerState,
   ChatManagerConfig,

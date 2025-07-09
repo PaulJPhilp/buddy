@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "composite": true,
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
-    "noEmit": true,
+    "outDir": "./dist",
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -14,6 +15,8 @@
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
+    "rootDir": "../..",
+    "rootDirs": ["src", "../../packages/ui/src"],
     "types": ["@testing-library/jest-dom"],
     "plugins": [
       {
@@ -39,14 +42,14 @@
       "@buddy/ui/*": ["../../packages/ui/src/*"],
       "@buddy/agentkit": ["../../packages/agentkit"],
       "@buddy/agentkit/*": ["../../packages/agentkit/*"]
-    }
+    },
+    "noEmit": true
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/**/*"
+    "src/**/*",
+    "../../packages/ui/src/**/*",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

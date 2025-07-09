@@ -91,38 +91,6 @@ export interface ConfigValidationSuggestion {
   readonly reason?: string;
 }
 
-// Configuration templates
-export interface ConfigTemplate {
-  readonly id: string;
-  readonly name: string;
-  readonly description?: string;
-  readonly version: string;
-  readonly category: string;
-  readonly template: Partial<AppDomainModel>;
-  readonly variables?: ConfigTemplateVariable[];
-  readonly requirements?: string[];
-  readonly tags?: string[];
-  readonly isDefault?: boolean;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
-
-export interface ConfigTemplateVariable {
-  readonly name: string;
-  readonly description?: string;
-  readonly type: "string" | "number" | "boolean" | "array" | "object";
-  readonly defaultValue?: unknown;
-  readonly required?: boolean;
-  readonly validation?: ConfigTemplateValidation;
-}
-
-export interface ConfigTemplateValidation {
-  readonly pattern?: string;
-  readonly min?: number;
-  readonly max?: number;
-  readonly options?: unknown[];
-  readonly customValidator?: string;
-}
 
 // Configuration constants
 export const CONFIG_CONSTANTS = {

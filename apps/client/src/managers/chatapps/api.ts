@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { ChatAppsCommand } from "./commands";
 import type { ChatAppsManagerError } from "./errors";
 import type {
   ChatAppInstance,
@@ -242,4 +243,7 @@ export interface ChatAppsManagerApi {
     boolean,
     ChatAppsManagerError
   >;
+
+  // Command Dispatch
+  readonly dispatch: (command: ChatAppsCommand) => Effect.Effect<void, never>;
 }

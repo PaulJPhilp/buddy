@@ -1,6 +1,30 @@
-import type { CoreComponentError } from "@/components/core";
-import type { WorkspaceComponentError } from "@/components/workspace";
 import { Data } from "effect";
+
+export class ConfigLoadError extends Data.TaggedError("ConfigLoadError")<{
+  readonly message: string;
+  readonly configPath?: string;
+  readonly cause?: unknown;
+}> {}
+
+export class ConfigSaveError extends Data.TaggedError("ConfigSaveError")<{
+  readonly message: string;
+  readonly configPath?: string;
+  readonly cause?: unknown;
+}> {}
+
+export class ConfigValidationError extends Data.TaggedError(
+  "ConfigValidationError"
+)<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+
+export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
+  readonly message: string;
+  readonly configPath?: string;
+  readonly format?: string;
+  readonly cause?: unknown;
+}> {}
 
 export class AppConfigLoadError extends Data.TaggedError("AppConfigLoadError")<{
   readonly message: string;
@@ -45,11 +69,7 @@ export class AppInitializationError extends Data.TaggedError(
 }> {}
 
 export type AppComponentError =
-  | AppConfigLoadError
-  | AppConfigValidationError
-  | AppWorkspaceError
-  | AppShellRenderError
-  | AppStateError
-  | AppInitializationError
-  | CoreComponentError
-  | WorkspaceComponentError;
+  | ConfigLoadError
+  | ConfigValidationError
+  | ConfigSaveError
+  | ConfigParseError;

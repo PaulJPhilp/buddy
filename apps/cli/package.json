@@ -1,30 +1,37 @@
 {
   "name": "@buddy/cli",
   "version": "0.1.0",
-  "description": "Buddy Workspace CLI - Command line interface for managing Buddy workspaces",
+  "description": "Buddy CLI - Command line interface for managing Buddy workspaces, chat apps, and configuration",
   "type": "module",
-  "main": "src/buddy-workspace-cli.ts",
+  "main": "src/simple-cli.ts",
   "bin": {
-    "buddy": "src/buddy-workspace-cli.ts"
+    "buddy": "src/simple-cli.ts"
   },
   "scripts": {
-    "dev": "bun run src/buddy-workspace-cli.ts",
-    "build": "bun build src/buddy-workspace-cli.ts --outdir=dist --target=bun",
-    "start": "bun run dist/buddy-workspace-cli.js"
+    "dev": "bun run src/simple-cli.ts",
+    "dev-effect": "bun run src/index.ts",
+    "build": "node build.js",
+    "start": "bun run dist/index.js",
+    "test": "bun test"
   },
   "dependencies": {
-    "commander": "^12.0.0",
-    "ws": "^8.16.0"
+    "@effect/cli": "^0.66.10",
+    "@effect/platform": "^0.87.10",
+    "@effect/schema": "^0.75.5",
+    "effect": "^3.16.12"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/ws": "^8.5.10"
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
   },
   "keywords": [
     "cli",
     "workspace",
     "buddy",
-    "management"
+    "management",
+    "effect",
+    "typescript"
   ],
   "author": "Buddy Team",
   "license": "MIT"

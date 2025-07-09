@@ -148,6 +148,17 @@ export function InteractiveScrollableTable({
             border: "1px solid #999",
           }}
           onClick={handleScrollbarClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleScrollbarClick(e as any);
+            }
+          }}
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={scrollWidth - clientWidth}
+          aria-valuenow={scrollLeft}
+          tabIndex={0}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = "1";
           }}

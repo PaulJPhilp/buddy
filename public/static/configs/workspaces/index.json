@@ -11,7 +11,11 @@
     {
       "id": "productivity",
       "configPath": "/static/configs/workspaces/productivity/workspace.json"
+    },
+    {
+      "id": "my-workspace",
+      "configPath": "/static/configs/workspaces/my-workspace/workspace.json"
     }
   ],
-  "generatedAt": "2024-01-01T00:00:00.000Z"
+  "generatedAt": "2025-01-08T21:25:00.000Z"
 }

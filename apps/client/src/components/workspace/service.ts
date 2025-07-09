@@ -90,12 +90,13 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           yield* validateWorkspaceConfigHelper(workspaceConfig);
           yield* executeOperation("load_config" as WorkspaceOperationType);
 
-          // Set workspace capacity in ChatAppsManager
+          // Set workspace capacity in ChatAppsManager via command
           yield* chatAppsManager
-            .setWorkspaceMaxExpandedApps(
-              workspaceConfig.id,
-              workspaceConfig.maxExpandedApps || 3
-            )
+            .dispatch({
+              _tag: "SetWorkspaceMaxExpandedApps",
+              workspaceId: workspaceConfig.id,
+              maxApps: workspaceConfig.maxExpandedApps || 3,
+            })
             .pipe(
               Effect.catchAll((error) => {
                 console.warn(
@@ -141,16 +142,21 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           yield* validateWorkspaceConfigHelper(workspaceConfig);
           yield* executeOperation("switch_workspace" as WorkspaceOperationType);
 
-          // Notify ChatAppsManager about workspace activation
-          yield* chatAppsManager.onWorkspaceActivated(workspaceConfig.id).pipe(
-            Effect.catchAll((error) => {
-              console.warn(
-                `Failed to activate workspace ${workspaceConfig.id} in ChatAppsManager:`,
-                error
-              );
-              return Effect.succeed(undefined);
+          // Notify ChatAppsManager about workspace activation via command
+          yield* chatAppsManager
+            .dispatch({
+              _tag: "OnWorkspaceActivated",
+              workspaceId: workspaceConfig.id,
             })
-          );
+            .pipe(
+              Effect.catchAll((error) => {
+                console.warn(
+                  `Failed to activate workspace ${workspaceConfig.id} in ChatAppsManager:`,
+                  error
+                );
+                return Effect.succeed(undefined);
+              })
+            );
 
           yield* setState({
             workspaceConfig,
@@ -193,17 +199,18 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             state.workspaceConfig.id
           );
 
-          // Register chat apps with ChatAppsManager
+          // Register chat apps with ChatAppsManager via commands
           yield* Effect.forEach(
             workspaceChatApps,
             (chatApp) =>
               state.workspaceConfig
                 ? chatAppsManager
-                    .registerChatApp(
-                      state.workspaceConfig.id,
-                      chatApp.id,
-                      chatApp
-                    )
+                    .dispatch({
+                      _tag: "RegisterChatApp",
+                      workspaceId: state.workspaceConfig.id,
+                      appId: chatApp.id,
+                      config: chatApp as any, // Convert ChatAppConfig to record format
+                    })
                     .pipe(
                       Effect.catchAll((error) => {
                         console.warn(
@@ -275,8 +282,11 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             );
           }
 
-          // Set chat app as active in ChatAppsManager
-          yield* chatAppsManager.setActiveChatApp(chatAppId);
+          // Set chat app as active in ChatAppsManager via command
+          yield* chatAppsManager.dispatch({
+            _tag: "SetActiveChatApp",
+            appId: chatAppId,
+          });
 
           // Update active chat apps list
           const currentActive = state.activeChatApps;
@@ -308,8 +318,11 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             "deactivate_chatapp" as WorkspaceOperationType
           );
 
-          // Stash chat app in ChatAppsManager
-          yield* chatAppsManager.stashChatApp(chatAppId);
+          // Stash chat app in ChatAppsManager via command
+          yield* chatAppsManager.dispatch({
+            _tag: "StashChatApp",
+            appId: chatAppId,
+          });
 
           // Update active chat apps list
           const state = yield* getState();
@@ -596,5 +609,4 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
     }),
     dependencies: [CoreComponent.Default, ChatAppsManager.Default],
   }
-
 ) {}

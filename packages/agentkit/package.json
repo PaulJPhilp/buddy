@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "Multi-provider AI agent service with stable AI SDK",
   "type": "module",
-  "main": "index.ts",
+  "main": "src/index.ts",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/google": "^1.2.19",
     "@ai-sdk/openai": "^1.3.22",
     "ai": "^4.3.16",
-    "effect": "^3.16.8",
+    "effect": "^3.16.12",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {

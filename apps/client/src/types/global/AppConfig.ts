@@ -22,9 +22,6 @@ export type {
   ConfigWatchOptions,
   ConfigMergeOptions,
   ConfigValidationOptions,
-  ConfigTemplate,
-  ConfigTemplateVariable,
-  ConfigTemplateValidation,
 } from "@services/config/types";
 
 export {

@@ -1,0 +1,33 @@
+{
+  "name": "@buddy/config",
+  "version": "0.1.0",
+  "description": "Configuration management system for Buddy applications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "effect": "^3.16.12",
+    "@effect/schema": "^0.63.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^1.6.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

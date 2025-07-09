@@ -1,28 +1,11 @@
-// Main exports
-export type { WorkspaceComponentApi } from "./api";
-export {
-  WorkspaceLoadError,
-  WorkspaceChatAppError,
-  WorkspaceAgentError,
-  WorkspaceUIError,
-  WorkspaceOperationError,
-  WorkspaceStateError,
-  WorkspaceValidationError,
-  WorkspaceSwitchError,
-  WorkspaceInitializationError,
-  WorkspaceConfigurationError,
-} from "./errors";
-export type { WorkspaceComponentError } from "./errors";
-export { WorkspaceComponent } from "./service";
-export type {
-  WorkspaceComponentConfig,
-  WorkspaceComponentState,
-} from "./types";
-export { createDefaultWorkspaceState } from "./types";
+/**
+ * This barrel file exports the UI components for the Workspace feature.
+ * It is the single entry point for accessing workspace-related UI components.
+ */
+export { WorkspaceContainer } from "./WorkspaceContainer";
 
-// React components
-export {
-  WorkspaceContainer,
-  useWorkspaceContainer,
-} from "./WorkspaceContainer";
-export type { WorkspaceContainerProps } from "./WorkspaceContainer";
+// Export WorkspaceComponent service
+export * from "./api";
+export * from "./errors";
+export * from "./service";
+export * from "./types";

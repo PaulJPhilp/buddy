@@ -46,7 +46,7 @@
     "ai": "^4.3.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "effect": "^3.16.8",
+    "effect": "^3.16.12",
     "geist": "^1.4.2",
     "gray-matter": "^4.0.3",
     "isomorphic-ws": "^5.0.0",

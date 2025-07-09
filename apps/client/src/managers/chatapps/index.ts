@@ -19,6 +19,7 @@ export {
 } from "./errors";
 export type { ChatAppsManagerError } from "./errors";
 export { ChatAppsManager } from "./service";
+export * from "./commands";
 export type {
   ChatAppInstance,
   ChatAppInstanceMetadata,

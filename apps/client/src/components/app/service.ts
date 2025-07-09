@@ -1,24 +1,8 @@
-import { CoreComponent } from "@/components/core";
-import {
-  CoreComponentCleanupError,
-  CoreComponentInitializationError,
-  CoreComponentStateError,
-  CoreComponentSubscriptionError,
-} from "@/components/core/errors";
-import type { CoreComponentConfig } from "@/components/core/types";
+import { ConfigService } from "@/services/config";
 import type { AppDomainModel, WorkspaceModel } from "@domain/index";
-import { ConfigService } from "@services/config";
-import { Effect, Ref } from "effect";
-import { WorkspaceComponent } from "../workspace";
+import { Effect, Layer, Ref } from "effect";
 import type { AppComponentApi } from "./api";
-import {
-  AppConfigLoadError,
-  AppConfigValidationError,
-  AppInitializationError,
-  AppShellRenderError,
-  AppStateError,
-  AppWorkspaceError,
-} from "./errors";
+import { AppComponentError, AppConfigLoadError } from "./errors";
 import type { AppComponentConfig, AppComponentState } from "./types";
 import { createDefaultAppState } from "./types";
 
@@ -26,386 +10,269 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
   "AppComponent",
   {
     scoped: Effect.gen(function* () {
-      // Get core component functionality and config service
-      const coreComponent = yield* CoreComponent;
       const configService = yield* ConfigService;
-      const workspaceComponent = yield* WorkspaceComponent;
-
-      // App-specific state
-      const appStateRef = yield* Ref.make<AppComponentState>(
+      const stateRef = yield* Ref.make<AppComponentState>(
         createDefaultAppState()
       );
-      const appConfigRef = yield* Ref.make<AppDomainModel | null>(null);
-      const configPathRef = yield* Ref.make<string | null>(null);
+      const subscribersRef = yield* Ref.make<
+        Array<(state: AppComponentState) => void>
+      >([]);
 
-      // Helper to validate app config using ConfigService
-      const validateAppConfig = (
-        config: unknown
-      ): Effect.Effect<AppDomainModel, AppConfigValidationError> =>
+      const setState = (updates: Partial<AppComponentState>) =>
         Effect.gen(function* () {
-          const validation = yield* configService
-            .validateConfig(config, {
-              strict: true,
-              checkDuplicates: true,
-              validateReferences: true,
-            })
-            .pipe(
-              Effect.mapError(
-                (cause) =>
-                  new AppConfigValidationError({
-                    message: "Config service validation failed",
-                    field: "root",
-                    cause,
-                  })
-              )
-            );
-
-          if (!validation.isValid) {
-            const errorMessages = validation.errors
-              .map((e) => e.message)
-              .join(", ");
-            yield* Effect.fail(
-              new AppConfigValidationError({
-                message: `Config validation failed: ${errorMessages}`,
-                field: "root",
-              })
-            );
-          }
-
-          return config as AppDomainModel;
-        });
-
-      // Load configuration
-      const loadConfig = (configPath?: string) =>
-        Effect.gen(function* () {
-          const pathToUse =
-            configPath || (yield* Ref.get(configPathRef)) || "./app.json";
-
-          const config = yield* configService.loadConfig(pathToUse, {
-            validateOnLoad: true,
-            mergeDefaults: true,
-          });
-
-          const validatedConfig = yield* validateAppConfig(config);
-
-          // Store config
-          yield* Ref.set(appConfigRef, validatedConfig);
-          yield* Ref.set(configPathRef, pathToUse);
-
-          // Initialize workspace component with workspaces from config
-          yield* Effect.forEach(
-            validatedConfig.workspaces,
-            (workspace) =>
-              workspaceComponent.loadWorkspace(workspace).pipe(
-                Effect.catchAll((error) => {
-                  console.warn(
-                    `Failed to load workspace ${workspace.id}:`,
-                    error
-                  );
-                  return Effect.succeed(undefined);
-                })
-              ),
-            { concurrency: "unbounded" }
-          );
-
-          // Load agents for workspace component
-          yield* workspaceComponent.loadAgents(validatedConfig.agents).pipe(
-            Effect.catchAll((error) => {
-              console.warn("Failed to load agents:", error);
-              return Effect.succeed(undefined);
-            })
-          );
-
-          // Load chat apps for workspace component
-          yield* workspaceComponent.loadChatApps(validatedConfig.chatapps).pipe(
-            Effect.catchAll((error) => {
-              console.warn("Failed to load chat apps:", error);
-              return Effect.succeed(undefined);
-            })
-          );
-
-          yield* setState({
-            appConfig: validatedConfig,
-            isConfigLoaded: true,
-          });
-
-          yield* Effect.log(`Configuration loaded from ${pathToUse}`);
-          return validatedConfig;
-        }).pipe(
-          Effect.mapError((cause) =>
-            cause instanceof AppConfigValidationError
-              ? cause
-              : new AppConfigLoadError({
-                  message: "Failed to load configuration",
-                  configPath: configPath || "unknown",
-                  cause,
-                })
-          )
-        );
-
-      // Reload configuration
-      const reloadConfig = () =>
-        Effect.gen(function* () {
-          const configPath = yield* Ref.get(configPathRef);
-          if (!configPath) {
-            yield* Effect.fail(
-              new AppConfigLoadError({
-                message: "No config path available for reload",
-                configPath: "unknown",
-              })
-            );
-          }
-
-          return yield* loadConfig(configPath);
-        });
-
-      // Get app configuration
-      const getAppConfig = () =>
-        Effect.gen(function* () {
-          return yield* Ref.get(appConfigRef);
-        });
-
-      // Set current workspace
-      const setCurrentWorkspace = (workspaceId: string) =>
-        Effect.gen(function* () {
-          const config = yield* Ref.get(appConfigRef);
-          if (!config) {
-            yield* Effect.fail(
-              new AppWorkspaceError({
-                message: "No app config loaded",
-                workspaceId,
-                operation: "set",
-              })
-            );
-          }
-
-          const workspace = config.workspaces.find((w) => w.id === workspaceId);
-          if (!workspace) {
-            yield* Effect.fail(
-              new AppWorkspaceError({
-                message: `Workspace not found: ${workspaceId}`,
-                workspaceId,
-                operation: "set",
-              })
-            );
-          }
-
-          // Switch workspace in workspace component
-          yield* workspaceComponent.switchWorkspace(workspace);
-
-          yield* setState({ currentWorkspaceId: workspaceId });
-          yield* Effect.log(`Current workspace set to: ${workspaceId}`);
-        }).pipe(
-          Effect.mapError((cause) =>
-            cause instanceof AppWorkspaceError
-              ? cause
-              : new AppWorkspaceError({
-                  message: "Failed to set current workspace",
-                  workspaceId,
-                  operation: "set",
-                  cause,
-                })
-          )
-        );
-
-      // Get current workspace
-      const getCurrentWorkspace = () =>
-        Effect.gen(function* () {
-          const state = yield* getState();
-          if (!state.currentWorkspaceId || !state.appConfig) {
-            return null;
-          }
-
-          return (
-            state.appConfig.workspaces.find(
-              (w) => w.id === state.currentWorkspaceId
-            ) || null
-          );
-        });
-
-      // Get all workspaces
-      const getWorkspaces = () =>
-        Effect.gen(function* () {
-          const config = yield* Ref.get(appConfigRef);
-          return config?.workspaces || [];
-        });
-
-      // Render app shell
-      const renderAppShell = () =>
-        Effect.gen(function* () {
-          const state = yield* getState();
-
-          if (!state.isConfigLoaded) {
-            yield* Effect.fail(
-              new AppShellRenderError({
-                message: "Cannot render app shell before config is loaded",
-              })
-            );
-          }
-
-          // Render workspace UI if we have a current workspace
-          if (state.currentWorkspaceId) {
-            yield* workspaceComponent.renderWorkspaceUI().pipe(
-              Effect.catchAll((error) => {
-                console.warn("Failed to render workspace UI:", error);
-                return Effect.succeed(undefined);
-              })
-            );
-          }
-
-          yield* Effect.log("Rendering AppShell...");
-          yield* setState({ isAppShellRendered: true });
-        }).pipe(
-          Effect.mapError((cause) =>
-            cause instanceof AppShellRenderError
-              ? cause
-              : new AppShellRenderError({
-                  message: "Failed to render app shell",
-                  cause,
-                })
-          )
-        );
-
-      // Check if app shell is rendered
-      const isAppShellRendered = () =>
-        Effect.gen(function* () {
-          const state = yield* getState();
-          return state.isAppShellRendered;
-        });
-
-      // Get app state
-      const getState = () =>
-        Effect.gen(function* () {
-          return yield* Ref.get(appStateRef);
-        });
-
-      // Set app state
-      const setState = (partialState: Partial<AppComponentState>) =>
-        Effect.gen(function* () {
-          const currentState = yield* Ref.get(appStateRef);
-          const newState: AppComponentState = {
+          const currentState = yield* Ref.get(stateRef);
+          const newState = {
             ...currentState,
-            ...partialState,
+            ...updates,
             lastUpdated: Date.now(),
           };
+          yield* Ref.set(stateRef, newState);
 
-          yield* Ref.set(appStateRef, newState);
+          // Notify subscribers
+          const subscribers = yield* Ref.get(subscribersRef);
+          yield* Effect.forEach(subscribers, (callback) =>
+            Effect.sync(() => callback(newState))
+          );
+        });
 
-          // Update appConfigRef if appConfig is provided
-          if (partialState.appConfig !== undefined) {
-            yield* Ref.set(appConfigRef, partialState.appConfig);
-          }
+      const getState = () => Ref.get(stateRef);
 
-          // Also update core component state if needed
-          if (
-            partialState.isInitialized !== undefined ||
-            partialState.isLoading !== undefined
-          ) {
-            yield* coreComponent.setState({
-              isInitialized: newState.isInitialized,
-              isLoading: newState.isLoading,
+      const loadConfig = (configPath?: string) =>
+        Effect.gen(function* () {
+          yield* setState({ isLoading: true });
+
+          try {
+            const path = configPath || "/static/configs/workspaces/index.json";
+
+            // Fetch the configuration via API route
+            const apiUrl = `/api/configs?path=${encodeURIComponent(path)}`;
+            const response = yield* Effect.tryPromise({
+              try: () => fetch(apiUrl),
+              catch: (error) =>
+                new AppConfigLoadError({
+                  message: "Failed to fetch configuration",
+                  configPath: path,
+                  cause: error,
+                }),
             });
+
+            if (!response.ok) {
+              yield* Effect.fail(
+                new AppConfigLoadError({
+                  message: `Configuration not found: ${response.status}`,
+                  configPath: path,
+                })
+              );
+            }
+
+            const configData = yield* Effect.tryPromise({
+              try: () => response.json(),
+              catch: (error) =>
+                new AppConfigLoadError({
+                  message: "Failed to parse configuration JSON",
+                  configPath: path,
+                  cause: error,
+                }),
+            });
+
+            // Load workspace configurations if available
+            const workspaces: WorkspaceModel[] = [];
+            if (configData.workspaces && Array.isArray(configData.workspaces)) {
+              for (const workspaceRef of configData.workspaces) {
+                try {
+                  const workspacePath =
+                    workspaceRef.configPath ||
+                    `/static/configs/workspaces/${workspaceRef.id}/workspace.json`;
+                  const wsApiUrl = `/api/configs?path=${encodeURIComponent(
+                    workspacePath
+                  )}`;
+                  const wsResponse = yield* Effect.tryPromise({
+                    try: () => fetch(wsApiUrl),
+                    catch: () => null,
+                  });
+
+                  if (wsResponse?.ok) {
+                    const workspaceData = yield* Effect.tryPromise({
+                      try: () => wsResponse.json(),
+                      catch: () => null,
+                    });
+
+                    if (workspaceData) {
+                      const workspace: WorkspaceModel = {
+                        id: workspaceData.id,
+                        name: workspaceData.name,
+                        description: workspaceData.description || "",
+                        chatappIds: workspaceData.chatAppIds || [],
+                        agentIds: workspaceData.availableAgents || [],
+                        permissions: {
+                          canAddApps: true,
+                          canRemoveApps: true,
+                          canModifyLayout: true,
+                          canChangeSettings: true,
+                          canInviteUsers: false,
+                          canManagePermissions: false,
+                        },
+                        isDefault: false,
+                        isArchived: workspaceData.isArchived || false,
+                        maxExpandedApps: workspaceData.maxExpandedApps || 2,
+                        createdAt:
+                          workspaceData.createdAt || new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        metadata: {
+                          icon: workspaceData.icon,
+                          color: workspaceData.color,
+                          activeAppId: workspaceData.activeAppId,
+                        },
+                      };
+                      workspaces.push(workspace);
+                    }
+                  }
+                } catch (error) {
+                  console.warn(
+                    `Failed to load workspace ${workspaceRef.id}:`,
+                    error
+                  );
+                }
+              }
+            }
+
+            // Create app domain model from config data
+            const appConfig: AppDomainModel = {
+              app: {
+                name: configData.name || "Buddy App",
+                version: configData.version || "1.0.0",
+                description: configData.description || "",
+                environment: "development",
+                locale: "en",
+                timezone: "UTC",
+              },
+              workspaces,
+              chatapps: [],
+              agents: [],
+              version: configData.version || "1.0.0",
+              createdAt: configData.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              metadata: configData.metadata || {},
+            };
+
+            yield* setState({
+              appConfig,
+              isConfigLoaded: true,
+              isLoading: false,
+            });
+
+            return appConfig;
+          } catch (error) {
+            yield* setState({ isLoading: false });
+            yield* Effect.fail(error);
           }
         });
 
-      // Subscribe to state changes
-      const subscribe = (callback: (state: AppComponentState) => void) =>
+      const getWorkspaces = () =>
         Effect.gen(function* () {
-          // In real implementation, this would use a proper subscription mechanism
-          // For now, we'll use a simple approach
-          return () => {
-            // Unsubscribe logic
-          };
-        });
-
-      // Initialize app component
-      const initialize = (config: CoreComponentConfig) =>
-        Effect.gen(function* () {
-          // Cast to AppComponentConfig since we know this is an app component
-          const appConfig = config as AppComponentConfig;
-
-          yield* coreComponent.initialize(config);
-          yield* Ref.set(configPathRef, appConfig.configPath);
-
-          // Initialize workspace component
-          yield* workspaceComponent.initialize({
-            id: `${config.id}-workspace`,
-            name: `${config.name} Workspace Manager`,
-            debugMode: config.debugMode,
-            workspaceId: `${config.id}-default-workspace`,
-          });
-
-          // Set initialized state
-          yield* setState({ isInitialized: true });
-
-          // Auto-load config if configured
-          if (appConfig.autoLoadConfig) {
-            yield* loadConfig(appConfig.configPath);
+          const state = yield* getState();
+          if (!state.appConfig?.workspaces) {
+            return [];
           }
 
-          // Auto-render shell if configured
-          if (appConfig.autoRenderShell && appConfig.autoLoadConfig) {
-            yield* renderAppShell();
-          }
-        }).pipe(
-          Effect.mapError((cause: unknown) => {
-            // Map app-specific errors to core component errors for interface compliance
-            if (cause instanceof AppInitializationError) {
-              return new CoreComponentInitializationError({
-                message: cause.message,
-                cause,
-              });
-            }
-            // If it's already a CoreComponentError, pass it through
-            if (
-              cause instanceof CoreComponentInitializationError ||
-              cause instanceof CoreComponentStateError ||
-              cause instanceof CoreComponentSubscriptionError ||
-              cause instanceof CoreComponentCleanupError
-            ) {
-              return cause;
-            }
-            // For any other errors, wrap in CoreComponentInitializationError
-            return new CoreComponentInitializationError({
-              message: "Failed to initialize app component",
-              cause,
-            });
-          })
-        );
-
-      // Cleanup
-      const cleanup = () =>
-        Effect.gen(function* () {
-          yield* workspaceComponent.cleanup();
-          yield* coreComponent.cleanup();
-          yield* Ref.set(appStateRef, createDefaultAppState());
-          yield* Ref.set(appConfigRef, null);
-          yield* Ref.set(configPathRef, null);
+          return state.appConfig.workspaces;
         });
 
       return {
-        // Core component methods
-        initialize,
-        getState,
-        setState,
-        subscribe,
-        cleanup,
+        initialize: (config: AppComponentConfig) =>
+          Effect.gen(function* () {
+            yield* setState({
+              isInitialized: true,
+              componentId: config.id,
+              metadata: { config },
+            });
 
-        // App-specific methods
+            if (config.autoLoadConfig) {
+              yield* loadConfig(config.configPath);
+            }
+
+            if (config.autoRenderShell) {
+              yield* setState({ isAppShellRendered: true });
+            }
+          }),
+
+        getState,
+
+        setState,
+
+        subscribe: (callback: (state: AppComponentState) => void) =>
+          Effect.gen(function* () {
+            const subscribers = yield* Ref.get(subscribersRef);
+            yield* Ref.set(subscribersRef, [...subscribers, callback]);
+
+            return () =>
+              Effect.gen(function* () {
+                const currentSubscribers = yield* Ref.get(subscribersRef);
+                yield* Ref.set(
+                  subscribersRef,
+                  currentSubscribers.filter((s) => s !== callback)
+                );
+              });
+          }),
+
+        cleanup: () =>
+          Effect.gen(function* () {
+            yield* Ref.set(subscribersRef, []);
+            yield* setState(createDefaultAppState());
+          }),
+
         loadConfig,
-        reloadConfig,
-        getAppConfig,
-        setCurrentWorkspace,
-        getCurrentWorkspace,
+
+        reloadConfig: () =>
+          Effect.gen(function* () {
+            const state = yield* getState();
+            const config = state.metadata?.config as
+              | AppComponentConfig
+              | undefined;
+            const configPath =
+              config?.configPath || "/static/configs/workspaces/index.json";
+            return yield* loadConfig(configPath);
+          }),
+
+        getAppConfig: () =>
+          Effect.gen(function* () {
+            const state = yield* getState();
+            return state.appConfig;
+          }),
+
+        setCurrentWorkspace: (workspaceId: string) =>
+          Effect.gen(function* () {
+            yield* setState({ currentWorkspaceId: workspaceId });
+          }),
+
+        getCurrentWorkspace: () =>
+          Effect.gen(function* () {
+            const state = yield* getState();
+            if (!state.currentWorkspaceId) {
+              return null;
+            }
+
+            const workspaces = yield* getWorkspaces();
+            return (
+              workspaces.find((ws) => ws.id === state.currentWorkspaceId) ||
+              null
+            );
+          }),
+
         getWorkspaces,
-        renderAppShell,
-        isAppShellRendered,
-      } satisfies AppComponentApi;
+
+        renderAppShell: () =>
+          Effect.gen(function* () {
+            yield* setState({ isAppShellRendered: true });
+          }),
+
+        isAppShellRendered: () =>
+          Effect.gen(function* () {
+            const state = yield* getState();
+            return state.isAppShellRendered;
+          }),
+      };
     }),
-    dependencies: [
-      CoreComponent.Default,
-      ConfigService.Default,
-      WorkspaceComponent.Default,
-    ],
+    dependencies: [ConfigService.Default],
   }
 ) {}

@@ -1,5 +1,6 @@
 {
   "files.autoSave": "afterDelay",
   "markdown-preview-enhanced.HTML5EmbedUseLinkSyntax": true,
-  "editor.inlineSuggest.syntaxHighlightingEnabled": true
+  "editor.inlineSuggest.syntaxHighlightingEnabled": true,
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

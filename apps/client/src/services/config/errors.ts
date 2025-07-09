@@ -1,45 +1,8 @@
 import { Data } from "effect";
 
-export class ConfigLoadError extends Data.TaggedError("ConfigLoadError")<{
-  readonly message: string;
-  readonly configPath: string;
-  readonly cause?: unknown;
-}> {}
-
-export class ConfigSaveError extends Data.TaggedError("ConfigSaveError")<{
-  readonly message: string;
-  readonly configPath: string;
-  readonly cause?: unknown;
-}> {}
-
-export class ConfigValidationError extends Data.TaggedError(
-  "ConfigValidationError"
-)<{
-  readonly message: string;
-  readonly field?: string;
-  readonly value?: unknown;
-  readonly errors?: Record<string, string>;
-  readonly cause?: unknown;
-}> {}
-
-export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
-  readonly message: string;
-  readonly configPath: string;
-  readonly format?: string;
-  readonly cause?: unknown;
-}> {}
-
 export class ConfigWatchError extends Data.TaggedError("ConfigWatchError")<{
   readonly message: string;
   readonly configPath: string;
-  readonly cause?: unknown;
-}> {}
-
-export class ConfigTemplateError extends Data.TaggedError(
-  "ConfigTemplateError"
-)<{
-  readonly message: string;
-  readonly templateName?: string;
   readonly cause?: unknown;
 }> {}
 
@@ -135,12 +98,7 @@ export class ConfigTimeoutError extends Data.TaggedError("ConfigTimeoutError")<{
 }> {}
 
 export type ConfigServiceError =
-  | ConfigLoadError
-  | ConfigSaveError
-  | ConfigValidationError
-  | ConfigParseError
   | ConfigWatchError
-  | ConfigTemplateError
   | ConfigMergeError
   | ConfigBackupError
   | ConfigRestoreError

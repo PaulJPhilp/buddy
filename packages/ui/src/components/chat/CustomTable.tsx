@@ -84,9 +84,11 @@ export function parseMarkdownTable(markdownTable: string) {
       </thead>
       <tbody>
         {rows.map((row, rowIndex) => (
-          <tr key={`row-${rowIndex}-${row.join('-')}`}>
+          <tr key={`row-${rowIndex}-${row.join("-")}`}>
             {row.map((cell, cellIndex) => (
-              <CustomTableCell key={`cell-${rowIndex}-${cellIndex}-${cell}`}>{cell}</CustomTableCell>
+              <CustomTableCell key={`cell-${rowIndex}-${cellIndex}-${cell}`}>
+                {cell}
+              </CustomTableCell>
             ))}
           </tr>
         ))}

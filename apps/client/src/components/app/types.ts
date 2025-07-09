@@ -3,6 +3,7 @@ import type {
   CoreComponentState,
 } from "@/components/core";
 import type { AppDomainModel, WorkspaceModel } from "@domain/index";
+export type { AppDomainModel } from "@domain/index";
 
 // App component state (extends CoreComponentState)
 export interface AppComponentState extends CoreComponentState {
@@ -10,6 +11,8 @@ export interface AppComponentState extends CoreComponentState {
   readonly currentWorkspaceId: string | null;
   readonly isConfigLoaded: boolean;
   readonly isAppShellRendered: boolean;
+  readonly componentId?: string;
+  readonly metadata?: Record<string, unknown>;
 }
 
 // App component configuration (extends CoreComponentConfig)
@@ -43,5 +46,7 @@ export function createDefaultAppState(): AppComponentState {
     currentWorkspaceId: null,
     isConfigLoaded: false,
     isAppShellRendered: false,
+    componentId: "app-component",
+    metadata: {},
   };
 }
