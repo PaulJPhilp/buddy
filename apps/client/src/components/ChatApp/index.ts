@@ -22,5 +22,8 @@ export type {
 export { createDefaultChatAppState, CHATAPP_OPERATIONS } from "./types";
 
 // React components
+export { ChatApp } from "./ChatApp";
+export { ChatBubble } from "./ChatBubble";
+export { CustomTable, CustomTableCell } from "./CustomTable";
 export { ChatAppContainer, useChatAppContainer } from "./ChatAppContainer";
 export type { ChatAppContainerProps } from "./ChatAppContainer";

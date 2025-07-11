@@ -4,6 +4,7 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/chatapp-dev(.*)", // Chat app development page - public for development
   "/app-manager(.*)", // Temporarily public for testing
   "/app-manager-test(.*)", // Simple test route
   "/app-manager-debug(.*)", // Debug route
