@@ -1,9 +1,9 @@
 {
-  "id": "writing",
-  "name": "Writing",
-  "description": "Creative writing and content creation workspace",
-  "chatappIds": ["social-media-chat", "email-chat"],
-  "agentIds": ["ai-coach-agent", "ai-expert-agent"],
+  "id": "science",
+  "name": "Science",
+  "description": "Research and scientific analysis workspace",
+  "chatappIds": ["tasks-chat"],
+  "agentIds": ["ai-expert-agent"],
   "permissions": {
     "canAddApps": true,
     "canRemoveApps": true,

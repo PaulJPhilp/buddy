@@ -4,9 +4,9 @@
  * Contains only business logic - no UI or presentation concerns
  */
 
-import type { WorkspaceModel } from "./workspace";
-import type { ChatAppModel } from "./chatapp";
 import type { AgentModel } from "./agent";
+import type { ChatAppModel } from "./chatapp";
+import type { WorkspaceModel } from "./workspace";
 
 // Core app business model - clean composition
 export interface AppDomainModel {
@@ -17,6 +17,7 @@ export interface AppDomainModel {
   readonly version: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly settings?: Record<string, unknown>;
   readonly metadata?: Record<string, unknown>;
 }
 
@@ -37,9 +38,19 @@ export interface AppMetadata {
 // Domain operations for the entire app
 export interface AppDomainOperations {
   readonly getActiveWorkspaces: (app: AppDomainModel) => WorkspaceModel[];
-  readonly getWorkspaceChatApps: (app: AppDomainModel, workspaceId: string) => ChatAppModel[];
-  readonly getWorkspaceAgents: (app: AppDomainModel, workspaceId: string) => AgentModel[];
-  readonly canUserAccessWorkspace: (app: AppDomainModel, workspaceId: string, userId: string) => boolean;
+  readonly getWorkspaceChatApps: (
+    app: AppDomainModel,
+    workspaceId: string
+  ) => ChatAppModel[];
+  readonly getWorkspaceAgents: (
+    app: AppDomainModel,
+    workspaceId: string
+  ) => AgentModel[];
+  readonly canUserAccessWorkspace: (
+    app: AppDomainModel,
+    workspaceId: string,
+    userId: string
+  ) => boolean;
   readonly validateAppConfiguration: (app: AppDomainModel) => boolean;
 }
 
@@ -53,7 +64,7 @@ export function createAppDomainModel(params: {
   metadata?: Record<string, unknown>;
 }): AppDomainModel {
   const now = new Date().toISOString();
-  
+
   return {
     app: {
       name: "Buddy",
@@ -76,7 +87,7 @@ export function createAppDomainModel(params: {
 
 export function updateAppDomainModel(
   app: AppDomainModel,
-  updates: Partial<Pick<AppDomainModel, 'app' | 'version' | 'metadata'>>
+  updates: Partial<Pick<AppDomainModel, "app" | "version" | "metadata">>
 ): AppDomainModel {
   return {
     ...app,
@@ -86,51 +97,57 @@ export function updateAppDomainModel(
 }
 
 // Domain utilities
-export function getWorkspaceChatApps(app: AppDomainModel, workspaceId: string): ChatAppModel[] {
-  const workspace = app.workspaces.find(w => w.id === workspaceId);
+export function getWorkspaceChatApps(
+  app: AppDomainModel,
+  workspaceId: string
+): ChatAppModel[] {
+  const workspace = app.workspaces.find((w) => w.id === workspaceId);
   if (!workspace) return [];
-  
-  return app.chatapps.filter(chatapp => 
+
+  return app.chatapps.filter((chatapp) =>
     workspace.chatappIds.includes(chatapp.id)
   );
 }
 
-export function getWorkspaceAgents(app: AppDomainModel, workspaceId: string): AgentModel[] {
-  const workspace = app.workspaces.find(w => w.id === workspaceId);
+export function getWorkspaceAgents(
+  app: AppDomainModel,
+  workspaceId: string
+): AgentModel[] {
+  const workspace = app.workspaces.find((w) => w.id === workspaceId);
   if (!workspace) return [];
-  
-  return app.agents.filter(agent => 
-    workspace.agentIds.includes(agent.id)
-  );
+
+  return app.agents.filter((agent) => workspace.agentIds.includes(agent.id));
 }
 
 export function getActiveWorkspaces(app: AppDomainModel): WorkspaceModel[] {
-  return app.workspaces.filter(workspace => !workspace.isArchived);
+  return app.workspaces.filter((workspace) => !workspace.isArchived);
 }
 
 export function validateAppConfiguration(app: AppDomainModel): boolean {
   // Basic validation rules
   if (!app.app.name || app.app.name.trim().length === 0) return false;
   if (!app.version || app.version.trim().length === 0) return false;
-  
+
   // Validate workspace references
   for (const workspace of app.workspaces) {
     for (const chatappId of workspace.chatappIds) {
-      if (!app.chatapps.find(ca => ca.id === chatappId)) return false;
+      if (!app.chatapps.find((ca) => ca.id === chatappId)) return false;
     }
     for (const agentId of workspace.agentIds) {
-      if (!app.agents.find(a => a.id === agentId)) return false;
+      if (!app.agents.find((a) => a.id === agentId)) return false;
     }
   }
-  
+
   // Validate chatapp agent references
   for (const chatapp of app.chatapps) {
-    if (!app.agents.find(a => a.id === chatapp.agentId)) return false;
+    if (!app.agents.find((a) => a.id === chatapp.agentId)) return false;
   }
-  
+
   return true;
 }
 
-export function getDefaultWorkspace(app: AppDomainModel): WorkspaceModel | null {
-  return app.workspaces.find(w => w.isDefault) ?? null;
-} 
+export function getDefaultWorkspace(
+  app: AppDomainModel
+): WorkspaceModel | null {
+  return app.workspaces.find((w) => w.isDefault) ?? null;
+}

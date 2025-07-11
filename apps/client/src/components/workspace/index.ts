@@ -3,6 +3,7 @@
  * It is the single entry point for accessing workspace-related UI components.
  */
 export { WorkspaceContainer } from "./WorkspaceContainer";
+export { WorkspaceUI } from "./WorkspaceUI";
 
 // Export WorkspaceComponent service
 export * from "./api";

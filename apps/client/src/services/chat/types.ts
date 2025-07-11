@@ -278,19 +278,23 @@ export interface ChatRateLimits {
 
 // Validation helpers
 export function isValidChatMessage(message: unknown): message is ChatMessage {
+  if (typeof message !== "object" || message === null) {
+    return false;
+  }
+
+  const msg = message as Record<string, unknown>;
+
   return (
-    typeof message === "object" &&
-    message !== null &&
-    "id" in message &&
-    "content" in message &&
-    "role" in message &&
-    "timestamp" in message &&
-    "chatId" in message &&
-    typeof (message as any).id === "string" &&
-    typeof (message as any).content === "string" &&
-    ["user", "assistant", "system"].includes((message as any).role) &&
-    typeof (message as any).timestamp === "number" &&
-    typeof (message as any).chatId === "string"
+    "id" in msg &&
+    "content" in msg &&
+    "role" in msg &&
+    "timestamp" in msg &&
+    "chatId" in msg &&
+    typeof msg.id === "string" &&
+    typeof msg.content === "string" &&
+    ["user", "assistant", "system"].includes(msg.role as string) &&
+    typeof msg.timestamp === "number" &&
+    typeof msg.chatId === "string"
   );
 }
 
@@ -311,18 +315,22 @@ export function isValidMessageContent(content: unknown): content is string {
 export function isValidAttachment(
   attachment: unknown
 ): attachment is ChatAttachment {
+  if (typeof attachment !== "object" || attachment === null) {
+    return false;
+  }
+
+  const att = attachment as Record<string, unknown>;
+
   return (
-    typeof attachment === "object" &&
-    attachment !== null &&
-    "id" in attachment &&
-    "name" in attachment &&
-    "size" in attachment &&
-    "type" in attachment &&
-    typeof (attachment as any).id === "string" &&
-    typeof (attachment as any).name === "string" &&
-    typeof (attachment as any).size === "number" &&
-    typeof (attachment as any).type === "string" &&
-    (attachment as any).size <= CHAT_SERVICE_CONSTANTS.MAX_ATTACHMENT_SIZE
+    "id" in att &&
+    "name" in att &&
+    "size" in att &&
+    "type" in att &&
+    typeof att.id === "string" &&
+    typeof att.name === "string" &&
+    typeof att.size === "number" &&
+    typeof att.type === "string" &&
+    att.size <= CHAT_SERVICE_CONSTANTS.MAX_ATTACHMENT_SIZE
   );
 }
 

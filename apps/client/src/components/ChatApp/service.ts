@@ -124,7 +124,7 @@ export class ChatAppComponent extends Effect.Service<ChatAppComponentApi>()(
               })
             );
           }
-          yield* loadChatApp(state.chatAppConfig);
+          yield* loadChatApp(state.chatAppConfig!);
         });
 
       // Load agents for chat app
@@ -146,7 +146,7 @@ export class ChatAppComponent extends Effect.Service<ChatAppComponentApi>()(
 
           const chatAppAgents = filterAgentsForChatApp(
             agents,
-            state.chatAppConfig
+            state.chatAppConfig!
           );
 
           yield* setState({

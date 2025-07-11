@@ -133,7 +133,34 @@ export function filterAgentsForChatApp(
   agents: AgentConfig[],
   chatApp: ChatAppConfig
 ): AgentConfig[] {
-  return agents.filter((agent) => agent.id === chatApp.agentId);
+  // Handle both agentId (singular) and agentIds (plural) for backward compatibility
+  const agentIds: string[] = [];
+
+  // Type-safe property access for agentId
+  if (
+    "agentId" in chatApp &&
+    typeof chatApp.agentId === "string" &&
+    chatApp.agentId
+  ) {
+    agentIds.push(chatApp.agentId);
+  }
+
+  // Type-safe property access for agentIds (backward compatibility)
+  const chatAppAny = chatApp as any;
+  if (
+    "agentIds" in chatAppAny &&
+    Array.isArray(chatAppAny.agentIds) &&
+    chatAppAny.agentIds.every((id: unknown) => typeof id === "string")
+  ) {
+    agentIds.push(...(chatAppAny.agentIds as string[]));
+  }
+
+  // If no agent IDs specified, return all agents
+  if (agentIds.length === 0) {
+    return agents;
+  }
+
+  return agents.filter((agent) => agentIds.includes(agent.id));
 }
 
 // Helper to calculate next z-index

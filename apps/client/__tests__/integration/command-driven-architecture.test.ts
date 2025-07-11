@@ -7,9 +7,9 @@ import { ConfigService } from "../../src/services/config/service";
 
 // Chat commands
 import {
-  StartConversation,
   SendMessage,
   SetChatState,
+  StartConversation,
 } from "../../src/managers/chat/commands";
 
 // ChatApps commands
@@ -106,9 +106,11 @@ describe("Command-Driven Architecture Integration", () => {
       expect(state.isLoading).toBe(true);
 
       // Test conversation creation command
+      const conversationId = `conv_${Date.now()}_test`;
       yield* chatManager.dispatch(
         new StartConversation({
           _tag: "StartConversation",
+          conversationId,
           agentId: "test-agent",
           title: "Test Conversation",
         })
@@ -121,18 +123,20 @@ describe("Command-Driven Architecture Integration", () => {
       expect(conversations[0].title).toBe("Test Conversation");
 
       // Test message sending command
-      const conversationId = conversations[0].id;
+      const testConversationId = conversations[0].id;
+      const messageId = `msg_${Date.now()}_test`;
       yield* chatManager.dispatch(
         new SendMessage({
           _tag: "SendMessage",
-          conversationId,
+          messageId,
+          conversationId: testConversationId,
           content: "Hello, test message!",
         })
       );
 
       yield* Effect.sleep("100 millis");
 
-      const messages = yield* chatManager.getMessages(conversationId);
+      const messages = yield* chatManager.getMessages(testConversationId);
       expect(messages.length).toBeGreaterThan(0);
       expect(messages[0].content).toBe("Hello, test message!");
     });
@@ -213,6 +217,7 @@ describe("Command-Driven Architecture Integration", () => {
         chatManager.dispatch(
           new StartConversation({
             _tag: "StartConversation",
+            conversationId: `conv_${Date.now()}_multi`,
             agentId: "multi-test-agent",
             title: "Multi Test Conversation",
           })
@@ -270,10 +275,10 @@ describe("Command-Driven Architecture Integration", () => {
         "direct-agent",
         "Direct Test Message"
       );
-      
+
       // Wait for async command processing
       yield* Effect.sleep("100 millis");
-      
+
       const conversation = yield* chatManager.getConversation(conversationId);
       expect(conversation.id).toBe(conversationId);
 

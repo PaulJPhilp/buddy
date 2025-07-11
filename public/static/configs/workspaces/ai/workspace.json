@@ -3,12 +3,12 @@
   "name": "AI",
   "description": "Learning and building AI applications",
   "icon": "🤖",
-  "color": "#14b8a6",
-  "availableAgents": ["ai-expert-agent", "ai-coach-agent", "ai-trainer-agent"],
+  "primaryColor": "#14b8a6",
+  "agentIds": ["ai-expert-agent", "ai-coach-agent", "ai-trainer-agent"],
   "createdAt": "2024-01-01T00:00:00.000Z",
   "lastActiveAt": "2024-01-01T00:00:00.000Z",
   "isArchived": false,
   "maxExpandedApps": 2,
   "activeAppId": null,
-  "chatAppIds": ["learning-ai", "building-ai"]
+  "chatappIds": ["learning-ai-chat", "building-ai-chat"]
 }

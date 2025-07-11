@@ -5,14 +5,12 @@ import type { WorkspaceModel } from "@/domain/workspace";
 import { Effect } from "effect";
 import { Folder, FolderOpen, MessageSquare, Settings } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import { useWorkspaceManager } from "../workspace/useWorkspaceManager";
 import { AppComponent } from "./service";
 
-interface WorkspaceTreeProps {
-  onWorkspaceChange?: (workspace: WorkspaceModel | null) => void;
-}
-
-export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
+export function WorkspaceTree() {
   const { runWithServices } = useEffectContext();
+  const { switchWorkspace } = useWorkspaceManager();
   const [workspaces, setWorkspaces] = useState<WorkspaceModel[]>([]);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
     null,
@@ -40,12 +38,67 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
             const allWorkspaces = yield* appComponent.getWorkspaces();
             const currentWorkspace = yield* appComponent.getCurrentWorkspace();
 
-            setWorkspaces(allWorkspaces);
-            setCurrentWorkspaceId(currentWorkspace?.id || null);
+            // Validate workspaces array
+            if (!Array.isArray(allWorkspaces)) {
+              console.error(
+                "Invalid workspaces data - expected array:",
+                allWorkspaces,
+              );
+              setWorkspaces([]);
+              setCurrentWorkspaceId(null);
+              return;
+            }
+
+            // Validate each workspace has required fields
+            const validWorkspaces = allWorkspaces.filter((workspace) => {
+              if (!workspace || typeof workspace !== "object") {
+                console.warn("Invalid workspace object, skipping:", workspace);
+                return false;
+              }
+
+              if (!workspace.id || typeof workspace.id !== "string") {
+                console.warn(
+                  "Workspace missing valid ID, skipping:",
+                  workspace,
+                );
+                return false;
+              }
+
+              if (!workspace.name || typeof workspace.name !== "string") {
+                console.warn(
+                  "Workspace missing valid name, skipping:",
+                  workspace,
+                );
+                return false;
+              }
+
+              return true;
+            });
+
+            // Validate current workspace
+            const validCurrentWorkspace =
+              currentWorkspace &&
+              typeof currentWorkspace === "object" &&
+              typeof currentWorkspace.id === "string"
+                ? currentWorkspace
+                : null;
+
+            setWorkspaces(validWorkspaces);
+            setCurrentWorkspaceId(validCurrentWorkspace?.id || null);
+
+            if (validWorkspaces.length !== allWorkspaces.length) {
+              console.warn(
+                `Filtered out ${allWorkspaces.length - validWorkspaces.length} invalid workspaces`,
+              );
+            }
           }),
         );
       } catch (error) {
-        console.error("Failed to load workspace data:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error("Failed to load workspace data:", errorMessage);
+        setWorkspaces([]); // Set empty array on error
+        setCurrentWorkspaceId(null);
       } finally {
         setIsLoading(false);
       }
@@ -66,25 +119,30 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
 
   const handleSelectWorkspace = useCallback(
     async (workspaceId: string) => {
+      // Validate input
+      if (typeof workspaceId !== "string" || workspaceId.trim() === "") {
+        console.error("Invalid workspace ID provided:", workspaceId);
+        return;
+      }
+
       try {
-        await runWithServices(
-          Effect.gen(function* () {
-            const appComponent = yield* AppComponent;
-            yield* appComponent.setCurrentWorkspace(workspaceId);
-          }),
-        );
+        await switchWorkspace(workspaceId);
         setCurrentWorkspaceId(workspaceId);
         // Auto-expand the workspace when selected
         setExpandedWorkspaces((prev) => new Set([...prev, workspaceId]));
-
-        // Find the selected workspace and notify parent
-        const selectedWorkspace = workspaces.find((w) => w.id === workspaceId);
-        onWorkspaceChange?.(selectedWorkspace || null);
       } catch (error) {
-        console.error("Failed to set current workspace:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error(
+          `Failed to switch workspace ${workspaceId}:`,
+          errorMessage,
+        );
+
+        // Optionally show user-friendly error
+        // You could add a toast notification here
       }
     },
-    [runWithServices, workspaces, onWorkspaceChange],
+    [switchWorkspace],
   );
 
   const handleChatAppClick = (chatAppId: string) => {
@@ -94,30 +152,30 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
 
   if (isLoading) {
     return (
-      <div className="p-2">
-        <div className="animate-pulse space-y-1">
-          <div className="h-3 bg-gray-200 rounded w-3/4" />
-          <div className="h-3 bg-gray-200 rounded w-1/2" />
-          <div className="h-3 bg-gray-200 rounded w-2/3" />
+      <div className="p-1">
+        <div className="animate-pulse space-y-0.5">
+          <div className="h-1.5 bg-gray-200 rounded w-3/4" />
+          <div className="h-1.5 bg-gray-200 rounded w-1/2" />
+          <div className="h-1.5 bg-gray-200 rounded w-2/3" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-2">
-      <div className="space-y-1">
+    <div className="p-1">
+      <div className="space-y-0.5">
         {workspaces.map((workspace) => {
           const isExpanded = expandedWorkspaces.has(workspace.id);
           const isActive = currentWorkspaceId === workspace.id;
 
           return (
-            <div key={workspace.id} className="space-y-0.5">
+            <div key={workspace.id} className="space-y-0.25">
               {/* Workspace Header */}
               {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
               <div
                 className={`
-                  flex items-center w-full px-1.5 py-1 text-sm rounded cursor-pointer group
+                  flex items-center w-full px-0.75 py-0.5 text-xs rounded cursor-pointer group
                   transition-colors duration-150
                   ${
                     isActive
@@ -137,22 +195,44 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
                 >
                   {isExpanded ? (
                     <FolderOpen
-                      className={`h-3 w-3 mr-1.5 ${isActive ? "text-blue-600" : "text-blue-500"}`}
+                      className="h-1.5 w-1.5 mr-0.75"
+                      style={{
+                        color:
+                          (workspace.metadata?.style as any)?.primaryColor ||
+                          (workspace.metadata?.primaryColor as string) ||
+                          (isActive ? "#2563eb" : "#3b82f6"),
+                      }}
                     />
                   ) : (
                     <Folder
-                      className={`h-3 w-3 mr-1.5 ${isActive ? "text-blue-600" : "text-blue-500"}`}
+                      className="h-1.5 w-1.5 mr-0.75"
+                      style={{
+                        color:
+                          (workspace.metadata?.style as any)?.primaryColor ||
+                          (workspace.metadata?.primaryColor as string) ||
+                          (isActive ? "#2563eb" : "#3b82f6"),
+                      }}
                     />
                   )}
                 </button>
 
                 <div className="flex items-center flex-1">
                   {workspace.metadata?.icon && (
-                    <span className="mr-1.5 text-sm">
+                    <span className="mr-0.75 text-xs">
                       {String(workspace.metadata.icon)}
                     </span>
                   )}
-                  <span className="font-medium text-sm">{workspace.name}</span>
+                  <span
+                    className="font-medium text-xs"
+                    style={{
+                      color:
+                        (workspace.metadata?.style as any)?.primaryColor ||
+                        (workspace.metadata?.primaryColor as string) ||
+                        "#374151",
+                    }}
+                  >
+                    {workspace.name}
+                  </span>
                 </div>
 
                 <span className="ml-auto text-xs text-gray-400">
@@ -162,12 +242,12 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
 
               {/* Chat Apps */}
               {isExpanded && (
-                <div className="ml-4 space-y-0.5">
+                <div className="ml-2 space-y-0.25">
                   {workspace.chatappIds && workspace.chatappIds.length > 0 ? (
                     workspace.chatappIds.map((chatAppId) => (
                       <div
                         key={chatAppId}
-                        className="flex items-center px-1.5 py-0.5 text-sm text-gray-600 hover:bg-gray-50 rounded cursor-pointer"
+                        className="flex items-center px-0.75 py-0.25 text-xs text-gray-600 hover:bg-gray-50 rounded cursor-pointer"
                         tabIndex={0}
                         // biome-ignore lint/a11y/useSemanticElements: <explanation>
                         role="button"
@@ -179,12 +259,12 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
                         }}
                         aria-label={`Open chat app ${chatAppId}`}
                       >
-                        <MessageSquare className="h-3 w-3 mr-1.5 text-green-500" />
-                        <span className="text-sm">{chatAppId}</span>
+                        <MessageSquare className="h-1.5 w-1.5 mr-0.75 text-green-500" />
+                        <span className="text-xs">{chatAppId}</span>
                       </div>
                     ))
                   ) : (
-                    <div className="px-1.5 py-0.5 text-xs text-gray-400 italic">
+                    <div className="px-0.75 py-0.25 text-xs text-gray-400 italic">
                       No chat apps
                     </div>
                   )}
@@ -193,7 +273,7 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
 
               {/* Workspace Description */}
               {isExpanded && workspace.description && (
-                <div className="ml-4 px-1.5 py-0.5 text-xs text-gray-500">
+                <div className="ml-2 px-0.75 py-0.25 text-xs text-gray-500">
                   {workspace.description}
                 </div>
               )}
@@ -203,9 +283,9 @@ export function WorkspaceTree({ onWorkspaceChange }: WorkspaceTreeProps) {
       </div>
 
       {workspaces.length === 0 && !isLoading && (
-        <div className="text-center py-4 text-gray-500">
-          <Folder className="h-6 w-6 mx-auto mb-1 text-gray-300" />
-          <p className="text-sm">No workspaces available</p>
+        <div className="text-center py-2 text-gray-500">
+          <Folder className="h-3 w-3 mx-auto mb-0.5 text-gray-300" />
+          <p className="text-xs">No workspaces available</p>
         </div>
       )}
     </div>

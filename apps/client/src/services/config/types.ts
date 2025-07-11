@@ -5,8 +5,17 @@
  */
 
 // Import clean domain models
-import type { AppDomainModel } from "@domain/index";
-import { createAppDomainModel } from "@domain/index";
+import type { AppDomainModel } from "../../domain/index";
+import {
+  createAgentModel,
+  createAppDomainModel,
+  createChatAppModel,
+  createWorkspaceModel,
+  generateAgentId,
+  generateChatAppId,
+  generateWorkspaceId,
+  validateAppConfiguration,
+} from "../../domain/index";
 
 export type {
   AppDomainModel,
@@ -18,7 +27,7 @@ export type {
   AgentModel,
   AgentParameters,
   AgentPermissions,
-} from "@domain/index";
+} from "../../domain/index";
 
 // Configuration-specific types (not domain logic)
 export interface ConfigLoadOptions {
@@ -91,7 +100,6 @@ export interface ConfigValidationSuggestion {
   readonly reason?: string;
 }
 
-
 // Configuration constants
 export const CONFIG_CONSTANTS = {
   DEFAULT_CONFIG_PATH: "/configs/index.json",
@@ -101,7 +109,7 @@ export const CONFIG_CONSTANTS = {
   DEFAULT_RETRIES: 3,
 } as const;
 
-// Configuration utilities - delegate to domain models
+// Re-export domain utilities for convenience
 export {
   generateWorkspaceId,
   generateChatAppId,
@@ -110,7 +118,7 @@ export {
   createChatAppModel,
   createAgentModel,
   validateAppConfiguration,
-} from "@domain/index";
+};
 
 // Config-specific utilities
 export function isValidConfigPath(path: string): boolean {
@@ -161,7 +169,7 @@ export function isValidAgentId(id: string): boolean {
 
 // Default configuration factory
 export function createDefaultAppConfig(): AppDomainModel {
-  return createAppDomainModel({
+  const baseConfig = createAppDomainModel({
     app: {
       name: "Buddy",
       version: "1.0.0",
@@ -173,5 +181,41 @@ export function createDefaultAppConfig(): AppDomainModel {
     chatapps: [],
     agents: [],
     version: CONFIG_CONSTANTS.CURRENT_VERSION,
+  });
+
+  // Add the settings field that the schema expects
+  return {
+    ...baseConfig,
+    settings: {},
+  } as AppDomainModel;
+}
+
+// Additional factory functions for compatibility
+export function createDefaultWorkspaceConfig(name?: string, id?: string) {
+  return createWorkspaceModel({
+    id,
+    name: name ?? "Default Workspace",
+    description: "Default workspace configuration",
+  });
+}
+
+export function createDefaultChatAppConfig(name?: string, agentId?: string) {
+  return createChatAppModel({
+    name: name ?? "Default Chat App",
+    description: "Default chat app configuration",
+    agentId: agentId ?? "default-agent",
+  });
+}
+
+export function createDefaultAgentConfig(
+  name?: string,
+  provider?: string,
+  model?: string
+) {
+  return createAgentModel({
+    name: name ?? "Default Agent",
+    description: "Default agent configuration",
+    provider: provider ?? "openai",
+    model: model ?? "gpt-4",
   });
 }

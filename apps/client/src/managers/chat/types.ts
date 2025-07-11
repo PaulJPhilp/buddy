@@ -56,7 +56,8 @@ export type ChatOperationType =
   | "clear_history"
   | "set_agent"
   | "archive_conversation"
-  | "restore_conversation";
+  | "restore_conversation"
+  | "custom_operation";
 
 export interface ChatOperation {
   readonly type: ChatOperationType;

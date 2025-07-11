@@ -1,14 +1,72 @@
 {
   "compilerOptions": {
-    "downlevelIteration": true,
-    "target": "ES2020",
-    "module": "ESNext",
-    "lib": ["ES2020"],
-    "declaration": true,
-    "strict": true,
-    "moduleResolution": "node",
-    "esModuleInterop": true,
+    "target": "ESNEXT",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "allowJs": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/domain/*": ["./src/domain/*"],
+      "@/managers/*": ["./src/managers/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/ui-state/*": ["./src/ui-state/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"],
+
+  // Code Quality Rules
+  "rules": {
+    "no-dynamic-imports-in-effect": {
+      "description": "Dynamic imports (yield* import(...)) are anti-patterns in Effect code. Use static imports at module level instead.",
+      "severity": "error",
+      "examples": {
+        "bad": [
+          "const { SomeService } = yield* import('./service')",
+          "yield* import('@/managers/chatapps')",
+          "const module = yield* import('some-module')"
+        ],
+        "good": [
+          "import { SomeService } from './service'",
+          "import { ChatAppsManager } from '@/managers/chatapps'"
+        ]
+      }
+    },
+    "no-inline-imports": {
+      "description": "Inline imports within functions or Effect generators are anti-patterns. All imports should be at module level.",
+      "severity": "error",
+      "examples": {
+        "bad": [
+          "const service = await import('./service')",
+          "import('./service').then(module => ...)",
+          "const { SomeService } = require('./service')"
+        ],
+        "good": ["import { SomeService } from './service' // at top of file"]
+      }
+    },
+    "effect-service-dependencies": {
+      "description": "Effect services should declare all dependencies explicitly in the dependencies array, not import them dynamically.",
+      "severity": "error",
+      "rationale": "Dynamic imports break Effect's dependency injection system and make it impossible to properly compose and test services."
+    }
   }
 }

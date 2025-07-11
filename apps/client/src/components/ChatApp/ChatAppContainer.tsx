@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
+import { ChatAppConfig } from "@/types/global";
 import type { AgentModel, ChatAppModel } from "@services/config";
 import { Effect } from "effect";
 import React, {
@@ -16,6 +17,47 @@ import type {
   ChatAppComponentState,
   ChatAppUIState,
 } from "./types";
+
+// Utility function to convert ChatAppModel to ChatAppConfig
+function convertChatAppModelToConfig(model: ChatAppModel): ChatAppConfig {
+  return new ChatAppConfig({
+    id: model.id,
+    name: model.name,
+    agentId: model.agentId || "default-agent",
+    toolbarId: "default-toolbar", // Default value since not in model
+    themeId: "default-theme", // Default value since not in model
+    description: model.description,
+    version: model.version,
+    // Add other optional fields as needed
+  });
+}
+
+// Utility function to convert ChatAppConfig to ChatAppModel
+function convertChatAppConfigToModel(config: ChatAppConfig): ChatAppModel {
+  return {
+    id: config.id,
+    name: config.name,
+    description: config.description,
+    version: config.version || "1.0.0",
+    agentId: config.agentId,
+    workspaceId: undefined,
+    permissions: {
+      canSendMessages: true,
+      canReceiveMessages: true,
+      canViewHistory: true,
+      canDeleteMessages: false,
+      canModifySettings: false,
+      canShareConversations: false,
+    },
+    isDefault: false,
+    isShared: false,
+    isArchived: false,
+    plugins: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: {},
+  };
+}
 
 export interface ChatAppContainerProps {
   config: ChatAppComponentConfig;
@@ -106,10 +148,11 @@ export function ChatAppContainer({
     async (chatApp: ChatAppModel) => {
       try {
         setError(null);
+        const chatAppConfig = convertChatAppModelToConfig(chatApp);
         await runWithServices(
           Effect.gen(function* () {
             const chatAppComponent = yield* ChatAppComponent;
-            yield* chatAppComponent.loadChatApp(chatApp);
+            yield* chatAppComponent.loadChatApp(chatAppConfig);
           }),
         );
 
@@ -150,12 +193,13 @@ export function ChatAppContainer({
   // Get chat app configuration
   const getChatAppConfig = useCallback(async () => {
     try {
-      return await runWithServices(
+      const config = await runWithServices(
         Effect.gen(function* () {
           const chatAppComponent = yield* ChatAppComponent;
           return yield* chatAppComponent.getChatAppConfig();
         }),
       );
+      return config ? convertChatAppConfigToModel(config) : null;
     } catch (err) {
       console.error("[ChatAppContainer] Failed to get chat app config:", err);
       return null;

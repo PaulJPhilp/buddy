@@ -46,11 +46,18 @@ export function EffectProvider({ children }: { children: React.ReactNode }) {
       WorkspaceComponent.Default,
     );
 
-    setServices({
-      runWithServices: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-        Effect.provide(effect, serviceLayer).pipe(Effect.runPromise),
-      services: serviceLayer,
-    });
+    // Use manual memoization to ensure services maintain state
+    const initializeServices = Effect.scoped(
+      Layer.memoize(serviceLayer).pipe(
+        Effect.map((memoizedLayer) => ({
+          runWithServices: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+            Effect.provide(effect, memoizedLayer).pipe(Effect.runPromise),
+          services: memoizedLayer,
+        })),
+      ),
+    );
+
+    Effect.runPromise(initializeServices).then(setServices);
   }, []);
 
   if (!services) {

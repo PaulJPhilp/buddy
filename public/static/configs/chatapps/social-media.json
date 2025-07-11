@@ -13,55 +13,11 @@
     "id": "default-toolbar"
   },
   "style": {
-    "colors": {
-      "primary": "#1d4ed8",
-      "secondary": "#dbeafe",
-      "accent": "#3b82f6",
-      "background": "white",
-      "text": "gray-900"
-    },
-    "borders": {
-      "color": "#bfdbfe",
-      "thickness": "2px",
-      "radius": "0.75rem"
-    },
-    "bubbles": {
-      "user": {
-        "background": "#3b82f6",
-        "text": "white",
-        "radius": "rounded-lg",
-        "border": "1px solid #93c5fd",
-        "padding": "0.5rem 0.75rem"
-      },
-      "agent": {
-        "background": "#dbeafe",
-        "text": "gray-900",
-        "radius": "rounded-lg",
-        "border": "1px solid #bfdbfe",
-        "padding": "0.5rem 0.75rem"
-      }
-    },
-    "userArea": {
-      "background": "#eff6ff",
-      "inputRingColor": "blue-500",
-      "padding": "0.5rem"
-    },
-    "header": {
-      "background": "#dbeafe",
-      "text": "#1d4ed8",
-      "borderBottom": "1px solid #bfdbfe",
-      "padding": "0.5rem 1rem"
-    },
-    "chatArea": {
-      "background": "white",
-      "border": "2px solid #bfdbfe",
-      "radius": "0.75rem",
-      "padding": "0.75rem"
-    },
-    "typography": {
-      "fontFamily": "Inter, sans-serif",
-      "fontSize": "0.95rem"
-    }
+    "primaryColor": "#1d4ed8",
+    "backgroundColor": "#dbeafe",
+    "borderColor": "#bfdbfe",
+    "textColor": "#1d4ed8",
+    "accentColor": "#3b82f6"
   },
   "isDefault": false,
   "isShared": true,

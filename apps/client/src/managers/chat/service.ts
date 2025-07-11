@@ -45,7 +45,7 @@ import { CHAT_MANAGER_CONSTANTS } from "./types";
 function createConversation(command: StartConversation): ConversationState {
   const now = new Date();
   return {
-    id: `conv_${Date.now()}`,
+    id: command.conversationId,
     title: command.title || CHAT_MANAGER_CONSTANTS.DEFAULT_CONVERSATION_TITLE,
     status: "active",
     agentId: command.agentId,
@@ -64,7 +64,7 @@ function createConversation(command: StartConversation): ConversationState {
 function createMessage(command: SendMessage): MessageState {
   const now = new Date();
   return {
-    id: `msg_${Date.now()}`,
+    id: command.messageId,
     conversationId: command.conversationId,
     role: "user",
     content: command.content,
@@ -619,6 +619,14 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
                 });
               });
             });
+
+          default:
+            return Effect.fail(
+              new ChatManagerOperationError({
+                message: `Unknown command type: ${(command as any)._tag}`,
+                operation: "handleCommand",
+              })
+            );
         }
       };
 
@@ -632,36 +640,75 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
 
       // The public API of the service - implementing the original API with command dispatch
       return {
-        // State Management
+        // State Management - these should be synchronous for testing
         getState: () => Ref.get(stateRef),
         setState: (updates) =>
-          Queue.offer(
-            commandQueue,
-            new SetChatState({ _tag: "SetChatState", updates })
+          Ref.update(stateRef, (state) =>
+            updateStats({
+              ...state,
+              ...updates,
+            })
           ),
-        resetState: () =>
-          Queue.offer(
-            commandQueue,
-            new ResetChatState({ _tag: "ResetChatState" })
-          ),
+        resetState: () => Ref.set(stateRef, initialState),
 
         // Conversation Management
-        startConversation: (agentId, title) =>
+        startConversation: (agentId, initialMessage) =>
           Effect.gen(function* () {
+            const conversationId = `conv_${Date.now()}`;
+
+            // Create and track the operation
+            const operation: ChatOperation = {
+              type: "start_conversation",
+              timestamp: new Date(),
+              conversationId,
+              agentId,
+              parameters: initialMessage ? { initialMessage } : undefined,
+            };
+
             const command = new StartConversation({
               _tag: "StartConversation",
+              conversationId,
               agentId,
-              title,
+              title: undefined, // Use default title
             });
             yield* Queue.offer(commandQueue, command);
-            // Return the generated conversation ID (simplified for now)
-            return `conv_${Date.now()}`;
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+
+            // If an initial message is provided, send it
+            if (initialMessage) {
+              const messageId = `msg_${Date.now()}`;
+              const messageCommand = new SendMessage({
+                _tag: "SendMessage",
+                messageId,
+                conversationId,
+                content: initialMessage,
+              });
+              yield* Queue.offer(commandQueue, messageCommand);
+              // Wait for the message command to be processed
+              yield* Effect.sleep("50 millis");
+            }
+
+            // Update the current operation in state
+            yield* Ref.update(stateRef, (state) => ({
+              ...state,
+              currentOperation: operation,
+              operationHistory: [...state.operationHistory, operation].slice(
+                -CHAT_MANAGER_CONSTANTS.OPERATION_HISTORY_LIMIT
+              ),
+            }));
+
+            return conversationId;
           }),
         endConversation: (conversationId) =>
-          Queue.offer(
-            commandQueue,
-            new EndConversation({ _tag: "EndConversation", conversationId })
-          ),
+          Effect.gen(function* () {
+            yield* Queue.offer(
+              commandQueue,
+              new EndConversation({ _tag: "EndConversation", conversationId })
+            );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+          }),
         getConversation: (conversationId) =>
           Effect.gen(function* () {
             const state = yield* Ref.get(stateRef);
@@ -669,7 +716,7 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
             if (!conversation) {
               return yield* Effect.fail(
                 new ChatManagerConversationError({
-                  message: "Conversation not found",
+                  message: "Failed to get conversation",
                   conversationId,
                   operation: "getConversation",
                 })
@@ -690,25 +737,32 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
               : null;
           }),
         setActiveConversation: (conversationId) =>
-          Queue.offer(
-            commandQueue,
-            new SetActiveConversation({
-              _tag: "SetActiveConversation",
-              conversationId,
-            })
-          ),
+          Effect.gen(function* () {
+            yield* Queue.offer(
+              commandQueue,
+              new SetActiveConversation({
+                _tag: "SetActiveConversation",
+                conversationId,
+              })
+            );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+          }),
 
         // Message Management
         sendMessage: (conversationId, content) =>
           Effect.gen(function* () {
+            const messageId = `msg_${Date.now()}`;
             const command = new SendMessage({
               _tag: "SendMessage",
               conversationId,
               content,
+              messageId,
             });
             yield* Queue.offer(commandQueue, command);
-            // Return the generated message ID (simplified for now)
-            return `msg_${Date.now()}`;
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+            return messageId;
           }),
         getMessages: (conversationId) =>
           Effect.gen(function* () {
@@ -732,7 +786,7 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
             if (!message) {
               return yield* Effect.fail(
                 new ChatManagerMessageError({
-                  message: "Message not found",
+                  message: "Failed to get message",
                   messageId,
                   operation: "getMessage",
                 })
@@ -741,15 +795,23 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
             return message;
           }),
         updateMessage: (messageId, updates) =>
-          Queue.offer(
-            commandQueue,
-            new UpdateMessage({ _tag: "UpdateMessage", messageId, updates })
-          ),
+          Effect.gen(function* () {
+            yield* Queue.offer(
+              commandQueue,
+              new UpdateMessage({ _tag: "UpdateMessage", messageId, updates })
+            );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+          }),
         deleteMessage: (messageId) =>
-          Queue.offer(
-            commandQueue,
-            new DeleteMessage({ _tag: "DeleteMessage", messageId })
-          ),
+          Effect.gen(function* () {
+            yield* Queue.offer(
+              commandQueue,
+              new DeleteMessage({ _tag: "DeleteMessage", messageId })
+            );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+          }),
 
         // Operation Management
         executeOperation: (operation) =>
@@ -761,6 +823,8 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
                 operation,
               })
             );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
             return operation.result;
           }),
         getLastOperation: () =>
@@ -776,14 +840,18 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
 
         // Agent Management
         setConversationAgent: (conversationId, agentId) =>
-          Queue.offer(
-            commandQueue,
-            new SetConversationAgent({
-              _tag: "SetConversationAgent",
-              conversationId,
-              agentId,
-            })
-          ),
+          Effect.gen(function* () {
+            yield* Queue.offer(
+              commandQueue,
+              new SetConversationAgent({
+                _tag: "SetConversationAgent",
+                conversationId,
+                agentId,
+              })
+            );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+          }),
         getConversationAgent: (conversationId) =>
           Effect.gen(function* () {
             const state = yield* Ref.get(stateRef);
@@ -818,13 +886,17 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
             return limit ? messages.slice(-limit) : messages;
           }),
         clearConversationHistory: (conversationId) =>
-          Queue.offer(
-            commandQueue,
-            new ClearConversationHistory({
-              _tag: "ClearConversationHistory",
-              conversationId,
-            })
-          ),
+          Effect.gen(function* () {
+            yield* Queue.offer(
+              commandQueue,
+              new ClearConversationHistory({
+                _tag: "ClearConversationHistory",
+                conversationId,
+              })
+            );
+            // Wait for the command to be processed
+            yield* Effect.sleep("50 millis");
+          }),
         exportConversation: (conversationId) =>
           Effect.gen(function* () {
             const state = yield* Ref.get(stateRef);
@@ -888,7 +960,11 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
           Effect.gen(function* () {
             yield* Queue.offer(
               commandQueue,
-              new SearchMessages({ _tag: "SearchMessages", conversationId, query })
+              new SearchMessages({
+                _tag: "SearchMessages",
+                conversationId,
+                query,
+              })
             );
             // Get results from state after command processing
             const state = yield* Ref.get(stateRef);

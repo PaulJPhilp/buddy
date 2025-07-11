@@ -21,8 +21,26 @@ function mapVercelError(error: unknown): AgentServiceError {
   console.log("[AgentService] Mapping error:", error);
 
   if (typeof error === "object" && error !== null) {
-    const errorObj = error as any;
-    const message = errorObj.message || errorObj.toString();
+    // Type-safe property access without 'as any'
+    const hasMessage = "message" in error;
+    const hasToString =
+      "toString" in error && typeof error.toString === "function";
+
+    let message: string | undefined;
+
+    if (
+      hasMessage &&
+      typeof (error as { message: unknown }).message === "string"
+    ) {
+      message = (error as { message: string }).message;
+    } else if (hasToString) {
+      try {
+        message = error.toString();
+      } catch {
+        // toString() might throw, fallback to String conversion
+        message = String(error);
+      }
+    }
 
     if (typeof message === "string") {
       if (message.includes("API key") || message.includes("api key")) {
@@ -78,7 +96,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
     /**
      * Parameterized effect constructor: pass AgentConfig to create an agent instance.
      */
-    effect: (config: AgentConfig) =>
+    effect: (config: AgentConfig): Effect.Effect<AgentServiceApi> =>
       Effect.succeed({
         generate: (input) =>
           Effect.tryPromise({

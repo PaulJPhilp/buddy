@@ -8,7 +8,6 @@
 export type {
   WorkspaceUIState,
   WorkspaceLayoutConfig,
-  WorkspaceTheme,
   WindowPosition,
   WindowSize,
 } from "./workspace-ui-state";
@@ -40,11 +39,7 @@ export {
 } from "./chatapp-ui-state";
 
 // App UI
-export type {
-  AppUIState,
-  AppTheme,
-  AppLayoutState,
-} from "./app-ui-state";
+export type { AppUIState, AppTheme, AppLayoutState } from "./app-ui-state";
 
 export {
   createAppUIState,
@@ -56,4 +51,4 @@ export {
   getChatAppUIState,
   createLightTheme,
   createDarkTheme,
-} from "./app-ui-state"; 
+} from "./app-ui-state";

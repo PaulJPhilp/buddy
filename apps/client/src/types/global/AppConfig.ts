@@ -8,7 +8,7 @@ export type {
   AppMetadata,
   WorkspaceModel as WorkspaceConfig,
   WorkspacePermissions,
-  ChatAppModel as ChatAppConfig,
+  ChatAppModel,
   ChatAppPermissions,
   AgentModel as AgentConfig,
   AgentParameters,

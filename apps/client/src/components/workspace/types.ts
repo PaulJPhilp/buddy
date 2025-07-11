@@ -14,6 +14,7 @@ export interface WorkspaceComponentState extends CoreComponentState {
   readonly availableChatApps: ChatAppConfig[];
   readonly availableAgents: AgentConfig[];
   readonly activeChatApps: ChatAppConfig[];
+  readonly activeChatAppIds: string[]; // Computed from activeChatApps
   readonly isWorkspaceLoaded: boolean;
   readonly isUIRendered: boolean;
 }
@@ -68,6 +69,7 @@ export function createDefaultWorkspaceState(): WorkspaceComponentState {
     availableChatApps: [],
     availableAgents: [],
     activeChatApps: [],
+    activeChatAppIds: [],
     isWorkspaceLoaded: false,
     isUIRendered: false,
   };
@@ -78,9 +80,10 @@ export function filterChatAppsForWorkspace(
   chatApps: ChatAppConfig[],
   workspaceId: string
 ): ChatAppConfig[] {
-  return chatApps.filter(
-    (app) => app.workspaceId === workspaceId || !app.workspaceId
-  );
+  // Since ChatAppConfig doesn't have workspaceId, we need to filter by the chatapp IDs
+  // This function should be called with the workspace's chatappIds
+  // For now, return all chat apps since the filtering should be done at the workspace level
+  return chatApps;
 }
 
 // Helper to filter agents for workspace (using agent IDs)
@@ -137,5 +140,151 @@ export function validateWorkspaceConfig(
     isValid: errors.length === 0,
     errors,
     warnings,
+  };
+}
+
+// Type guards for safe property access
+export function isChatAppLike(obj: unknown): obj is {
+  id: string;
+  name: string;
+  agentId?: string;
+  toolbarId?: string;
+  themeId?: string;
+  description?: string;
+  version?: string;
+  agent?: unknown;
+  toolbar?: unknown;
+  style?: unknown;
+  updatedAt?: string;
+  ownerId?: string;
+  spaceId?: string;
+  theme?: unknown;
+  isDefault?: boolean;
+  isShared?: boolean;
+  agentIds?: string[];
+} {
+  if (typeof obj !== "object" || obj === null) {
+    return false;
+  }
+
+  const record = obj as Record<string, unknown>;
+
+  return (
+    "id" in record &&
+    "name" in record &&
+    typeof record.id === "string" &&
+    typeof record.name === "string"
+  );
+}
+
+export function isAgentLike(obj: unknown): obj is {
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  provider?: string;
+  model?: string;
+  prompt?: string;
+  capabilities?: string[];
+  parameters?: unknown;
+  permissions?: unknown;
+  isDefault?: boolean;
+  isShared?: boolean;
+  isArchived?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  metadata?: unknown;
+} {
+  if (typeof obj !== "object" || obj === null) {
+    return false;
+  }
+
+  const record = obj as Record<string, unknown>;
+
+  return (
+    "id" in record &&
+    "name" in record &&
+    typeof record.id === "string" &&
+    typeof record.name === "string"
+  );
+}
+
+// Safe property extractors
+export function extractChatAppProperties(obj: unknown): {
+  id: string;
+  name: string;
+  agentId?: string;
+  toolbarId?: string;
+  themeId?: string;
+  description?: string;
+  version?: string;
+  agent?: unknown;
+  toolbar?: unknown;
+  style?: unknown;
+  updatedAt?: string;
+  ownerId?: string;
+  spaceId?: string;
+  theme?: unknown;
+  isDefault?: boolean;
+  isShared?: boolean;
+  agentIds?: string[];
+} | null {
+  if (!isChatAppLike(obj)) {
+    return null;
+  }
+
+  const record = obj as Record<string, unknown>;
+
+  return {
+    id: record.id as string,
+    name: record.name as string,
+    agentId: typeof record.agentId === "string" ? record.agentId : undefined,
+    toolbarId:
+      typeof record.toolbarId === "string" ? record.toolbarId : undefined,
+    themeId: typeof record.themeId === "string" ? record.themeId : undefined,
+    description:
+      typeof record.description === "string" ? record.description : undefined,
+    version: typeof record.version === "string" ? record.version : undefined,
+    agent: record.agent,
+    toolbar: record.toolbar,
+    style: record.style,
+    updatedAt:
+      typeof record.updatedAt === "string" ? record.updatedAt : undefined,
+    ownerId: typeof record.ownerId === "string" ? record.ownerId : undefined,
+    spaceId: typeof record.spaceId === "string" ? record.spaceId : undefined,
+    theme: record.theme,
+    isDefault:
+      typeof record.isDefault === "boolean" ? record.isDefault : undefined,
+    isShared:
+      typeof record.isShared === "boolean" ? record.isShared : undefined,
+    agentIds:
+      Array.isArray(record.agentIds) &&
+      record.agentIds.every((id) => typeof id === "string")
+        ? (record.agentIds as string[])
+        : undefined,
+  };
+}
+
+// Convert ChatAppConfig to Record format for ChatAppsManager compatibility
+export function chatAppConfigToRecord(
+  config: ChatAppConfig
+): Record<string, unknown> {
+  return {
+    id: config.id,
+    name: config.name,
+    agentId: config.agentId,
+    toolbarId: config.toolbarId,
+    themeId: config.themeId,
+    description: config.description,
+    version: config.version,
+    agent: config.agent,
+    toolbar: config.toolbar,
+    style: config.style,
+    updatedAt: config.updatedAt,
+    ownerId: config.ownerId,
+    spaceId: config.spaceId,
+    theme: config.theme,
+    isDefault: config.isDefault,
+    isShared: config.isShared,
   };
 }

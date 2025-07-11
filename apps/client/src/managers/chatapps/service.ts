@@ -149,7 +149,7 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
       const createChatAppInstance = (
         workspaceId: string,
         appId: string,
-        config: any
+        config: Record<string, unknown>
       ): ChatAppInstance => {
         const now = new Date();
         return {
@@ -225,7 +225,7 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
       // Command handler
       const handleCommand = (
         command: ChatAppsCommand
-      ): Effect.Effect<void, any, never> =>
+      ): Effect.Effect<void, Error, never> =>
         Effect.gen(function* () {
           switch (command._tag) {
             case "SetChatAppsState":
@@ -236,13 +236,21 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
               yield* resetState();
               break;
 
-            case "RegisterChatApp":
-              yield* registerChatApp(
+            case "RegisterChatApp": {
+              console.log(
+                `DEBUG: Processing RegisterChatApp command for ${command.appId} in workspace ${command.workspaceId}`
+              );
+              const instance = yield* registerChatApp(
                 command.workspaceId,
                 command.appId,
                 command.config
               );
+              console.log(
+                `DEBUG: RegisterChatApp command completed for ${command.appId}, instance:`,
+                instance
+              );
               break;
+            }
 
             case "UnregisterChatApp":
               yield* unregisterChatApp(command.appId);
@@ -444,7 +452,7 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
       const registerChatApp = (
         workspaceId: string,
         appId: string,
-        config: any
+        config: Record<string, unknown>
       ) =>
         Effect.gen(function* () {
           const state = yield* Ref.get(stateRef);
@@ -648,9 +656,11 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
         setChatAppStatus(appId, "compact");
       const stashChatApp = (appId: string) =>
         setChatAppStatus(appId, "stashed");
-      const closeChatApp = (appId: string) => Effect.succeed(undefined);
-      const archiveChatApp = (appId: string) => Effect.succeed(undefined);
-      const restoreChatApp = (appId: string) => Effect.succeed(undefined);
+      const closeChatApp = (appId: string) => setChatAppStatus(appId, "closed");
+      const archiveChatApp = (appId: string) =>
+        setChatAppStatus(appId, "archived");
+      const restoreChatApp = (appId: string) =>
+        setChatAppStatus(appId, "stashed");
       const setActiveChatApp = (appId: string) =>
         Effect.gen(function* () {
           yield* validateChatAppExists(appId);
@@ -733,8 +743,10 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
         Effect.succeed(undefined);
       const restoreWorkspaceLayout = (workspaceId: string) =>
         Effect.succeed(undefined);
-      const updateChatAppConfig = (appId: string, config: any) =>
-        Effect.succeed(undefined);
+      const updateChatAppConfig = (
+        appId: string,
+        config: Record<string, unknown>
+      ) => Effect.succeed(undefined);
       const getChatAppConfig = (appId: string) => Effect.succeed({});
       const switchChatAppAgent = (appId: string, agentId: string) =>
         Effect.succeed(undefined);
@@ -758,7 +770,8 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
         workspaceId: string,
         layout: WorkspaceLayoutConfig
       ) => Effect.succeed(undefined);
-      const executeOperation = (operation: any) => Effect.succeed(undefined);
+      const executeOperation = (operation: Record<string, unknown>) =>
+        Effect.succeed(undefined);
 
       // Command dispatch method
       const dispatch = (command: ChatAppsCommand) =>

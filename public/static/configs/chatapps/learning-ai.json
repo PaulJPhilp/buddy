@@ -13,55 +13,29 @@
     "id": "default-toolbar"
   },
   "style": {
-    "colors": {
-      "primary": "#14b8a6",
-      "secondary": "#f0fdfa",
-      "accent": "#2dd4bf",
-      "background": "white",
-      "text": "gray-900"
-    },
-    "borders": {
-      "color": "#ccfbf1",
-      "thickness": "2px",
-      "radius": "0.75rem"
-    },
-    "bubbles": {
-      "user": {
-        "background": "#2dd4bf",
-        "text": "white",
-        "radius": "rounded-lg",
-        "border": "1px solid #99f6e4",
-        "padding": "0.5rem 0.75rem"
-      },
-      "agent": {
-        "background": "#f0fdfa",
-        "text": "gray-900",
-        "radius": "rounded-lg",
-        "border": "1px solid #ccfbf1",
-        "padding": "0.5rem 0.75rem"
-      }
-    },
-    "userArea": {
-      "background": "#f0fdfa",
-      "inputRingColor": "teal-500",
-      "padding": "0.5rem"
-    },
-    "header": {
-      "background": "#ccfbf1",
-      "text": "#14b8a6",
-      "borderBottom": "1px solid #99f6e4",
-      "padding": "0.5rem 1rem"
-    },
-    "chatArea": {
-      "background": "white",
-      "border": "2px solid #ccfbf1",
-      "radius": "0.75rem",
-      "padding": "0.75rem"
-    },
-    "typography": {
-      "fontFamily": "Inter, sans-serif",
-      "fontSize": "0.95rem"
-    }
+    "primaryColor": "#14b8a6",
+    "backgroundColor": "#ffffff",
+    "backgroundSecondaryColor": "#f0fdfa",
+    "borderColor": "#ccfbf1",
+    "borderRadius": "0.75rem",
+    "borderWidth": "2px",
+    "typographyClass": "font-sans",
+    "fontFamily": "Inter, sans-serif",
+    "fontSize": "0.95rem",
+    "fontWeight": "400",
+    "messageBackgroundColor": "#f0fdfa",
+    "userMessageColor": "#2dd4bf",
+    "assistantMessageColor": "#f0fdfa",
+    "inputBackgroundColor": "#f0fdfa",
+    "inputBorderColor": "#ccfbf1",
+    "shadowColor": "#14b8a6",
+    "shadowIntensity": "sm",
+    "opacity": 1.0,
+    "iconColor": "#14b8a6",
+    "iconSize": "20px",
+    "compactMode": false,
+    "showTimestamps": true,
+    "showAvatars": true
   },
   "isDefault": false,
   "isShared": true,

@@ -97,9 +97,22 @@ describe("AppComponent", () => {
 
       const config = yield* appComponent.loadConfig("./test-app.json");
 
-      expect(config).toEqual(mockAppConfig);
+      // Check that it returns an AppDomainModel with the expected structure
       expect(config.app.name).toBe("Test Buddy");
+      expect(config.app.version).toBe("1.0.0");
       expect(config.workspaces).toHaveLength(1);
+      expect(config.workspaces[0].id).toBe("workspace-1");
+      expect(config.workspaces[0].name).toBe("Test Workspace");
+      expect(config.chatapps).toHaveLength(1);
+      expect(config.chatapps[0].id).toBe("chat-1");
+      expect(config.agents).toHaveLength(1);
+      expect(config.agents[0].id).toBe("agent-1");
+
+      // Check that domain model fields are properly set
+      expect(config.version).toBe("1.0.0");
+      expect(config.createdAt).toBeDefined();
+      expect(config.updatedAt).toBeDefined();
+      expect(config.metadata).toBeDefined();
     });
 
     await Effect.provide(program, TestLayer).pipe(Effect.runPromise);

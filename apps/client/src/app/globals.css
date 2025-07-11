@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 /* ===== ROOT THEME VARIABLES ===== */
 :root {
   /* Font families */

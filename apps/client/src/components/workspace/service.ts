@@ -1,3 +1,4 @@
+import { AppComponent } from "@/components/app/service";
 import { CoreComponent } from "@/components/core";
 import {
   CoreComponentCleanupError,
@@ -32,7 +33,9 @@ import type {
   WorkspaceOperationType,
 } from "./types";
 import {
+  chatAppConfigToRecord,
   createDefaultWorkspaceState,
+  extractChatAppProperties,
   filterAgentsForWorkspace,
   filterChatAppsForWorkspace,
   validateWorkspaceConfig,
@@ -47,6 +50,9 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
 
       // Get chat apps manager
       const chatAppsManager = yield* ChatAppsManager;
+
+      // Get app component for accessing app config
+      const appComponent = yield* AppComponent;
 
       // Workspace-specific state
       const workspaceStateRef = yield* Ref.make<WorkspaceComponentState>(
@@ -136,9 +142,60 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           return state.workspaceConfig;
         });
 
-      // Switch workspace
+      // Switch workspace with strict typing
       const switchWorkspace = (workspaceConfig: WorkspaceConfig) =>
         Effect.gen(function* () {
+          // Validate input type
+          if (!workspaceConfig || typeof workspaceConfig !== "object") {
+            yield* Effect.fail(
+              new CoreComponentStateError({
+                message: "Invalid workspace config provided",
+                operation: "switchWorkspace",
+              })
+            );
+          }
+
+          // Validate required fields
+          if (!workspaceConfig.id || typeof workspaceConfig.id !== "string") {
+            yield* Effect.fail(
+              new CoreComponentStateError({
+                message: "Workspace config must have a valid ID",
+                operation: "switchWorkspace",
+              })
+            );
+          }
+
+          if (
+            !workspaceConfig.name ||
+            typeof workspaceConfig.name !== "string"
+          ) {
+            yield* Effect.fail(
+              new CoreComponentStateError({
+                message: "Workspace config must have a valid name",
+                operation: "switchWorkspace",
+              })
+            );
+          }
+
+          // Validate arrays
+          if (!Array.isArray(workspaceConfig.chatappIds)) {
+            yield* Effect.fail(
+              new CoreComponentStateError({
+                message: "Workspace config chatappIds must be an array",
+                operation: "switchWorkspace",
+              })
+            );
+          }
+
+          if (!Array.isArray(workspaceConfig.agentIds)) {
+            yield* Effect.fail(
+              new CoreComponentStateError({
+                message: "Workspace config agentIds must be an array",
+                operation: "switchWorkspace",
+              })
+            );
+          }
+
           yield* validateWorkspaceConfigHelper(workspaceConfig);
           yield* executeOperation("switch_workspace" as WorkspaceOperationType);
 
@@ -162,6 +219,79 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             workspaceConfig,
             isWorkspaceLoaded: true,
           });
+
+          // Load chat apps for this workspace with strict typing
+          yield* Effect.gen(function* () {
+            // Get app config to access chat apps
+            const appConfig = yield* appComponent.getAppConfig();
+
+            if (!appConfig) {
+              yield* Effect.fail(
+                new CoreComponentStateError({
+                  message: "No app config available",
+                  operation: "loadChatApps",
+                })
+              );
+            }
+
+            if (appConfig?.chatapps && Array.isArray(appConfig?.chatapps)) {
+              // Validate and convert chat apps to ChatAppConfig format
+              const validChatApps: ChatAppConfig[] = [];
+
+              for (const chatApp of appConfig.chatapps) {
+                // Use a type guard to ensure chatApp is valid
+                const extractedProps = extractChatAppProperties(chatApp);
+
+                if (!extractedProps) {
+                  console.warn("Invalid chat app object, skipping:", chatApp);
+                  continue;
+                }
+
+                // Create strictly typed ChatAppConfig using extracted properties
+                const validChatApp: ChatAppConfig = {
+                  id: extractedProps.id,
+                  name: extractedProps.name,
+                  agentId: extractedProps.agentId || "",
+                  toolbarId: extractedProps.toolbarId || "default-toolbar",
+                  themeId: extractedProps.themeId || "default-theme",
+                  description: extractedProps.description,
+                  version: extractedProps.version,
+                  // Omit complex structured fields that require specific schemas
+                  // agent: undefined,
+                  // toolbar: undefined,
+                  // style: undefined,
+                  updatedAt: extractedProps.updatedAt,
+                  ownerId: extractedProps.ownerId,
+                  spaceId: extractedProps.spaceId,
+                  theme: extractedProps.theme,
+                  isDefault: extractedProps.isDefault,
+                  isShared: extractedProps.isShared,
+                };
+
+                validChatApps.push(validChatApp);
+              }
+
+              console.log(
+                `DEBUG: Found ${validChatApps.length} valid chat apps in app config:`,
+                validChatApps.map((app) => ({ id: app.id, name: app.name }))
+              );
+              if (validChatApps.length > 0) {
+                yield* loadChatApps(validChatApps);
+              } else {
+                console.warn("No valid chat apps found in app config");
+              }
+            } else {
+              console.warn("No chat apps array found in app config");
+            }
+          }).pipe(
+            Effect.catchAll((error) => {
+              console.warn(
+                `Failed to load chat apps for workspace ${workspaceConfig.id}:`,
+                error
+              );
+              return Effect.succeed(undefined);
+            })
+          );
 
           yield* Effect.log(`Switched to workspace: ${workspaceConfig.name}`);
         }).pipe(
@@ -194,32 +324,75 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           }
 
           // Filter chat apps for current workspace
-          const workspaceChatApps = filterChatAppsForWorkspace(
-            chatApps,
-            state.workspaceConfig.id
+          // TypeScript: state.workspaceConfig is guaranteed non-null due to check above
+          if (!state.workspaceConfig) {
+            yield* Effect.fail(
+              new WorkspaceChatAppError({
+                message: "No workspace loaded",
+                workspaceId: "unknown",
+                chatAppId: "multiple",
+                operation: "load",
+              })
+            );
+          }
+          // Filter chat apps based on workspace's chatappIds
+          const workspaceChatApps = chatApps.filter((chatApp) =>
+            state.workspaceConfig?.chatappIds.includes(chatApp.id)
           );
-
-          // Register chat apps with ChatAppsManager via commands
+          // Register chat apps with ChatAppsManager directly (not via commands)
           yield* Effect.forEach(
             workspaceChatApps,
             (chatApp) =>
               state.workspaceConfig
-                ? chatAppsManager
-                    .dispatch({
-                      _tag: "RegisterChatApp",
-                      workspaceId: state.workspaceConfig.id,
-                      appId: chatApp.id,
-                      config: chatApp as any, // Convert ChatAppConfig to record format
+                ? Effect.gen(function* () {
+                    console.log(
+                      `DEBUG: Checking if chat app ${chatApp.id} is already registered`
+                    );
+
+                    // Check if chat app is already registered to avoid duplicates
+                    const existingInstance = yield* chatAppsManager
+                      .getChatAppInstance(chatApp.id)
+                      .pipe(
+                        Effect.catchTag("ChatAppNotFoundError", () =>
+                          Effect.succeed(null)
+                        )
+                      );
+
+                    if (existingInstance) {
+                      console.log(
+                        `DEBUG: Chat app ${chatApp.id} already registered, skipping registration`
+                      );
+                      return;
+                    }
+
+                    console.log(
+                      `DEBUG: Registering chat app ${chatApp.id} directly with workspace ID: ${state.workspaceConfig.id}`
+                    );
+
+                    // Use direct registration instead of command dispatch for immediate processing
+                    const instance = yield* chatAppsManager.registerChatApp(
+                      state.workspaceConfig.id,
+                      chatApp.id,
+                      chatAppConfigToRecord(chatApp)
+                    );
+
+                    console.log(
+                      `DEBUG: Successfully registered chat app ${chatApp.id}:`,
+                      {
+                        id: instance.id,
+                        workspaceId: instance.workspaceId,
+                        status: instance.status,
+                      }
+                    );
+                  }).pipe(
+                    Effect.catchAll((error) => {
+                      console.error(
+                        `Failed to register chat app ${chatApp.id}:`,
+                        error
+                      );
+                      return Effect.succeed(undefined);
                     })
-                    .pipe(
-                      Effect.catchAll((error) => {
-                        console.warn(
-                          `Failed to register chat app ${chatApp.id}:`,
-                          error
-                        );
-                        return Effect.succeed(undefined);
-                      })
-                    )
+                  )
                 : Effect.succeed(undefined),
             { concurrency: "unbounded" }
           );
@@ -228,6 +401,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             availableChatApps: workspaceChatApps,
           });
 
+          console.log(
+            `DEBUG: Loaded ${workspaceChatApps.length} chat apps for workspace ${state.workspaceConfig.id}:`,
+            workspaceChatApps.map((app) => ({ id: app.id, name: app.name }))
+          );
           yield* Effect.log(`Loaded ${workspaceChatApps.length} chat apps`);
         }).pipe(
           Effect.mapError((cause: unknown) =>
@@ -275,7 +452,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             yield* Effect.fail(
               new WorkspaceChatAppError({
                 message: `Chat app not found: ${chatAppId}`,
-                workspaceId: state.workspaceConfig.id,
+                workspaceId: state.workspaceConfig?.id,
                 chatAppId,
                 operation: "activate",
               })
@@ -284,17 +461,30 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
 
           // Set chat app as active in ChatAppsManager via command
           yield* chatAppsManager.dispatch({
-            _tag: "SetActiveChatApp",
+            _tag: "ExpandChatApp",
             appId: chatAppId,
           });
 
-          // Update active chat apps list
-          const currentActive = state.activeChatApps;
-          if (!currentActive.find((app) => app.id === chatAppId)) {
-            yield* setState({
-              activeChatApps: [...currentActive, chatApp],
-            });
-          }
+          // Wait for the command to be processed
+          yield* Effect.sleep("50 millis");
+
+          // Update active chat apps list atomically
+          yield* Ref.update(workspaceStateRef, (currentState) => {
+            const currentActive = currentState.activeChatApps;
+            if (!currentActive.find((app) => app.id === chatAppId)) {
+              if (chatApp !== undefined) {
+                return {
+                  ...currentState,
+                  activeChatApps: [...currentActive, chatApp],
+                  activeChatAppIds: [
+                    ...currentState.activeChatAppIds,
+                    chatAppId,
+                  ],
+                };
+              }
+            }
+            return currentState;
+          });
 
           yield* Effect.log(`Activated chat app: ${chatAppId}`);
         }).pipe(
@@ -306,6 +496,38 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                   workspaceId: "unknown",
                   chatAppId,
                   operation: "activate",
+                  cause,
+                })
+          )
+        );
+
+      // Render workspace UI
+      const renderWorkspaceUI = () =>
+        Effect.gen(function* () {
+          const state = yield* getState();
+
+          if (!state.isWorkspaceLoaded) {
+            yield* Effect.fail(
+              new WorkspaceUIError({
+                message: "Cannot render UI before workspace is loaded",
+                workspaceId: state.workspaceConfig?.id || "unknown",
+                operation: "render",
+              })
+            );
+          }
+
+          // In real implementation, this would trigger React rendering
+          yield* Effect.log("Rendering WorkspaceUI...");
+
+          yield* setState({ isUIRendered: true });
+        }).pipe(
+          Effect.mapError((cause: unknown) =>
+            cause instanceof WorkspaceUIError
+              ? cause
+              : new WorkspaceUIError({
+                  message: "Failed to render workspace UI",
+                  workspaceId: "unknown",
+                  operation: "render",
                   cause,
                 })
           )
@@ -324,13 +546,22 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             appId: chatAppId,
           });
 
-          // Update active chat apps list
-          const state = yield* getState();
-          const updatedActive = state.activeChatApps.filter(
-            (app) => app.id !== chatAppId
-          );
-          yield* setState({
-            activeChatApps: updatedActive,
+          // Wait for the command to be processed
+          yield* Effect.sleep("50 millis");
+
+          // Update active chat apps list atomically
+          yield* Ref.update(workspaceStateRef, (currentState) => {
+            const updatedActive = currentState.activeChatApps.filter(
+              (app) => app.id !== chatAppId
+            );
+            const updatedActiveIds = currentState.activeChatAppIds.filter(
+              (id) => id !== chatAppId
+            );
+            return {
+              ...currentState,
+              activeChatApps: updatedActive,
+              activeChatAppIds: updatedActiveIds,
+            };
           });
 
           yield* Effect.log(`Deactivated chat app: ${chatAppId}`);
@@ -373,9 +604,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           }
 
           // Filter agents for current workspace
+          // TypeScript: state.workspaceConfig is guaranteed non-null due to check above
           const workspaceAgents = filterAgentsForWorkspace(
             agents,
-            state.workspaceConfig.agentIds
+            state.workspaceConfig?.agentIds
           );
 
           yield* setState({
@@ -416,45 +648,29 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             return [];
           }
 
-          // Return the assigned agent for this chat app
-          const assignedAgent = state.availableAgents.find(
-            (agent) => agent.id === chatApp.agentId
-          );
+          // Handle both agentId (singular) and agentIds (plural) fields
+          let agentIds: string[] = [];
 
-          return assignedAgent ? [assignedAgent] : [];
-        });
-
-      // Render workspace UI
-      const renderWorkspaceUI = () =>
-        Effect.gen(function* () {
-          const state = yield* getState();
-
-          if (!state.isWorkspaceLoaded) {
-            yield* Effect.fail(
-              new WorkspaceUIError({
-                message: "Cannot render UI before workspace is loaded",
-                workspaceId: state.workspaceConfig?.id || "unknown",
-                operation: "render",
-              })
-            );
+          // Check for agentId field (from ChatAppConfig schema)
+          if (
+            "agentId" in chatApp &&
+            typeof chatApp.agentId === "string" &&
+            chatApp.agentId
+          ) {
+            agentIds = [chatApp.agentId];
           }
 
-          // In real implementation, this would trigger React rendering
-          yield* Effect.log("Rendering WorkspaceUI...");
+          // Check for agentIds field (from test data) with type safety
+          const extractedProps = extractChatAppProperties(chatApp);
+          if (extractedProps?.agentIds) {
+            agentIds = extractedProps.agentIds;
+          }
 
-          yield* setState({ isUIRendered: true });
-        }).pipe(
-          Effect.mapError((cause: unknown) =>
-            cause instanceof WorkspaceUIError
-              ? cause
-              : new WorkspaceUIError({
-                  message: "Failed to render workspace UI",
-                  workspaceId: "unknown",
-                  operation: "render",
-                  cause,
-                })
-          )
-        );
+          // Return agents that match the agent IDs
+          return state.availableAgents.filter((agent) =>
+            agentIds.includes(agent.id)
+          );
+        });
 
       // Check if UI is rendered
       const isUIRendered = () =>
@@ -482,11 +698,23 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
       const setState = (partialState: Partial<WorkspaceComponentState>) =>
         Effect.gen(function* () {
           const currentState = yield* Ref.get(workspaceStateRef);
-          const newState: WorkspaceComponentState = {
+
+          // Create the new state with all updates
+          let newState: WorkspaceComponentState = {
             ...currentState,
             ...partialState,
             lastUpdated: Date.now(),
           };
+
+          // Compute activeChatAppIds from activeChatApps if activeChatApps was updated
+          if (partialState.activeChatApps !== undefined) {
+            newState = {
+              ...newState,
+              activeChatAppIds: partialState.activeChatApps.map(
+                (app) => app.id
+              ),
+            };
+          }
 
           yield* Ref.set(workspaceStateRef, newState);
 
@@ -607,6 +835,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
         getLastOperation,
       } satisfies WorkspaceComponentApi;
     }),
-    dependencies: [CoreComponent.Default, ChatAppsManager.Default],
+    dependencies: [
+      CoreComponent.Default,
+      ChatAppsManager.Default,
+      AppComponent.Default,
+    ],
   }
 ) {}

@@ -13,8 +13,13 @@ export {
 } from "./errors";
 export type { ChatAppComponentError } from "./errors";
 export { ChatAppComponent } from "./service";
-export type { ChatAppComponentConfig, ChatAppComponentState } from "./types";
-export { createDefaultChatAppState } from "./types";
+export type {
+  ChatAppComponentConfig,
+  ChatAppComponentState,
+  ChatAppOperationType,
+  ChatAppUIState,
+} from "./types";
+export { createDefaultChatAppState, CHATAPP_OPERATIONS } from "./types";
 
 // React components
 export { ChatAppContainer, useChatAppContainer } from "./ChatAppContainer";

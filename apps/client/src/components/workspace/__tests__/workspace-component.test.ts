@@ -1,9 +1,9 @@
 import { Effect, Layer } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatAppsManager } from "@managers/chatapps";
-import { CoreManager } from "@managers/core";
-import type { AgentConfig, ChatAppConfig } from "@/types/global";
-import { CoreComponent } from "@/components/core";
+import { ChatAppsManager } from "../../../managers/chatapps";
+import { CoreManager } from "../../../managers/core";
+import type { AgentConfig, ChatAppConfig } from "../../../types/global";
+import { CoreComponent } from "../../core";
 import { WorkspaceComponent } from "../index";
 import type { WorkspaceComponentConfig, WorkspaceConfig } from "../types";
 

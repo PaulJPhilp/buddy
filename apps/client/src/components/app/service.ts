@@ -2,7 +2,11 @@ import { ConfigService } from "@/services/config";
 import type { AppDomainModel, WorkspaceModel } from "@domain/index";
 import { Effect, Layer, Ref } from "effect";
 import type { AppComponentApi } from "./api";
-import { AppComponentError, AppConfigLoadError } from "./errors";
+import {
+  AppComponentError,
+  AppConfigLoadError,
+  AppWorkspaceError,
+} from "./errors";
 import type { AppComponentConfig, AppComponentState } from "./types";
 import { createDefaultAppState } from "./types";
 
@@ -102,8 +106,8 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
                         id: workspaceData.id,
                         name: workspaceData.name,
                         description: workspaceData.description || "",
-                        chatappIds: workspaceData.chatAppIds || [],
-                        agentIds: workspaceData.availableAgents || [],
+                        chatappIds: workspaceData.chatappIds || [],
+                        agentIds: workspaceData.agentIds || [],
                         permissions: {
                           canAddApps: true,
                           canRemoveApps: true,
@@ -120,8 +124,11 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
                         updatedAt: new Date().toISOString(),
                         metadata: {
                           icon: workspaceData.icon,
-                          color: workspaceData.color,
+                          primaryColor:
+                            workspaceData.primaryColor ||
+                            workspaceData.style?.primaryColor,
                           activeAppId: workspaceData.activeAppId,
+                          style: workspaceData.style,
                         },
                       };
                       workspaces.push(workspace);
@@ -136,19 +143,88 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
               }
             }
 
+            // Load chat apps referenced by workspaces
+            const chatApps: any[] = [];
+            const allChatAppIds = new Set<string>();
+
+            // Collect all unique chat app IDs from workspaces
+            for (const workspace of workspaces) {
+              for (const chatAppId of workspace.chatappIds) {
+                allChatAppIds.add(chatAppId);
+              }
+            }
+
+            console.log(
+              `DEBUG: Found ${allChatAppIds.size} unique chat app IDs from workspaces:`,
+              Array.from(allChatAppIds)
+            );
+
+            // Load each chat app config
+            for (const chatAppId of allChatAppIds) {
+              try {
+                // Remove '-chat' suffix to get the file name
+                const fileName = chatAppId.replace("-chat", "");
+                const chatAppPath = `/static/configs/chatapps/${fileName}.json`;
+                const chatAppApiUrl = `/api/configs?path=${encodeURIComponent(
+                  chatAppPath
+                )}`;
+                console.log(
+                  `DEBUG: Loading chat app ${chatAppId} from ${chatAppPath}`
+                );
+
+                const chatAppResponse = yield* Effect.tryPromise({
+                  try: () => fetch(chatAppApiUrl),
+                  catch: () => null,
+                });
+
+                if (chatAppResponse?.ok) {
+                  const chatAppData = yield* Effect.tryPromise({
+                    try: () => chatAppResponse.json(),
+                    catch: () => null,
+                  });
+
+                  if (chatAppData) {
+                    console.log(`DEBUG: Successfully loaded chat app:`, {
+                      id: chatAppData.id,
+                      name: chatAppData.name,
+                    });
+                    chatApps.push(chatAppData);
+                  } else {
+                    console.warn(
+                      `DEBUG: Failed to parse JSON for chat app ${chatAppId}`
+                    );
+                  }
+                } else {
+                  console.warn(
+                    `DEBUG: Failed to fetch chat app ${chatAppId}, response status:`,
+                    chatAppResponse?.status
+                  );
+                }
+              } catch (error) {
+                console.warn(`Failed to load chat app ${chatAppId}:`, error);
+              }
+            }
+
+            console.log(
+              `DEBUG: Successfully loaded ${chatApps.length} chat apps:`,
+              chatApps.map((app) => ({ id: app.id, name: app.name }))
+            );
+
             // Create app domain model from config data
             const appConfig: AppDomainModel = {
               app: {
-                name: configData.name || "Buddy App",
-                version: configData.version || "1.0.0",
-                description: configData.description || "",
-                environment: "development",
-                locale: "en",
-                timezone: "UTC",
+                name: configData.app?.name || configData.name || "Buddy App",
+                version:
+                  configData.app?.version || configData.version || "1.0.0",
+                description:
+                  configData.app?.description || configData.description || "",
+                environment: configData.app?.environment || "development",
+                locale: configData.app?.locale || "en",
+                timezone: configData.app?.timezone || "UTC",
               },
-              workspaces,
-              chatapps: [],
-              agents: [],
+              workspaces: workspaces, // Use the processed workspaces array, not configData.workspaces
+              chatapps: [...(configData.chatapps || []), ...chatApps], // Include both config and loaded chat apps
+              agents: configData.agents || [],
               version: configData.version || "1.0.0",
               createdAt: configData.createdAt || new Date().toISOString(),
               updatedAt: new Date().toISOString(),
@@ -242,6 +318,29 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
 
         setCurrentWorkspace: (workspaceId: string) =>
           Effect.gen(function* () {
+            const state = yield* getState();
+
+            // Check if config is loaded first
+            if (!state.isConfigLoaded || !state.appConfig) {
+              console.warn(
+                "[AppComponent] setCurrentWorkspace called before config is loaded"
+              );
+              return; // Silently return instead of failing
+            }
+
+            const workspaces = yield* getWorkspaces();
+
+            const workspace = workspaces.find((ws) => ws.id === workspaceId);
+
+            if (!workspace) {
+              console.warn(
+                `[AppComponent] Workspace not found: ${workspaceId}, available: ${workspaces
+                  .map((w) => w.id)
+                  .join(", ")}`
+              );
+              return; // Silently return instead of failing
+            }
+
             yield* setState({ currentWorkspaceId: workspaceId });
           }),
 

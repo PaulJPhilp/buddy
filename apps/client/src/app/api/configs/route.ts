@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
 
     // Remove leading slash and construct file path
     const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-    // Navigate to workspace root and then to public directory
+
+    // Construct path to public directory in workspace root (buddy/public)
+    // When running from apps/client, we need to go up two levels to reach buddy/public
     const filePath = join(process.cwd(), "..", "..", "public", cleanPath);
 
     try {
@@ -42,9 +44,20 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (fileError) {
-      console.error("File read error:", fileError);
+      console.error("File read error:", {
+        error: fileError,
+        filePath,
+        message:
+          fileError instanceof Error ? fileError.message : String(fileError),
+      });
       return NextResponse.json(
-        { error: "Configuration not found", path: cleanPath },
+        {
+          error: "Configuration not found",
+          path: cleanPath,
+          resolvedPath: filePath,
+          details:
+            fileError instanceof Error ? fileError.message : String(fileError),
+        },
         { status: 404 }
       );
     }

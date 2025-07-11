@@ -4,6 +4,8 @@
  * References workspace by ID - no business logic duplication
  */
 
+import type { WorkspaceStyle } from "@/managers/workspace";
+
 // UI layout configuration for workspaces
 export interface WorkspaceLayoutConfig {
   readonly mode: "grid" | "stack" | "tabs" | "free";
@@ -30,22 +32,13 @@ export interface WorkspaceLayoutConfig {
 export interface WorkspaceUIState {
   readonly workspaceId: string; // Reference to domain model
   readonly layoutConfig: WorkspaceLayoutConfig;
-  readonly theme?: WorkspaceTheme;
+  readonly style?: WorkspaceStyle;
   readonly position?: WindowPosition;
   readonly size?: WindowSize;
   readonly isMinimized: boolean;
   readonly isMaximized: boolean;
   readonly zIndex: number;
   readonly lastUpdated: number;
-}
-
-// Visual theme for workspace
-export interface WorkspaceTheme {
-  readonly icon?: string;
-  readonly color?: string;
-  readonly backgroundColor?: string;
-  readonly borderColor?: string;
-  readonly borderRadius?: string;
 }
 
 // Window positioning
@@ -63,7 +56,7 @@ export interface WindowSize {
 export function createWorkspaceUIState(params: {
   workspaceId: string;
   layoutConfig?: Partial<WorkspaceLayoutConfig>;
-  theme?: Partial<WorkspaceTheme>;
+  style?: Partial<WorkspaceStyle>;
   position?: WindowPosition;
   size?: WindowSize;
 }): WorkspaceUIState {
@@ -78,7 +71,7 @@ export function createWorkspaceUIState(params: {
       },
       ...params.layoutConfig,
     },
-    theme: params.theme,
+    style: params.style ? (params.style as WorkspaceStyle) : undefined,
     position: params.position,
     size: params.size,
     isMinimized: false,

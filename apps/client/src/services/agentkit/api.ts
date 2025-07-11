@@ -6,13 +6,23 @@ export interface ChatMessage {
   content: string;
 }
 
+// Proper usage type based on AI SDK standards
+export interface AgentUsage {
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly totalTokens: number;
+}
+
 export interface AgentResponse {
   content: string;
-  usage?: any;
+  usage?: AgentUsage;
+  finishReason?: "stop" | "length" | "content_filter" | "error" | string;
 }
 
 export interface AgentStreamChunk {
   content: string;
+  usage?: AgentUsage;
+  finishReason?: "stop" | "length" | "content_filter" | "error" | string;
 }
 
 /**
@@ -24,7 +34,7 @@ export interface AgentServiceApi {
    */
   readonly generate: (
     input: string | ChatMessage[],
-    config?: Partial<AgentConfig>,
+    config?: Partial<AgentConfig>
   ) => Effect.Effect<AgentResponse, unknown>;
 
   /**
@@ -32,6 +42,6 @@ export interface AgentServiceApi {
    */
   readonly stream: (
     input: string | ChatMessage[],
-    config?: Partial<AgentConfig>,
+    config?: Partial<AgentConfig>
   ) => Stream.Stream<AgentStreamChunk, unknown>;
 }

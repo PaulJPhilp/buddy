@@ -1,10 +1,6 @@
 {
   "workspaces": [
     {
-      "id": "writing",
-      "configPath": "/static/configs/workspaces/writing/workspace.json"
-    },
-    {
       "id": "ai",
       "configPath": "/static/configs/workspaces/ai/workspace.json"
     },
@@ -15,6 +11,14 @@
     {
       "id": "my-workspace",
       "configPath": "/static/configs/workspaces/my-workspace/workspace.json"
+    },
+    {
+      "id": "writing",
+      "configPath": "/static/configs/workspaces/writing/workspace.json"
+    },
+    {
+      "id": "science",
+      "configPath": "/static/configs/workspaces/science/workspace.json"
     }
   ],
   "generatedAt": "2025-01-08T21:25:00.000Z"

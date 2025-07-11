@@ -30,6 +30,7 @@ export class StartConversation extends S.Class<StartConversation>(
   "StartConversation"
 )({
   _tag: S.Literal("StartConversation"),
+  conversationId: S.String,
   agentId: S.String,
   title: S.optional(S.String),
 }) {}
@@ -53,7 +54,7 @@ export class SetActiveConversation extends S.Class<SetActiveConversation>(
   "SetActiveConversation"
 )({
   _tag: S.Literal("SetActiveConversation"),
-  conversationId: S.optional(S.String),
+  conversationId: S.NullOr(S.String),
 }) {}
 
 /**
@@ -75,6 +76,7 @@ export class ClearConversationHistory extends S.Class<ClearConversationHistory>(
  */
 export class SendMessage extends S.Class<SendMessage>("SendMessage")({
   _tag: S.Literal("SendMessage"),
+  messageId: S.String,
   conversationId: S.String,
   content: S.String,
   agentId: S.optional(S.String),
@@ -141,7 +143,8 @@ export class ExecuteChatOperation extends S.Class<ExecuteChatOperation>(
       "clear_history",
       "set_agent",
       "archive_conversation",
-      "restore_conversation"
+      "restore_conversation",
+      "custom_operation"
     ),
     timestamp: S.Date,
     conversationId: S.optional(S.String),

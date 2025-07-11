@@ -7,14 +7,9 @@ import { WorkspaceTree } from "./WorkspaceTree";
 interface AppSidebarProps {
   className?: string;
   isOpen: boolean;
-  onWorkspaceChange?: (workspace: WorkspaceModel | null) => void;
 }
 
-export function AppSidebar({
-  className = "",
-  isOpen,
-  onWorkspaceChange,
-}: AppSidebarProps) {
+export function AppSidebar({ className = "", isOpen }: AppSidebarProps) {
   return (
     <div
       className={`
@@ -25,13 +20,13 @@ export function AppSidebar({
       `}
     >
       {/* Sidebar Header */}
-      <div className="flex h-12 items-center justify-between border-b bg-white px-4">
-        <h2 className="text-lg font-semibold text-gray-900">Workspaces</h2>
+      <div className="flex h-6 items-center justify-between border-b bg-white px-1">
+        <h2 className="text-xs font-semibold text-gray-900">Workspaces</h2>
       </div>
 
       {/* Sidebar Content */}
       <div className="flex-1 overflow-y-auto">
-        <WorkspaceTree onWorkspaceChange={onWorkspaceChange} />
+        <WorkspaceTree />
       </div>
     </div>
   );

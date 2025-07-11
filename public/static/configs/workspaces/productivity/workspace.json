@@ -2,13 +2,19 @@
   "id": "productivity",
   "name": "Productivity",
   "description": "Email, tasks, and social media management",
-  "icon": "🚀",
-  "color": "#64748b",
-  "availableAgents": ["productivity-agent"],
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "lastActiveAt": "2024-01-01T00:00:00.000Z",
+  "chatappIds": ["tasks-chat", "email-chat", "social-media-chat"],
+  "agentIds": ["productivity-agent"],
+  "permissions": {
+    "canAddApps": true,
+    "canRemoveApps": true,
+    "canModifyLayout": true,
+    "canChangeSettings": true,
+    "canInviteUsers": false,
+    "canManagePermissions": false
+  },
+  "isDefault": false,
   "isArchived": false,
-  "maxExpandedApps": 2,
-  "activeAppId": null,
-  "chatAppIds": ["tasks", "email", "social-media"]
+  "maxExpandedApps": 3,
+  "createdAt": "2025-01-08T21:25:00.000Z",
+  "updatedAt": "2025-01-08T21:25:00.000Z"
 }

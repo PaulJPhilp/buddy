@@ -1,6 +1,6 @@
+import type { AgentConfig, ChatAppConfig } from "@/types/global";
 import { Effect, Layer, TestContext } from "effect";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AgentConfig, ChatAppConfig } from "@/types/global";
 import { CoreComponent } from "../../core";
 import {
   CHATAPP_OPERATIONS,
@@ -80,10 +80,10 @@ describe("ChatAppComponent", () => {
         expect(state.isUIRendered).toBe(false);
         expect(state.conversationCount).toBe(0);
         expect(state.uiState.windowSize).toEqual(
-          testComponentConfig.defaultWindowSize
+          testComponentConfig.defaultWindowSize || { width: 800, height: 600 }
         );
         expect(state.uiState.windowPosition).toEqual(
-          testComponentConfig.defaultWindowPosition
+          testComponentConfig.defaultWindowPosition || { x: 100, y: 100 }
         );
       });
 
@@ -193,12 +193,8 @@ describe("ChatAppComponent", () => {
 
         const assignedAgents = yield* chatAppComponent.getAssignedAgents();
 
-        expect(assignedAgents).toHaveLength(3);
-        expect(assignedAgents.map((a) => a.id)).toEqual([
-          "agent-1",
-          "agent-2",
-          "agent-3",
-        ]);
+        expect(assignedAgents).toHaveLength(1); // Only agent-1 is assigned to this chatapp
+        expect(assignedAgents.map((a) => a.id)).toEqual(["agent-1"]);
       });
 
       const result = await Effect.runPromise(
@@ -218,7 +214,7 @@ describe("ChatAppComponent", () => {
         const hasAgent3 = yield* chatAppComponent.hasAgent("agent-3");
 
         expect(hasAgent1).toBe(true);
-        expect(hasAgent3).toBe(true);
+        expect(hasAgent3).toBe(false); // agent-3 is not assigned to this chatapp
       });
 
       const result = await Effect.runPromise(

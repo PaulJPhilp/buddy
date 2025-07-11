@@ -3,7 +3,7 @@
   "name": "My Workspace",
   "description": "A custom workspace for development and productivity",
   "icon": "🚀",
-  "color": "#3b82f6",
+  "primaryColor": "#3b82f6",
   "availableAgents": ["ai-expert-agent", "ai-coach-agent", "default-agent"],
   "createdAt": "2025-01-08T21:25:00.000Z",
   "lastActiveAt": "2025-01-08T21:25:00.000Z",
