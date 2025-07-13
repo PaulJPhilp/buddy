@@ -18,6 +18,7 @@ interface WorkspaceManagerState {
   readonly activeChatApps: ChatAppConfig[];
   readonly isLoading: boolean;
   readonly error: string | null;
+  readonly isConfigLoaded: boolean;
 }
 
 // Type guard for WorkspaceModel
@@ -99,6 +100,7 @@ function createDefaultState(): WorkspaceManagerState {
     activeChatApps: [],
     isLoading: false,
     error: null,
+    isConfigLoaded: false,
   };
 }
 
@@ -106,6 +108,7 @@ export function useWorkspaceManager() {
   const { runWithServices } = useEffectContext();
   const [state, setState] = useState<WorkspaceManagerState>(createDefaultState);
   const hasInitializedRef = useRef(false);
+  const isSwitchingWorkspaceRef = useRef(false);
 
   // Update state with type safety
   const updateState = useCallback((updates: Partial<WorkspaceManagerState>) => {
@@ -128,31 +131,64 @@ export function useWorkspaceManager() {
   const switchWorkspace = useCallback(
     async (workspaceId: string): Promise<void> => {
       if (typeof workspaceId !== "string" || workspaceId.trim() === "") {
+        console.error(
+          "[useWorkspaceManager] switchWorkspace: Invalid workspace ID provided",
+          workspaceId
+        );
         throw new Error("Invalid workspace ID provided");
       }
 
+      isSwitchingWorkspaceRef.current = true;
       try {
         updateState({ isLoading: true, error: null });
+        console.log(
+          "[useWorkspaceManager] switchWorkspace called with:",
+          workspaceId
+        );
 
         await runWithServices(
           Effect.gen(function* () {
             // Get workspace by ID with proper validation
             const appComponent = yield* AppComponent;
             const workspaces = yield* appComponent.getWorkspaces();
+            console.log(
+              "[useWorkspaceManager] switchWorkspace: available workspaces:",
+              workspaces.map((w) => w.id)
+            );
 
             const workspace = workspaces.find((w) => w.id === workspaceId);
             if (!workspace) {
-              throw new Error(`Workspace with ID '${workspaceId}' not found`);
+              console.warn(
+                `[useWorkspaceManager] switchWorkspace: Workspace with ID '${workspaceId}' not found. Available workspaces:`,
+                workspaces.map((w) => w.id)
+              );
+              throw new Error(
+                `Workspace with ID '${workspaceId}' not found. Available: ${workspaces
+                  .map((w) => w.id)
+                  .join(", ")}`
+              );
             }
 
             if (!isWorkspaceModel(workspace)) {
+              console.error(
+                "[useWorkspaceManager] switchWorkspace: Invalid workspace data structure",
+                workspace
+              );
               throw new Error("Invalid workspace data structure");
             }
 
             // Convert with strict typing
             const workspaceConfig = convertWorkspaceModelToConfig(workspace);
+            console.log(
+              "[useWorkspaceManager] switchWorkspace: converted workspaceConfig:",
+              workspaceConfig
+            );
 
             if (!isWorkspaceConfig(workspaceConfig)) {
+              console.error(
+                "[useWorkspaceManager] switchWorkspace: Failed to convert workspace to valid configuration",
+                workspaceConfig
+              );
               throw new Error(
                 "Failed to convert workspace to valid configuration"
               );
@@ -160,7 +196,13 @@ export function useWorkspaceManager() {
 
             // Switch workspace
             const workspaceComponent = yield* WorkspaceComponent;
+            console.log(
+              "[useWorkspaceManager] switchWorkspace: calling WorkspaceComponent.switchWorkspace"
+            );
             yield* workspaceComponent.switchWorkspace(workspaceConfig);
+            console.log(
+              "[useWorkspaceManager] switchWorkspace: WorkspaceComponent.switchWorkspace complete"
+            );
 
             // Optimistically update state
             updateState({
@@ -168,11 +210,18 @@ export function useWorkspaceManager() {
               isLoading: false,
               error: null,
             });
+            console.log(
+              "[useWorkspaceManager] workspaceConfig updated:",
+              workspaceConfig
+            );
           })
         );
       } catch (error) {
+        console.error("[useWorkspaceManager] switchWorkspace: error", error);
         handleError(error, "switchWorkspace");
         throw error; // Re-throw for caller handling
+      } finally {
+        isSwitchingWorkspaceRef.current = false;
       }
     },
     [runWithServices, updateState, handleError]
@@ -219,7 +268,18 @@ export function useWorkspaceManager() {
             activeChatApps,
             isLoading: false,
             error: null,
+            isConfigLoaded: true, // This line was removed from destructuring, so it's set here
           });
+          // ADDED LOGGING: Log after loading and setting workspace state
+          console.log(
+            "[useWorkspaceManager] loadWorkspaceData: set state with workspaces:",
+            {
+              workspaceConfig: workspaceConfig || null,
+              availableChatApps,
+              availableAgents,
+              activeChatApps,
+            }
+          );
         })
       );
     } catch (error) {
@@ -232,33 +292,43 @@ export function useWorkspaceManager() {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
 
-      // Initialize without auto-selecting any workspace
-      const initializeWithoutWorkspace = async () => {
+      // Initialize by loading workspace index/config first, then load workspace data
+      const initializeWithWorkspaceIndex = async () => {
         try {
-          // Just load the initial workspace data (empty state)
-          await loadWorkspaceData();
-
-          // Load the workspace index to make workspaces available for selection
           await runWithServices(
             Effect.gen(function* () {
               const appComponent = yield* AppComponent;
               yield* appComponent.loadConfig(
                 "/static/configs/workspaces/index.json"
               );
+              const workspaces = yield* appComponent.getWorkspaces();
+              if (workspaces.length > 0) {
+                const workspaceComponent = yield* WorkspaceComponent;
+                yield* workspaceComponent.switchWorkspace(workspaces[0]);
+              }
             })
           );
+
+          // Now load the initial workspace data (should now include workspaces)
+          await loadWorkspaceData();
         } catch (error) {
           console.error("Failed to initialize workspace manager:", error);
         }
       };
 
-      initializeWithoutWorkspace();
+      initializeWithWorkspaceIndex();
     }
   }, [loadWorkspaceData, runWithServices]);
 
   // Subscribe to workspace state changes to keep all components in sync
   useEffect(() => {
     const pollWorkspaceState = async () => {
+      if (isSwitchingWorkspaceRef.current) {
+        console.log(
+          "[useWorkspaceManager] Polling skipped: workspace switch in progress"
+        );
+        return;
+      }
       try {
         await loadWorkspaceData();
       } catch (error) {
@@ -266,10 +336,49 @@ export function useWorkspaceManager() {
       }
     };
 
-    // Poll every 500ms to keep state in sync
-    const interval = setInterval(pollWorkspaceState, 500);
+    // Poll every 2 seconds to keep state in sync (reduced frequency to avoid race conditions)
+    const interval = setInterval(pollWorkspaceState, 2000);
     return () => clearInterval(interval);
   }, [loadWorkspaceData]);
+
+  // In loadWorkspaceData, after updating state with workspaceConfig, availableChatApps, etc.
+  // Add logic to auto-select the first workspace if none is selected
+  useEffect(() => {
+    const selectFirstWorkspace = async () => {
+      await runWithServices(
+        Effect.gen(function* () {
+          const appComponent = yield* AppComponent;
+          const workspaces = yield* appComponent.getWorkspaces();
+          console.log(
+            "[useWorkspaceManager] Available workspaces (auto-select effect):",
+            workspaces
+          );
+          if (
+            state.isConfigLoaded &&
+            !state.workspaceConfig &&
+            workspaces.length > 0
+          ) {
+            const workspace = workspaces[0];
+            console.log(
+              "[useWorkspaceManager] Switching to workspace (auto-select effect):",
+              workspace.id
+            );
+            yield* Effect.promise(() => switchWorkspace(workspace.id));
+          } else if (workspaces.length === 0) {
+            console.log(
+              "[useWorkspaceManager] No workspaces found to auto-select (auto-select effect)."
+            );
+          }
+        })
+      );
+    };
+    selectFirstWorkspace();
+  }, [
+    state.isConfigLoaded,
+    state.workspaceConfig,
+    runWithServices,
+    switchWorkspace,
+  ]);
 
   // Return strictly typed interface
   return {
@@ -280,6 +389,7 @@ export function useWorkspaceManager() {
     activeChatApps: state.activeChatApps,
     isLoading: state.isLoading,
     error: state.error,
+    isConfigLoaded: state.isConfigLoaded,
 
     // Actions (strictly typed)
     switchWorkspace,

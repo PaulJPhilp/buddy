@@ -1,37 +1,64 @@
-import { AppComponent } from "@/components/app/service";
-import { ConfigService } from "@/services/config/service";
-import { Effect, Layer } from "effect";
 import { NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 export async function GET() {
   try {
-    const program = Effect.gen(function* () {
-      const appComponent = yield* AppComponent;
+    // Read the workspace index file directly
+    const publicDir = join(process.cwd(), "public");
+    const indexPath = join(publicDir, "static/configs/workspaces/index.json");
+    
+    const indexContent = await readFile(indexPath, "utf-8");
+    const indexData = JSON.parse(indexContent);
 
-      // Load config first
-      yield* appComponent.loadConfig("/static/configs/workspaces/index.json");
+    // Load individual workspace configs
+    const workspaces = [];
+    for (const workspaceRef of indexData.workspaces || []) {
+      try {
+        const workspacePath = join(publicDir, workspaceRef.configPath);
+        const workspaceContent = await readFile(workspacePath, "utf-8");
+        const workspaceData = JSON.parse(workspaceContent);
+        
+        // Transform to WorkspaceModel format
+        const workspace = {
+          id: workspaceData.id,
+          name: workspaceData.name,
+          description: workspaceData.description || "",
+          chatappIds: workspaceData.chatappIds || [],
+          agentIds: workspaceData.agentIds || [],
+          permissions: {
+            canAddApps: true,
+            canRemoveApps: true,
+            canModifyLayout: true,
+            canChangeSettings: true,
+            canInviteUsers: false,
+            canManagePermissions: false,
+          },
+          isDefault: false,
+          isArchived: workspaceData.isArchived || false,
+          maxExpandedApps: workspaceData.maxExpandedApps || 2,
+          createdAt: workspaceData.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          metadata: {
+            icon: workspaceData.icon,
+            primaryColor: workspaceData.primaryColor || workspaceData.style?.primaryColor,
+            activeAppId: workspaceData.activeAppId,
+            style: workspaceData.style,
+          },
+        };
+        
+        workspaces.push(workspace);
+      } catch (error) {
+        console.warn(`Failed to load workspace ${workspaceRef.id}:`, error);
+      }
+    }
 
-      // Get workspaces
-      const workspaces = yield* appComponent.getWorkspaces();
-      const currentWorkspace = yield* appComponent.getCurrentWorkspace();
-
-      return {
-        workspaces,
-        currentWorkspace,
-        count: workspaces.length,
-        firstWorkspace: workspaces[0] || null,
-      };
+    return NextResponse.json({
+      workspaces,
+      currentWorkspace: null, // No current workspace initially
+      count: workspaces.length,
+      firstWorkspace: workspaces[0] || null,
     });
-
-    const serviceLayer = Layer.merge(
-      ConfigService.Default,
-      AppComponent.Default
-    );
-    const result = await Effect.provide(program, serviceLayer).pipe(
-      Effect.runPromise
-    );
-
-    return NextResponse.json(result);
   } catch (error) {
     console.error("Debug workspaces error:", error);
     return NextResponse.json(

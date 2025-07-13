@@ -49,6 +49,14 @@ export function WorkspaceTree() {
               return;
             }
 
+            // If no workspaces are loaded, it means the config loading failed
+            if (allWorkspaces.length === 0) {
+              console.warn("No workspaces loaded - config may not be loaded yet");
+              setWorkspaces([]);
+              setCurrentWorkspaceId(null);
+              return;
+            }
+
             // Validate each workspace has required fields
             const validWorkspaces = allWorkspaces.filter((workspace) => {
               if (!workspace || typeof workspace !== "object") {

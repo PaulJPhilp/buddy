@@ -53,7 +53,7 @@ import type {
 export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
   "ChatAppsManager",
   {
-    scoped: Effect.gen(function* () {
+    effect: Effect.gen(function* () {
       // Initialize state without CoreManager dependency
       const stateRef = yield* Ref.make<ChatAppsManagerState>({
         chatAppInstances: {},
@@ -172,6 +172,8 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
             tags: [],
             customData: {},
           },
+          messages: [],
+          hasBeenCleared: false,
         };
       };
 
@@ -197,7 +199,7 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
           averageAppsPerWorkspace:
             workspaces.size > 0 ? apps.length / workspaces.size : 0,
           totalMessages: apps.reduce(
-            (sum, app) => sum + app.metadata.totalMessages,
+            (sum, app) => sum + app.messages.length,
             0
           ),
           totalInteractions: apps.reduce(
@@ -773,6 +775,96 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
       const executeOperation = (operation: Record<string, unknown>) =>
         Effect.succeed(undefined);
 
+      // Message Management
+      const getChatAppMessages = (appId: string) =>
+        Effect.gen(function* () {
+          yield* validateChatAppExists(appId);
+          const state = yield* Ref.get(stateRef);
+          return state.chatAppInstances[appId].messages;
+        }).pipe(
+          Effect.mapError((cause) => {
+            if (cause instanceof ChatAppNotFoundError) {
+              return cause;
+            }
+            return new ChatAppsManagerOperationError({
+              message: `Failed to get messages for ChatApp: ${appId}`,
+              operation: "getChatAppMessages",
+              appId,
+              cause,
+            });
+          })
+        );
+
+      const addChatAppMessage = (appId: string, message: any) =>
+        Effect.gen(function* () {
+          yield* validateChatAppExists(appId);
+
+          yield* updateState((state) => ({
+            ...state,
+            chatAppInstances: {
+              ...state.chatAppInstances,
+              [appId]: {
+                ...state.chatAppInstances[appId],
+                messages: [...state.chatAppInstances[appId].messages, message],
+                hasBeenCleared: false, // Reset cleared flag when adding messages
+                metadata: {
+                  ...state.chatAppInstances[appId].metadata,
+                  totalMessages:
+                    state.chatAppInstances[appId].metadata.totalMessages + 1,
+                  lastInteractionAt: new Date(),
+                },
+                lastActiveAt: new Date(),
+              },
+            },
+          }));
+        }).pipe(
+          Effect.mapError((cause) => {
+            if (cause instanceof ChatAppNotFoundError) {
+              return cause;
+            }
+            return new ChatAppsManagerOperationError({
+              message: `Failed to add message to ChatApp: ${appId}`,
+              operation: "addChatAppMessage",
+              appId,
+              cause,
+            });
+          })
+        );
+
+      const clearChatAppMessages = (appId: string) =>
+        Effect.gen(function* () {
+          yield* validateChatAppExists(appId);
+
+          yield* updateState((state) => ({
+            ...state,
+            chatAppInstances: {
+              ...state.chatAppInstances,
+              [appId]: {
+                ...state.chatAppInstances[appId],
+                messages: [],
+                hasBeenCleared: true,
+                metadata: {
+                  ...state.chatAppInstances[appId].metadata,
+                  totalMessages: 0,
+                },
+                lastActiveAt: new Date(),
+              },
+            },
+          }));
+        }).pipe(
+          Effect.mapError((cause) => {
+            if (cause instanceof ChatAppNotFoundError) {
+              return cause;
+            }
+            return new ChatAppsManagerOperationError({
+              message: `Failed to clear messages for ChatApp: ${appId}`,
+              operation: "clearChatAppMessages",
+              appId,
+              cause,
+            });
+          })
+        );
+
       // Command dispatch method
       const dispatch = (command: ChatAppsCommand) =>
         Queue.offer(commandQueue, command);
@@ -829,6 +921,9 @@ export class ChatAppsManager extends Effect.Service<ChatAppsManagerApi>()(
         debugResetState,
         debugValidateState,
         dispatch,
+        getChatAppMessages,
+        addChatAppMessage,
+        clearChatAppMessages,
       } satisfies ChatAppsManagerApi;
     }),
     dependencies: [],

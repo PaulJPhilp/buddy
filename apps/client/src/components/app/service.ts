@@ -10,6 +10,47 @@ import {
 import type { AppComponentConfig, AppComponentState } from "./types";
 import { createDefaultAppState } from "./types";
 
+// In-memory cache for chat app configs (session-scoped)
+const chatAppConfigCache = new Map<string, any>(); // Use ChatAppConfig type if available
+
+// Helper: Fetch chat app configs for a set of IDs (cache-aware, parallel)
+function fetchChatAppConfigs(chatAppIds: string[]) {
+  const fetchEffects = chatAppIds.map((chatAppId) => {
+    // Remove '-chat' suffix to get the file name
+    const fileName = chatAppId.replace("-chat", "");
+    const chatAppPath = `/static/configs/chatapps/${fileName}.json`;
+    if (chatAppConfigCache.has(chatAppId)) {
+      return Effect.succeed(chatAppConfigCache.get(chatAppId));
+    }
+    const chatAppApiUrl = `/api/configs?path=${encodeURIComponent(
+      chatAppPath
+    )}`;
+    return Effect.tryPromise({
+      try: () => fetch(chatAppApiUrl),
+      catch: () => null,
+    }).pipe(
+      Effect.flatMap((chatAppResponse) =>
+        chatAppResponse?.ok
+          ? Effect.tryPromise({
+              try: () => chatAppResponse.json(),
+              catch: () => null,
+            }).pipe(
+              Effect.tap((chatAppData) => {
+                if (chatAppData) chatAppConfigCache.set(chatAppId, chatAppData);
+                return Effect.void;
+              })
+            )
+          : Effect.succeed(null)
+      )
+    );
+  });
+  return Effect.all(fetchEffects).pipe(
+    Effect.map((results) => results.filter(Boolean))
+  );
+}
+
+export { fetchChatAppConfigs };
+
 export class AppComponent extends Effect.Service<AppComponentApi>()(
   "AppComponent",
   {
@@ -48,6 +89,9 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
           try {
             const path = configPath || "/static/configs/workspaces/index.json";
 
+            // Timing: Start config fetch
+            const t0 = performance.now();
+
             // Fetch the configuration via API route
             const apiUrl = `/api/configs?path=${encodeURIComponent(path)}`;
             const response = yield* Effect.tryPromise({
@@ -79,72 +123,91 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
                 }),
             });
 
-            // Load workspace configurations if available
-            const workspaces: WorkspaceModel[] = [];
+            const t1 = performance.now();
+            console.log(
+              `[AppComponent] Config index fetch took ${(t1 - t0).toFixed(1)}ms`
+            );
+
+            // Load workspace configurations in parallel
+            let workspaces: WorkspaceModel[] = [];
             if (configData.workspaces && Array.isArray(configData.workspaces)) {
-              for (const workspaceRef of configData.workspaces) {
-                try {
+              const workspaceFetches = configData.workspaces.map(
+                (workspaceRef: any) => {
                   const workspacePath =
                     workspaceRef.configPath ||
                     `/static/configs/workspaces/${workspaceRef.id}/workspace.json`;
                   const wsApiUrl = `/api/configs?path=${encodeURIComponent(
                     workspacePath
                   )}`;
-                  const wsResponse = yield* Effect.tryPromise({
-                    try: () => fetch(wsApiUrl),
-                    catch: () => null,
-                  });
-
-                  if (wsResponse?.ok) {
-                    const workspaceData = yield* Effect.tryPromise({
-                      try: () => wsResponse.json(),
-                      catch: () => null,
+                  return fetch(wsApiUrl)
+                    .then((wsResponse) =>
+                      wsResponse.ok ? wsResponse.json() : null
+                    )
+                    .then((workspaceData) => {
+                      if (workspaceData) {
+                        return {
+                          id: workspaceData.id,
+                          name: workspaceData.name,
+                          description: workspaceData.description || "",
+                          chatappIds: workspaceData.chatappIds || [],
+                          agentIds: workspaceData.agentIds || [],
+                          permissions: {
+                            canAddApps: true,
+                            canRemoveApps: true,
+                            canModifyLayout: true,
+                            canChangeSettings: true,
+                            canInviteUsers: false,
+                            canManagePermissions: false,
+                          },
+                          isDefault: false,
+                          isArchived: workspaceData.isArchived || false,
+                          maxExpandedApps: workspaceData.maxExpandedApps || 2,
+                          createdAt:
+                            workspaceData.createdAt || new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                          metadata: {
+                            icon: workspaceData.icon,
+                            primaryColor:
+                              workspaceData.primaryColor ||
+                              workspaceData.style?.primaryColor,
+                            activeAppId: workspaceData.activeAppId,
+                            style: workspaceData.style,
+                          },
+                        };
+                      }
+                      return null;
+                    })
+                    .catch((error) => {
+                      console.warn(
+                        `Failed to load workspace ${workspaceRef.id}:`,
+                        error
+                      );
+                      return null;
                     });
-
-                    if (workspaceData) {
-                      const workspace: WorkspaceModel = {
-                        id: workspaceData.id,
-                        name: workspaceData.name,
-                        description: workspaceData.description || "",
-                        chatappIds: workspaceData.chatappIds || [],
-                        agentIds: workspaceData.agentIds || [],
-                        permissions: {
-                          canAddApps: true,
-                          canRemoveApps: true,
-                          canModifyLayout: true,
-                          canChangeSettings: true,
-                          canInviteUsers: false,
-                          canManagePermissions: false,
-                        },
-                        isDefault: false,
-                        isArchived: workspaceData.isArchived || false,
-                        maxExpandedApps: workspaceData.maxExpandedApps || 2,
-                        createdAt:
-                          workspaceData.createdAt || new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        metadata: {
-                          icon: workspaceData.icon,
-                          primaryColor:
-                            workspaceData.primaryColor ||
-                            workspaceData.style?.primaryColor,
-                          activeAppId: workspaceData.activeAppId,
-                          style: workspaceData.style,
-                        },
-                      };
-                      workspaces.push(workspace);
-                    }
-                  }
-                } catch (error) {
-                  console.warn(
-                    `Failed to load workspace ${workspaceRef.id}:`,
-                    error
-                  );
                 }
-              }
+              );
+              const t2 = performance.now();
+              // Await all workspace fetches in parallel
+              const workspaceResults = yield* Effect.tryPromise({
+                try: () => Promise.all(workspaceFetches),
+                catch: (error) => error,
+              });
+              workspaces = workspaceResults.filter(Boolean);
+              const t3 = performance.now();
+              console.log(
+                `[AppComponent] Workspace configs fetch took ${(
+                  t3 - t2
+                ).toFixed(1)}ms for ${workspaces.length} workspaces`
+              );
             }
 
+            // ADDED LOGGING: Log parsed workspaces after loading
+            console.log(
+              "[AppComponent] loadConfig: parsed workspaces:",
+              workspaces
+            );
+
             // Load chat apps referenced by workspaces
-            const chatApps: any[] = [];
             const allChatAppIds = new Set<string>();
 
             // Collect all unique chat app IDs from workspaces
@@ -159,51 +222,21 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
               Array.from(allChatAppIds)
             );
 
-            // Load each chat app config
-            for (const chatAppId of allChatAppIds) {
-              try {
-                // Remove '-chat' suffix to get the file name
-                const fileName = chatAppId.replace("-chat", "");
-                const chatAppPath = `/static/configs/chatapps/${fileName}.json`;
-                const chatAppApiUrl = `/api/configs?path=${encodeURIComponent(
-                  chatAppPath
-                )}`;
-                console.log(
-                  `DEBUG: Loading chat app ${chatAppId} from ${chatAppPath}`
-                );
+            // Determine the active workspace (first, or by some logic)
+            const activeWorkspace = workspaces[0]; // Replace with actual logic if needed
+            const activeChatAppIds = activeWorkspace
+              ? activeWorkspace.chatappIds
+              : [];
 
-                const chatAppResponse = yield* Effect.tryPromise({
-                  try: () => fetch(chatAppApiUrl),
-                  catch: () => null,
-                });
-
-                if (chatAppResponse?.ok) {
-                  const chatAppData = yield* Effect.tryPromise({
-                    try: () => chatAppResponse.json(),
-                    catch: () => null,
-                  });
-
-                  if (chatAppData) {
-                    console.log(`DEBUG: Successfully loaded chat app:`, {
-                      id: chatAppData.id,
-                      name: chatAppData.name,
-                    });
-                    chatApps.push(chatAppData);
-                  } else {
-                    console.warn(
-                      `DEBUG: Failed to parse JSON for chat app ${chatAppId}`
-                    );
-                  }
-                } else {
-                  console.warn(
-                    `DEBUG: Failed to fetch chat app ${chatAppId}, response status:`,
-                    chatAppResponse?.status
-                  );
-                }
-              } catch (error) {
-                console.warn(`Failed to load chat app ${chatAppId}:`, error);
-              }
-            }
+            // Only fetch/register chat apps for the active workspace at startup
+            const t4 = performance.now();
+            const chatApps = yield* fetchChatAppConfigs(activeChatAppIds);
+            const t5 = performance.now();
+            console.log(
+              `[AppComponent] Chat app configs fetch took ${(t5 - t4).toFixed(
+                1
+              )}ms for ${activeChatAppIds.length} chat apps`
+            );
 
             console.log(
               `DEBUG: Successfully loaded ${chatApps.length} chat apps:`,
@@ -231,11 +264,38 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
               metadata: configData.metadata || {},
             };
 
-            yield* setState({
-              appConfig,
-              isConfigLoaded: true,
-              isLoading: false,
-            });
+            // After loading workspaces and chat apps
+            if (workspaces.length > 0) {
+              const activeWorkspace = workspaces[0];
+              const activeChatAppIds = activeWorkspace
+                ? activeWorkspace.chatappIds
+                : [];
+              const chatApps = yield* fetchChatAppConfigs(activeChatAppIds);
+
+              // Set the first workspace as active in the state (only valid properties)
+              yield* setState({
+                appConfig: {
+                  ...appConfig,
+                  workspaces,
+                  chatapps: [...(configData.chatapps || []), ...chatApps],
+                },
+                isConfigLoaded: true,
+                isLoading: false,
+                error: null,
+              });
+            } else {
+              // No workspaces found, set error/empty state (only valid properties)
+              yield* setState({
+                appConfig: {
+                  ...appConfig,
+                  workspaces: [],
+                  chatapps: [],
+                },
+                isConfigLoaded: true,
+                isLoading: false,
+                error: "No workspaces found in configuration.",
+              });
+            }
 
             return appConfig;
           } catch (error) {
@@ -248,9 +308,15 @@ export class AppComponent extends Effect.Service<AppComponentApi>()(
         Effect.gen(function* () {
           const state = yield* getState();
           if (!state.appConfig?.workspaces) {
+            console.log(
+              "[AppComponent] getWorkspaces: no workspaces in appConfig"
+            );
             return [];
           }
-
+          console.log(
+            "[AppComponent] getWorkspaces: returning workspaces:",
+            state.appConfig.workspaces
+          );
           return state.appConfig.workspaces;
         });
 

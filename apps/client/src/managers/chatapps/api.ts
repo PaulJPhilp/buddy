@@ -7,6 +7,7 @@ import type {
   ChatAppStatus,
   ChatAppsManagerState,
   ChatAppsManagerStats,
+  ChatMessage,
   FocusModeConfig,
   LayoutConfig,
   WorkspaceLayoutConfig,
@@ -220,6 +221,20 @@ export interface ChatAppsManagerApi {
   readonly executeOperation: (
     operation: any // ChatAppsOperation
   ) => Effect.Effect<any, ChatAppsManagerError>;
+
+  // Message Management
+  readonly getChatAppMessages: (
+    appId: string
+  ) => Effect.Effect<ChatMessage[], ChatAppsManagerError>;
+
+  readonly addChatAppMessage: (
+    appId: string,
+    message: ChatMessage
+  ) => Effect.Effect<void, ChatAppsManagerError>;
+
+  readonly clearChatAppMessages: (
+    appId: string
+  ) => Effect.Effect<void, ChatAppsManagerError>;
 
   readonly getLastOperation: () => Effect.Effect<
     any | null, // ChatAppsOperation | null

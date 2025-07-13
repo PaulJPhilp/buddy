@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
-import { ChatAppConfig } from "@/types/global";
+import { AgentConfig, ChatAppConfig } from "@/types/global";
 import type { AgentModel, ChatAppModel } from "@services/config";
 import { Effect } from "effect";
 import React, {
@@ -11,7 +11,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { ChatAppComponent } from "./service";
+import type { ChatAppManagerApi } from "./manager";
+import { ChatAppManager } from "./manager-service";
 import type {
   ChatAppComponentConfig,
   ChatAppComponentState,
@@ -96,38 +97,48 @@ export function ChatAppContainer({
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize the ChatAppComponent service
+  // Initialize the ChatAppManager service
   useEffect(() => {
     const initializeChatApp = async () => {
       try {
         await runWithServices(
           Effect.gen(function* () {
-            const chatAppComponent = yield* ChatAppComponent;
-            yield* chatAppComponent.initialize(config);
+            const chatAppManager = yield* ChatAppManager;
+
+            // Convert config to ChatAppConfig format
+            const chatAppConfig = new ChatAppConfig({
+              id: config.chatAppId,
+              name: config.chatAppId, // Use ID as name if not provided
+              agentId: "default-agent", // Default agent
+              toolbarId: "default-toolbar",
+              themeId: "default-theme",
+              description: `Chat app for ${config.chatAppId}`,
+              version: "1.0.0",
+            });
+
+            yield* chatAppManager.initialize(chatAppConfig);
 
             // Get initial state
-            const initialState = yield* chatAppComponent.getState();
+            const initialState = yield* chatAppManager.getState();
             setState(initialState);
             setIsInitialized(true);
 
             // Set up state subscription
-            const unsubscribe = yield* chatAppComponent.subscribe(
-              (newState) => {
-                setState(newState);
-                onStateChange?.(newState);
+            const unsubscribe = yield* chatAppManager.subscribe((newState) => {
+              setState(newState);
+              onStateChange?.(newState);
 
-                // Notify about UI state changes
-                if (
-                  newState.uiState.isWindowOpen !== undefined &&
-                  newState.uiState.isMinimized !== undefined
-                ) {
-                  onUIStateChanged?.(
-                    newState.uiState.isWindowOpen,
-                    !newState.uiState.isMinimized,
-                  );
-                }
-              },
-            );
+              // Notify about UI state changes
+              if (
+                newState.uiState.isWindowOpen !== undefined &&
+                newState.uiState.isMinimized !== undefined
+              ) {
+                onUIStateChanged?.(
+                  newState.uiState.isWindowOpen,
+                  !newState.uiState.isMinimized,
+                );
+              }
+            });
 
             return unsubscribe;
           }),
@@ -143,7 +154,7 @@ export function ChatAppContainer({
     initializeChatApp();
   }, [config, runWithServices, onStateChange, onUIStateChanged]);
 
-  // Load chat app
+  // Load chat app (re-initialize with new config)
   const loadChatApp = useCallback(
     async (chatApp: ChatAppModel) => {
       try {
@@ -151,8 +162,10 @@ export function ChatAppContainer({
         const chatAppConfig = convertChatAppModelToConfig(chatApp);
         await runWithServices(
           Effect.gen(function* () {
-            const chatAppComponent = yield* ChatAppComponent;
-            yield* chatAppComponent.loadChatApp(chatAppConfig);
+            const chatAppManager = yield* ChatAppManager;
+            // Cleanup current instance and initialize with new config
+            yield* chatAppManager.cleanup();
+            yield* chatAppManager.initialize(chatAppConfig);
           }),
         );
 
@@ -167,15 +180,51 @@ export function ChatAppContainer({
     [runWithServices, onChatAppLoaded],
   );
 
-  // Switch agent (load agents with the new agent)
+  // Switch agent (assign new agent)
   const switchAgent = useCallback(
     async (agent: AgentModel) => {
       try {
         setError(null);
         await runWithServices(
           Effect.gen(function* () {
-            const chatAppComponent = yield* ChatAppComponent;
-            yield* chatAppComponent.loadAgents([agent]);
+            const chatAppManager = yield* ChatAppManager;
+            // Convert AgentModel to AgentConfig (AgentModel)
+            const agentConfig: AgentConfig = {
+              id: agent.id,
+              name: agent.name,
+              description: agent.description,
+              version: agent.version,
+              provider: agent.provider || "openai",
+              model: agent.model || "gpt-4",
+              prompt: agent.prompt,
+              capabilities: agent.capabilities || [],
+              parameters: agent.parameters || {
+                temperature: 0.7,
+                maxTokens: 2048,
+                topP: 1.0,
+                frequencyPenalty: 0.0,
+                presencePenalty: 0.0,
+                stopSequences: [],
+                customParameters: {},
+              },
+              permissions: agent.permissions || {
+                canAccessInternet: false,
+                canExecuteCode: false,
+                canAccessFiles: false,
+                canModifyFiles: false,
+                canAccessDatabase: false,
+                canSendEmails: false,
+                allowedDomains: [],
+                blockedDomains: [],
+              },
+              isDefault: agent.isDefault || false,
+              isShared: agent.isShared || false,
+              isArchived: agent.isArchived || false,
+              createdAt: agent.createdAt,
+              updatedAt: agent.updatedAt,
+              metadata: agent.metadata || {},
+            };
+            yield* chatAppManager.assignAgent(agentConfig);
           }),
         );
 
@@ -190,52 +239,74 @@ export function ChatAppContainer({
     [runWithServices, onAgentSwitched],
   );
 
-  // Get chat app configuration
+  // Get chat app configuration (derived from state)
   const getChatAppConfig = useCallback(async () => {
     try {
-      const config = await runWithServices(
+      const state = await runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          return yield* chatAppComponent.getChatAppConfig();
+          const chatAppManager = yield* ChatAppManager;
+          return yield* chatAppManager.getState();
         }),
       );
-      return config ? convertChatAppConfigToModel(config) : null;
+
+      if (state?.chatAppConfig) {
+        return convertChatAppConfigToModel(state.chatAppConfig);
+      }
+      return null;
     } catch (err) {
       console.error("[ChatAppContainer] Failed to get chat app config:", err);
       return null;
     }
   }, [runWithServices]);
 
-  // Get current agent (get first assigned agent)
+  // Get current agent
   const getCurrentAgent = useCallback(async () => {
     try {
-      const agents = await runWithServices(
+      const agentConfig = await runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          return yield* chatAppComponent.getAssignedAgents();
+          const chatAppManager = yield* ChatAppManager;
+          return yield* chatAppManager.getCurrentAgent();
         }),
       );
-      return agents.length > 0 ? agents[0] : null;
+
+      if (agentConfig) {
+        // Convert AgentConfig to AgentModel
+        return {
+          id: agentConfig.id,
+          name: agentConfig.name,
+          description: agentConfig.description,
+          version: agentConfig.version,
+          provider: agentConfig.provider,
+          model: agentConfig.model,
+          prompt: agentConfig.prompt,
+          capabilities: agentConfig.capabilities,
+          parameters: agentConfig.parameters,
+          permissions: agentConfig.permissions,
+          isDefault: agentConfig.isDefault,
+          isShared: agentConfig.isShared,
+          isArchived: agentConfig.isArchived,
+          createdAt: agentConfig.createdAt,
+          updatedAt: agentConfig.updatedAt,
+          metadata: agentConfig.metadata,
+        };
+      }
+      return null;
     } catch (err) {
       console.error("[ChatAppContainer] Failed to get current agent:", err);
       return null;
     }
   }, [runWithServices]);
 
-  // Get available agents (get assigned agents)
+  // Get available agents (return current agent if available)
   const getAvailableAgents = useCallback(async () => {
     try {
-      return await runWithServices(
-        Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          return yield* chatAppComponent.getAssignedAgents();
-        }),
-      );
+      const currentAgent = await getCurrentAgent();
+      return currentAgent ? [currentAgent] : [];
     } catch (err) {
       console.error("[ChatAppContainer] Failed to get available agents:", err);
       return [];
     }
-  }, [runWithServices]);
+  }, [getCurrentAgent]);
 
   // Show chat app (open window)
   const showChatApp = useCallback(async () => {
@@ -243,8 +314,8 @@ export function ChatAppContainer({
       setError(null);
       await runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          yield* chatAppComponent.openWindow();
+          const chatAppManager = yield* ChatAppManager;
+          yield* chatAppManager.setUIState({ isWindowOpen: true });
         }),
       );
     } catch (err) {
@@ -261,8 +332,8 @@ export function ChatAppContainer({
       setError(null);
       await runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          yield* chatAppComponent.closeWindow();
+          const chatAppManager = yield* ChatAppManager;
+          yield* chatAppManager.setUIState({ isWindowOpen: false });
         }),
       );
     } catch (err) {
@@ -279,8 +350,8 @@ export function ChatAppContainer({
       setError(null);
       await runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          yield* chatAppComponent.restoreWindow();
+          const chatAppManager = yield* ChatAppManager;
+          yield* chatAppManager.setUIState({ isMinimized: false });
         }),
       );
     } catch (err) {
@@ -297,8 +368,8 @@ export function ChatAppContainer({
       setError(null);
       await runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          yield* chatAppComponent.minimizeWindow();
+          const chatAppManager = yield* ChatAppManager;
+          yield* chatAppManager.setUIState({ isMinimized: true });
         }),
       );
     } catch (err) {
@@ -316,7 +387,7 @@ export function ChatAppContainer({
         setError(null);
         await runWithServices(
           Effect.gen(function* () {
-            const chatAppComponent = yield* ChatAppComponent;
+            const chatAppManager = yield* ChatAppManager;
             // Map the updates to the correct UI state properties
             const uiStateUpdates: Partial<ChatAppUIState> = {
               ...(updates.isVisible !== undefined && {
@@ -326,7 +397,7 @@ export function ChatAppContainer({
                 isMinimized: !updates.isExpanded,
               }),
             };
-            yield* chatAppComponent.setUIState(uiStateUpdates);
+            yield* chatAppManager.setUIState(uiStateUpdates);
           }),
         );
       } catch (err) {
@@ -339,31 +410,28 @@ export function ChatAppContainer({
     [runWithServices],
   );
 
-  // Render chat app UI
+  // Render chat app UI (no-op for ChatAppManager)
   const renderChatAppUI = useCallback(async () => {
     try {
       setError(null);
-      await runWithServices(
-        Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          yield* chatAppComponent.renderChatAppUI();
-        }),
-      );
+      // ChatAppManager doesn't have a renderChatAppUI method
+      // UI rendering is handled by React components
+      console.log("[ChatAppContainer] Render UI requested - handled by React");
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to render chat app UI";
       setError(errorMessage);
       throw err;
     }
-  }, [runWithServices]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       runWithServices(
         Effect.gen(function* () {
-          const chatAppComponent = yield* ChatAppComponent;
-          yield* chatAppComponent.cleanup();
+          const chatAppManager = yield* ChatAppManager;
+          yield* chatAppManager.cleanup();
         }),
       ).catch(console.error);
     };

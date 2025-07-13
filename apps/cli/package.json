@@ -15,15 +15,15 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@effect/cli": "^0.66.10",
-    "@effect/platform": "^0.87.10",
+    "@effect/cli": "^0.66.12",
+    "@effect/platform": "^0.87.12",
     "@effect/schema": "^0.75.5",
     "effect": "^3.16.12"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
+    "@types/node": "^20.19.7",
     "bun-types": "latest",
-    "typescript": "^5.0.0"
+    "typescript": "^5.8.3"
   },
   "keywords": [
     "cli",

@@ -4,11 +4,14 @@ import { Effect, Layer, Runtime } from "effect";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { AppComponent } from "@/components/app/service";
+import { ChatAppManager } from "@/components/chatapp/manager-service";
 import { ChatAppComponent } from "@/components/chatapp/service";
 import { WorkspaceComponent } from "@/components/workspace/service";
 import { ChatManager } from "@/managers/chat/service";
 import { ChatAppsManager } from "@/managers/chatapps/service";
 import { CoreManager } from "@/managers/core/service";
+import { HeaderManager } from "@/managers/header/service";
+import { UserAreaManager } from "@/managers/userarea/service";
 import { WorkspaceManagerLive } from "@/managers/workspace";
 import { ChatService } from "@/services/chat";
 import { ChatBridge } from "@/services/chatbridge";
@@ -40,9 +43,12 @@ export function EffectProvider({ children }: { children: React.ReactNode }) {
       CoreManager.Default,
       ChatManager.Default,
       ChatAppsManager.Default,
+      HeaderManager.Default,
+      UserAreaManager.Default,
       WorkspaceManagerLive,
       AppComponent.Default,
       ChatAppComponent.Default,
+      ChatAppManager.Default,
       WorkspaceComponent.Default,
     );
 

@@ -6,8 +6,9 @@ import React, { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CustomTable, CustomTableCell } from "./CustomTable";
+import type { ChatBubbleAction } from "./chatbubble-manager/api";
 
-interface Message {
+export interface Message {
   id: string;
   content: string;
   sender: "user" | "assistant";
@@ -18,6 +19,9 @@ interface Message {
 interface ChatBubbleProps {
   message: Message;
   showTimestamp?: boolean;
+  bubbleState?: any; // Accept ChatBubbleState, but keep loose for now
+  formattedContent?: string;
+  onAction?: (action: ChatBubbleAction) => void;
 }
 
 // llm-ui Markdown component with custom styling
@@ -36,7 +40,7 @@ const MarkdownComponent: LLMOutputComponent = ({ blockMatch }) => {
 
           // Styled headers
           h1: ({ children }) => (
-            <h1 className="text-lg font-bold mb-2 mt-3 first:mt-0">
+            <h1 className="text-xs font-bold mb-2 mt-3 first:mt-0">
               {children}
             </h1>
           ),
@@ -126,7 +130,13 @@ const MarkdownComponent: LLMOutputComponent = ({ blockMatch }) => {
   );
 };
 
-export function ChatBubble({ message, showTimestamp = true }: ChatBubbleProps) {
+export function ChatBubble({
+  message,
+  showTimestamp = true,
+  bubbleState,
+  formattedContent,
+  onAction,
+}: ChatBubbleProps) {
   const { content, sender, timestamp, isStreaming = false } = message;
   const isUser = sender === "user";
 
@@ -164,11 +174,9 @@ export function ChatBubble({ message, showTimestamp = true }: ChatBubbleProps) {
           isUser ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
         }`}
       >
-        {/* Render content with llm-ui */}
-        <div className="text-sm">
-          {isStreaming &&
-          (!content || content.trim() === "" || content.includes("typing")) ? (
-            // Animated typing indicator dots only - show when streaming with no content or typing message
+        {/* Render content with llm-ui or formattedContent */}
+        <div className="text-xs">
+          {bubbleState?.isStreaming || isStreaming ? (
             <div className="flex space-x-1">
               <div
                 className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
@@ -197,19 +205,41 @@ export function ChatBubble({ message, showTimestamp = true }: ChatBubbleProps) {
                 }}
               />
             </div>
+          ) : bubbleState?.hasError ? (
+            <div className="text-red-500">
+              {bubbleState.errorMessage || "Error"}
+            </div>
+          ) : formattedContent ? (
+            <div className="whitespace-pre-wrap">{formattedContent}</div>
           ) : blockMatches.length > 0 ? (
-            // Render streaming or completed markdown content with llm-ui
             blockMatches.map((blockMatch, index) => {
               const Component = blockMatch.block.component;
               return (
-                <Component key={`block-${index}`} blockMatch={blockMatch} />
+                <Component
+                  key={`${blockMatch.startIndex}-${blockMatch.endIndex}`}
+                  blockMatch={blockMatch}
+                />
               );
             })
           ) : (
-            // Fallback: render plain text if no blockMatches
             <div className="whitespace-pre-wrap">{content}</div>
           )}
         </div>
+
+        {/* Example action buttons */}
+        {onAction && (
+          <div className="flex gap-2 mt-1">
+            <button type="button" onClick={() => onAction("edit")}>
+              Edit
+            </button>
+            <button type="button" onClick={() => onAction("retry")}>
+              Retry
+            </button>
+            <button type="button" onClick={() => onAction("copy")}>
+              Copy
+            </button>
+          </div>
+        )}
 
         {/* Timestamp */}
         {showTimestamp && (

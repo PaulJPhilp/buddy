@@ -9,6 +9,16 @@ export type ChatAppStatus =
   | "archived"
   | "closed";
 
+// Message interface for chat apps
+export interface ChatMessage {
+  readonly id: string;
+  readonly content: string;
+  readonly sender: "user" | "assistant";
+  readonly timestamp: Date;
+  readonly isTyping?: boolean;
+  readonly isStreaming?: boolean;
+}
+
 // ChatApp Instance
 export interface ChatAppInstance {
   readonly id: string;
@@ -23,6 +33,8 @@ export interface ChatAppInstance {
   readonly previousStatus?: ChatAppStatus; // For restoration after focus mode
   readonly metadata: ChatAppInstanceMetadata;
   readonly layout?: LayoutConfig;
+  readonly messages: ChatMessage[];
+  readonly hasBeenCleared: boolean; // Track if messages have been explicitly cleared
 }
 
 // ChatApp Instance Metadata

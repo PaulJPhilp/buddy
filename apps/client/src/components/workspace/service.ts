@@ -14,6 +14,7 @@ import type {
 } from "@/types/global";
 import { ChatAppsManager } from "@managers/chatapps";
 import { Effect, Ref } from "effect";
+import { fetchChatAppConfigs } from "../app/service"; // Import the helper
 import type { WorkspaceComponentApi } from "./api";
 import {
   WorkspaceAgentError,
@@ -145,8 +146,16 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
       // Switch workspace with strict typing
       const switchWorkspace = (workspaceConfig: WorkspaceConfig) =>
         Effect.gen(function* () {
+          console.log(
+            "[WorkspaceComponent] switchWorkspace called with:",
+            workspaceConfig
+          );
           // Validate input type
           if (!workspaceConfig || typeof workspaceConfig !== "object") {
+            console.error(
+              "[WorkspaceComponent] switchWorkspace: Invalid workspace config provided",
+              workspaceConfig
+            );
             yield* Effect.fail(
               new CoreComponentStateError({
                 message: "Invalid workspace config provided",
@@ -157,6 +166,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
 
           // Validate required fields
           if (!workspaceConfig.id || typeof workspaceConfig.id !== "string") {
+            console.error(
+              "[WorkspaceComponent] switchWorkspace: Workspace config must have a valid ID",
+              workspaceConfig
+            );
             yield* Effect.fail(
               new CoreComponentStateError({
                 message: "Workspace config must have a valid ID",
@@ -169,6 +182,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             !workspaceConfig.name ||
             typeof workspaceConfig.name !== "string"
           ) {
+            console.error(
+              "[WorkspaceComponent] switchWorkspace: Workspace config must have a valid name",
+              workspaceConfig
+            );
             yield* Effect.fail(
               new CoreComponentStateError({
                 message: "Workspace config must have a valid name",
@@ -179,6 +196,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
 
           // Validate arrays
           if (!Array.isArray(workspaceConfig.chatappIds)) {
+            console.error(
+              "[WorkspaceComponent] switchWorkspace: chatappIds must be an array",
+              workspaceConfig
+            );
             yield* Effect.fail(
               new CoreComponentStateError({
                 message: "Workspace config chatappIds must be an array",
@@ -188,6 +209,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           }
 
           if (!Array.isArray(workspaceConfig.agentIds)) {
+            console.error(
+              "[WorkspaceComponent] switchWorkspace: agentIds must be an array",
+              workspaceConfig
+            );
             yield* Effect.fail(
               new CoreComponentStateError({
                 message: "Workspace config agentIds must be an array",
@@ -197,7 +222,9 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           }
 
           yield* validateWorkspaceConfigHelper(workspaceConfig);
-          yield* executeOperation("switch_workspace" as WorkspaceOperationType);
+          console.log(
+            "[WorkspaceComponent] switchWorkspace: validated workspaceConfig"
+          );
 
           // Notify ChatAppsManager about workspace activation via command
           yield* chatAppsManager
@@ -219,13 +246,23 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             workspaceConfig,
             isWorkspaceLoaded: true,
           });
+          console.log(
+            "[WorkspaceComponent] switchWorkspace: state updated with new workspaceConfig"
+          );
 
           // Load chat apps for this workspace with strict typing
           yield* Effect.gen(function* () {
             // Get app config to access chat apps
             const appConfig = yield* appComponent.getAppConfig();
+            console.log(
+              "[WorkspaceComponent] switchWorkspace: got appConfig",
+              appConfig
+            );
 
             if (!appConfig) {
+              console.error(
+                "[WorkspaceComponent] switchWorkspace: No app config available"
+              );
               yield* Effect.fail(
                 new CoreComponentStateError({
                   message: "No app config available",
@@ -234,16 +271,41 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               );
             }
 
-            if (appConfig?.chatapps && Array.isArray(appConfig?.chatapps)) {
+            // --- ADDED: Fetch missing chat app configs for this workspace ---
+            const workspaceChatAppIds = workspaceConfig.chatappIds || [];
+            // Find which chat app IDs are missing from appConfig.chatapps
+            const loadedChatAppIds = (appConfig.chatapps || []).map(
+              (c) => c.id
+            );
+            const missingChatAppIds = workspaceChatAppIds.filter(
+              (id) => !loadedChatAppIds.includes(id)
+            );
+            let mergedChatApps = appConfig.chatapps || [];
+            if (missingChatAppIds.length > 0) {
+              console.log(
+                `[WorkspaceComponent] switchWorkspace: fetching missing chat app configs for:`,
+                missingChatAppIds
+              );
+              // Fetch and cache missing chat app configs
+              const fetched = yield* fetchChatAppConfigs(missingChatAppIds);
+              // Use a merged array for this run (do not mutate appConfig)
+              mergedChatApps = [...mergedChatApps, ...fetched];
+            }
+            // --- END ADDED ---
+
+            if (mergedChatApps && Array.isArray(mergedChatApps)) {
               // Validate and convert chat apps to ChatAppConfig format
               const validChatApps: ChatAppConfig[] = [];
 
-              for (const chatApp of appConfig.chatapps) {
+              for (const chatApp of mergedChatApps) {
                 // Use a type guard to ensure chatApp is valid
                 const extractedProps = extractChatAppProperties(chatApp);
 
                 if (!extractedProps) {
-                  console.warn("Invalid chat app object, skipping:", chatApp);
+                  console.warn(
+                    "[WorkspaceComponent] switchWorkspace: Invalid chat app object, skipping:",
+                    chatApp
+                  );
                   continue;
                 }
 
@@ -256,10 +318,6 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                   themeId: extractedProps.themeId || "default-theme",
                   description: extractedProps.description,
                   version: extractedProps.version,
-                  // Omit complex structured fields that require specific schemas
-                  // agent: undefined,
-                  // toolbar: undefined,
-                  // style: undefined,
                   updatedAt: extractedProps.updatedAt,
                   ownerId: extractedProps.ownerId,
                   spaceId: extractedProps.spaceId,
@@ -272,28 +330,37 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               }
 
               console.log(
-                `DEBUG: Found ${validChatApps.length} valid chat apps in app config:`,
+                `[WorkspaceComponent] switchWorkspace: Found ${validChatApps.length} valid chat apps in app config:`,
                 validChatApps.map((app) => ({ id: app.id, name: app.name }))
               );
               if (validChatApps.length > 0) {
                 yield* loadChatApps(validChatApps);
+                console.log(
+                  "[WorkspaceComponent] switchWorkspace: loadChatApps complete"
+                );
               } else {
-                console.warn("No valid chat apps found in app config");
+                console.warn(
+                  "[WorkspaceComponent] switchWorkspace: No valid chat apps found in app config"
+                );
               }
             } else {
-              console.warn("No chat apps array found in app config");
+              console.warn(
+                "[WorkspaceComponent] switchWorkspace: No chat apps array found in app config"
+              );
             }
           }).pipe(
             Effect.catchAll((error) => {
               console.warn(
-                `Failed to load chat apps for workspace ${workspaceConfig.id}:`,
+                `[WorkspaceComponent] switchWorkspace: Failed to load chat apps for workspace ${workspaceConfig.id}:`,
                 error
               );
               return Effect.succeed(undefined);
             })
           );
 
-          yield* Effect.log(`Switched to workspace: ${workspaceConfig.name}`);
+          yield* Effect.log(
+            `[WorkspaceComponent] Switched to workspace: ${workspaceConfig.name}`
+          );
         }).pipe(
           Effect.mapError((cause: unknown) =>
             cause instanceof WorkspaceValidationError
@@ -324,22 +391,11 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           }
 
           // Filter chat apps for current workspace
-          // TypeScript: state.workspaceConfig is guaranteed non-null due to check above
-          if (!state.workspaceConfig) {
-            yield* Effect.fail(
-              new WorkspaceChatAppError({
-                message: "No workspace loaded",
-                workspaceId: "unknown",
-                chatAppId: "multiple",
-                operation: "load",
-              })
-            );
-          }
-          // Filter chat apps based on workspace's chatappIds
           const workspaceChatApps = chatApps.filter((chatApp) =>
             state.workspaceConfig?.chatappIds.includes(chatApp.id)
           );
-          // Register chat apps with ChatAppsManager directly (not via commands)
+
+          // Register all chat apps in parallel
           yield* Effect.forEach(
             workspaceChatApps,
             (chatApp) =>
@@ -348,8 +404,6 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                     console.log(
                       `DEBUG: Checking if chat app ${chatApp.id} is already registered`
                     );
-
-                    // Check if chat app is already registered to avoid duplicates
                     const existingInstance = yield* chatAppsManager
                       .getChatAppInstance(chatApp.id)
                       .pipe(
@@ -357,25 +411,34 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                           Effect.succeed(null)
                         )
                       );
-
                     if (existingInstance) {
                       console.log(
                         `DEBUG: Chat app ${chatApp.id} already registered, skipping registration`
                       );
                       return;
                     }
-
                     console.log(
                       `DEBUG: Registering chat app ${chatApp.id} directly with workspace ID: ${state.workspaceConfig.id}`
                     );
-
-                    // Use direct registration instead of command dispatch for immediate processing
-                    const instance = yield* chatAppsManager.registerChatApp(
-                      state.workspaceConfig.id,
-                      chatApp.id,
-                      chatAppConfigToRecord(chatApp)
-                    );
-
+                    const instance = yield* chatAppsManager
+                      .registerChatApp(
+                        state.workspaceConfig.id,
+                        chatApp.id,
+                        chatAppConfigToRecord(chatApp)
+                      )
+                      .pipe(
+                        Effect.catchTag(
+                          "ChatAppAlreadyExistsError",
+                          (error) => {
+                            console.log(
+                              `DEBUG: Chat app ${chatApp.id} was already registered by another process, getting existing instance`
+                            );
+                            return chatAppsManager.getChatAppInstance(
+                              chatApp.id
+                            );
+                          }
+                        )
+                      );
                     console.log(
                       `DEBUG: Successfully registered chat app ${chatApp.id}:`,
                       {
@@ -397,9 +460,30 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             { concurrency: "unbounded" }
           );
 
+          // Atomic state update for availableChatApps
           yield* setState({
             availableChatApps: workspaceChatApps,
           });
+
+          // Wait for state propagation
+          yield* Effect.sleep("20 millis");
+
+          // Get updated state
+          const updatedState = yield* getState();
+
+          // If no active chat apps, activate the first one
+          if (
+            updatedState.activeChatApps.length === 0 &&
+            workspaceChatApps.length > 0
+          ) {
+            console.log(
+              `DEBUG: No active chat apps, activating first: ${workspaceChatApps[0].id}`
+            );
+            yield* activateChatApp(workspaceChatApps[0].id);
+          }
+
+          // Set isLoading: false only after all steps
+          yield* setState({ isLoading: false });
 
           console.log(
             `DEBUG: Loaded ${workspaceChatApps.length} chat apps for workspace ${state.workspaceConfig.id}:`,
@@ -682,7 +766,9 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
       // Get workspace state
       const getState = () =>
         Effect.gen(function* () {
-          return yield* Ref.get(workspaceStateRef);
+          const state = yield* Ref.get(workspaceStateRef);
+          console.log("[WorkspaceComponent] getState: returning state:", state);
+          return state;
         }).pipe(
           Effect.mapError(
             (cause: unknown) =>
