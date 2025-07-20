@@ -1,0 +1,21 @@
+{
+  "id": "default-editing-toolbar",
+  "name": "Default Editing Toolbar",
+  "commands": [
+    "core.undo",
+    "core.redo",
+    "core.save",
+    "text.bold",
+    "text.italic",
+    "text.underline"
+  ],
+  "style": {
+    "size": "md",
+    "primaryColor": "#3B82F6",
+    "backgroundColor": "#F9FAFB",
+    "textColor": "#1F2937",
+    "borderRadius": "8px",
+    "hoverColor": "#F3F4F6",
+    "activeColor": "#E5E7EB"
+  }
+}

@@ -3,16 +3,17 @@
 import { Effect, Layer, Runtime } from "effect";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { AppComponent } from "@/components/app/service";
-import { ChatAppManager } from "@/components/chatapp/manager-service";
 import { ChatAppComponent } from "@/components/chatapp/service";
 import { WorkspaceComponent } from "@/components/workspace/service";
-import { ChatManager } from "@/managers/chat/service";
-import { ChatAppsManager } from "@/managers/chatapps/service";
-import { CoreManager } from "@/managers/core/service";
-import { HeaderManager } from "@/managers/header/service";
-import { UserAreaManager } from "@/managers/userarea/service";
-import { WorkspaceManagerLive } from "@/managers/workspace";
+import { ApplicationManager } from "@/features/application/managers/application/service"; // Updated path
+import { CoreManager } from "@/features/application/managers/core/service"; // Updated path
+import { HeaderManager } from "@/features/application/managers/header/service"; // Updated path
+import { ChatManager } from "@/features/chatapps/chatapp/managers/chat/service"; // Updated path
+import { UserAreaManager } from "@/features/chatapps/chatapp/managers/userarea/service"; // Updated path
+import { ChatAppsManager } from "@/features/chatapps/managers/chatapps/service"; // Updated path
+import { ContextEngineeringManager } from "@/features/context-engineering/managers/context-engineering/service"; // Updated path
+import { WorkspaceManagerLive } from "@/features/workspace/managers/workspace-manager"; // Updated path
+import { WorkspaceManager } from "@/features/workspace/managers/workspace-manager"; // Updated path
 import { ChatService } from "@/services/chat";
 import { ChatBridge } from "@/services/chatbridge";
 import { ConfigService } from "@/services/config/service";
@@ -43,12 +44,13 @@ export function EffectProvider({ children }: { children: React.ReactNode }) {
       CoreManager.Default,
       ChatManager.Default,
       ChatAppsManager.Default,
+      ContextEngineeringManager.Default,
       HeaderManager.Default,
       UserAreaManager.Default,
+      WorkspaceManager.Default,
       WorkspaceManagerLive,
-      AppComponent.Default,
+      ApplicationManager.Default,
       ChatAppComponent.Default,
-      ChatAppManager.Default,
       WorkspaceComponent.Default,
     );
 

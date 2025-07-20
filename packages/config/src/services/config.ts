@@ -46,13 +46,23 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
     effect: Effect.gen(function* () {
       const storage = yield* StorageService;
 
-      const readAndValidate = (errorMessage: string) =>
+      // Explicitly type the return value for correct inference
+      const readAndValidate = (
+        errorMessage: string
+      ): Effect.Effect<StorageData, WorkspaceError> =>
         storage.read().pipe(
           Effect.mapError(
             (error) =>
               new WorkspaceError({ message: errorMessage, cause: error })
           ),
-          Effect.flatMap(validateStorage)
+          Effect.flatMap((data) =>
+            validateStorage(data).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({ message: errorMessage, cause: error })
+              )
+            )
+          )
         );
 
       return {
@@ -68,7 +78,15 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
 
         createWorkspace: (input: WorkspaceCreateInput) =>
           Effect.gen(function* () {
-            const validInput = yield* validateWorkspaceCreate(input);
+            const validInput = yield* validateWorkspaceCreate(input).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate workspace input",
+                    cause: error,
+                  })
+              )
+            );
             const data = yield* readAndValidate("Failed to create workspace");
             const now = new Date().toISOString();
             const id = `workspace-${validInput.name
@@ -89,13 +107,29 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
               maxExpandedApps: 2,
               activeAppId: null,
             };
-            const validWorkspace = yield* validateWorkspace(workspace);
+            const validWorkspace = yield* validateWorkspace(workspace).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate workspace",
+                    cause: error,
+                  })
+              )
+            );
             const updatedData: StorageData = {
               ...data,
               workspaces: { ...data.workspaces, [id]: validWorkspace },
               currentWorkspaceId: data.currentWorkspaceId ?? id,
             };
-            const finalValidData = yield* validateStorage(updatedData);
+            const finalValidData = yield* validateStorage(updatedData).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate storage",
+                    cause: error,
+                  })
+              )
+            );
             yield* storage.write(finalValidData).pipe(
               Effect.mapError(
                 (error) =>
@@ -110,7 +144,15 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
 
         createWorkspaceWithId: (id: string, input: WorkspaceCreateInput) =>
           Effect.gen(function* () {
-            const validInput = yield* validateWorkspaceCreate(input);
+            const validInput = yield* validateWorkspaceCreate(input).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate workspace input",
+                    cause: error,
+                  })
+              )
+            );
             const data = yield* readAndValidate("Failed to create workspace");
             const now = new Date().toISOString();
             const workspace: Workspace = {
@@ -128,13 +170,29 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
               maxExpandedApps: 2,
               activeAppId: null,
             };
-            const validWorkspace = yield* validateWorkspace(workspace);
+            const validWorkspace = yield* validateWorkspace(workspace).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate workspace",
+                    cause: error,
+                  })
+              )
+            );
             const updatedData: StorageData = {
               ...data,
               workspaces: { ...data.workspaces, [id]: validWorkspace },
               currentWorkspaceId: data.currentWorkspaceId ?? id,
             };
-            const finalValidData = yield* validateStorage(updatedData);
+            const finalValidData = yield* validateStorage(updatedData).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate storage",
+                    cause: error,
+                  })
+              )
+            );
             yield* storage.write(finalValidData).pipe(
               Effect.mapError(
                 (error) =>
@@ -149,7 +207,15 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
 
         updateWorkspace: (id: string, updates: WorkspaceUpdateInput) =>
           Effect.gen(function* () {
-            const validUpdates = yield* validateWorkspaceUpdate(updates);
+            const validUpdates = yield* validateWorkspaceUpdate(updates).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate workspace update",
+                    cause: error,
+                  })
+              )
+            );
             const data = yield* readAndValidate("Failed to update workspace");
             const workspace = data.workspaces[id];
             if (!workspace) {
@@ -162,12 +228,30 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
               ...validUpdates,
               lastActiveAt: new Date().toISOString(),
             };
-            const validWorkspace = yield* validateWorkspace(updatedWorkspace);
+            const validWorkspace = yield* validateWorkspace(
+              updatedWorkspace
+            ).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate workspace",
+                    cause: error,
+                  })
+              )
+            );
             const updatedData: StorageData = {
               ...data,
               workspaces: { ...data.workspaces, [id]: validWorkspace },
             };
-            const finalValidData = yield* validateStorage(updatedData);
+            const finalValidData = yield* validateStorage(updatedData).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate storage",
+                    cause: error,
+                  })
+              )
+            );
             yield* storage.write(finalValidData).pipe(
               Effect.mapError(
                 (error) =>
@@ -200,7 +284,15 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
               workspaces: newWorkspaces,
               currentWorkspaceId: newCurrentWorkspaceId,
             };
-            const finalValidData = yield* validateStorage(updatedData);
+            const finalValidData = yield* validateStorage(updatedData).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate storage",
+                    cause: error,
+                  })
+              )
+            );
             yield* storage.write(finalValidData).pipe(
               Effect.mapError(
                 (error) =>
@@ -231,7 +323,15 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
               ...data,
               currentWorkspaceId: id,
             };
-            const finalValidData = yield* validateStorage(updatedData);
+            const finalValidData = yield* validateStorage(updatedData).pipe(
+              Effect.mapError(
+                (error) =>
+                  new WorkspaceError({
+                    message: "Failed to validate storage",
+                    cause: error,
+                  })
+              )
+            );
             yield* storage.write(finalValidData).pipe(
               Effect.mapError(
                 (error) =>

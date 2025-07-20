@@ -1,13 +1,13 @@
-import { Effect, Layer } from "effect";
-import { beforeEach, describe, expect, it } from "vitest";
-import { ConfigService } from "../service";
 import {
   createDefaultAgentConfig,
   createDefaultAppConfig,
   createDefaultChatAppConfig,
   createDefaultWorkspaceConfig,
-  getCurrentTimestamp,
-} from "../types";
+} from "@/features/application/config/defaults";
+import { getCurrentTimestamp } from "@/features/application/utils/config-utils";
+import { Effect, Layer } from "effect";
+import { beforeEach, describe, expect, it } from "vitest";
+import { ConfigService } from "../service";
 
 const TestLayer = ConfigService.Default;
 

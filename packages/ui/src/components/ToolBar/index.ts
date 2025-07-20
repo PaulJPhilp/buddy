@@ -1,4 +1,4 @@
-export { default as ToolBar } from "./ToolBar";
+export { ToolbarContainer as ToolBar } from "./ToolBar";
 export type {
   ToolBarProps,
   ToolBarItem,

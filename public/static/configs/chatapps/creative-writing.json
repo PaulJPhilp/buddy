@@ -1,0 +1,44 @@
+{
+  "id": "creative-writing-chat",
+  "name": "Creative Writing",
+  "agentId": "creative-agent",
+  "toolbarId": "default-toolbar",
+  "themeId": "purple-theme",
+  "description": "A purple-themed chat application for creative writing assistance",
+  "version": "1.0.0",
+  "agent": {
+    "id": "creative-agent"
+  },
+  "toolbar": {
+    "id": "default-toolbar"
+  },
+  "style": {
+    "primaryColor": "#8b5cf6",
+    "primaryContrastColor": "#ffffff",
+    "backgroundColor": "#ffffff",
+    "backgroundSecondaryColor": "#f3f4f6",
+    "borderColor": "#e5e7eb",
+    "borderRadius": "12px",
+    "borderWidth": "1px",
+    "typographyClass": "font-serif",
+    "fontFamily": "Georgia, serif",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "messageBackgroundColor": "#faf5ff",
+    "userMessageColor": "#8b5cf6",
+    "assistantMessageColor": "#f3e8ff",
+    "inputBackgroundColor": "#faf5ff",
+    "inputBorderColor": "#d8b4fe",
+    "shadowColor": "#8b5cf6",
+    "shadowIntensity": "md",
+    "opacity": 1.0,
+    "iconColor": "#8b5cf6",
+    "iconSize": "18px",
+    "compactMode": false,
+    "showTimestamps": true,
+    "showAvatars": true
+  },
+  "isDefault": false,
+  "isShared": true,
+  "spaceId": "productivity"
+}

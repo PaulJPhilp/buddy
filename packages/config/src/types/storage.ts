@@ -1,10 +1,10 @@
-import { Effect } from "effect";
+import { AppConfig } from "./app";
 import type { Workspace } from "./workspace";
 
 export interface StorageData {
-  readonly currentWorkspaceId: string | null;
   readonly workspaces: Record<string, Workspace>;
-  readonly chatApps: Record<string, any>; // Will be typed properly later
+  readonly currentWorkspaceId: string | null;
+  readonly appConfig: AppConfig;
 }
 
 export interface StorageOptions {

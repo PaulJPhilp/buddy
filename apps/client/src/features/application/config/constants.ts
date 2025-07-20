@@ -1,0 +1,7 @@
+export const CONFIG_CONSTANTS = {
+  DEFAULT_CONFIG_PATH: "/configs/index.json",
+  CURRENT_VERSION: "1.0.0",
+  MAX_BACKUP_COUNT: 10,
+  DEFAULT_TIMEOUT: 5000,
+  DEFAULT_RETRIES: 3,
+} as const;

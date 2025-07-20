@@ -1,0 +1,14 @@
+{
+  "id": "dark-mode-toolbar",
+  "name": "Dark Mode Toolbar",
+  "commands": ["core.save", "core.settings", "core.help"],
+  "style": {
+    "size": "lg",
+    "primaryColor": "#10B981",
+    "backgroundColor": "#1F2937",
+    "textColor": "#F9FAFB",
+    "borderRadius": "4px",
+    "hoverColor": "#374151",
+    "activeColor": "#4B5563"
+  }
+}

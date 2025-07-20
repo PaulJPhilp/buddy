@@ -40,6 +40,7 @@ const config: NextConfig = {
       "@utils": path.resolve(__dirname, "src/utils"),
       "@buddy/ui": path.resolve(__dirname, "../../packages/ui/src"),
       "@buddy/agentkit": path.resolve(__dirname, "../../packages/agentkit"),
+      ui: path.resolve(__dirname, "../../packages/ui/src"),
     };
 
     return config;

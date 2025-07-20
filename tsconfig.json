@@ -18,7 +18,9 @@
       "@buddy/ui": ["./packages/ui/src"],
       "@buddy/ui/*": ["./packages/ui/src/*"],
       "@buddy/agentkit": ["./packages/agentkit"],
-      "@buddy/agentkit/*": ["./packages/agentkit/*"]
+      "@buddy/agentkit/*": ["./packages/agentkit/*"],
+      "@buddy/config": ["./packages/config/src"],
+      "@buddy/config/*": ["./packages/config/src/*"]
     },
     "plugins": [
       {
@@ -28,9 +30,5 @@
   },
   "include": ["packages/**/*", "apps/**/*"],
   "exclude": ["node_modules", "**/node_modules", "**/dist", "**/.next"],
-  "references": [
-    { "path": "./apps/client" },
-    { "path": "./packages/ui" },
-    { "path": "./packages/agentkit" }
-  ]
+  "references": [{ "path": "./packages/ui" }, { "path": "./packages/agentkit" }]
 }

@@ -2,6 +2,8 @@
   "id": "productivity",
   "name": "Productivity",
   "description": "Email, tasks, and social media management",
+  "icon": "⚡",
+  "primaryColor": "#f59e0b",
   "chatappIds": ["tasks-chat", "email-chat", "social-media-chat"],
   "agentIds": ["productivity-agent"],
   "permissions": {
@@ -16,5 +18,24 @@
   "isArchived": false,
   "maxExpandedApps": 3,
   "createdAt": "2025-01-08T21:25:00.000Z",
-  "updatedAt": "2025-01-08T21:25:00.000Z"
+  "updatedAt": "2025-01-08T21:25:00.000Z",
+  "metadata": {
+    "icon": "⚡",
+    "primaryColor": "#f59e0b",
+    "activeAppId": null,
+    "style": {
+      "primaryColor": "#f59e0b",
+      "primaryContrastColor": "#ffffff",
+      "backgroundColor": "#ffffff",
+      "backgroundSecondaryColor": "#fefce8",
+      "borderColor": "#fde047",
+      "borderRadius": "12px",
+      "fontFamily": "system-ui, sans-serif",
+      "fontSize": "15px",
+      "shadowColor": "#f59e0b",
+      "shadowIntensity": "lg",
+      "iconColor": "#f59e0b",
+      "iconSize": "24px"
+    }
+  }
 }

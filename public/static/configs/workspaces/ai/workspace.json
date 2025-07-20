@@ -1,7 +1,7 @@
 {
   "id": "ai",
   "name": "AI",
-  "description": "Learning and building AI applications",
+  "description": "Artificial Intelligence workspace for learning and building AI applications",
   "icon": "🤖",
   "primaryColor": "#14b8a6",
   "agentIds": ["ai-expert-agent", "ai-coach-agent", "ai-trainer-agent"],
@@ -10,5 +10,24 @@
   "isArchived": false,
   "maxExpandedApps": 2,
   "activeAppId": null,
-  "chatappIds": ["learning-ai-chat", "building-ai-chat"]
+  "chatappIds": ["learning-ai-chat", "building-ai-chat"],
+  "metadata": {
+    "icon": "🤖",
+    "primaryColor": "#14b8a6",
+    "activeAppId": null,
+    "style": {
+      "primaryColor": "#14b8a6",
+      "primaryContrastColor": "#ffffff",
+      "backgroundColor": "#ffffff",
+      "backgroundSecondaryColor": "#f0fdfa",
+      "borderColor": "#5eead4",
+      "borderRadius": "8px",
+      "fontFamily": "Inter, sans-serif",
+      "fontSize": "14px",
+      "shadowColor": "#14b8a6",
+      "shadowIntensity": "md",
+      "iconColor": "#14b8a6",
+      "iconSize": "20px"
+    }
+  }
 }

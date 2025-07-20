@@ -1,0 +1,44 @@
+{
+  "id": "financial-advisor-chat",
+  "name": "Financial Advisor",
+  "agentId": "financial-agent",
+  "toolbarId": "default-toolbar",
+  "themeId": "green-theme",
+  "description": "A green-themed chat application for financial advice and planning",
+  "version": "1.0.0",
+  "agent": {
+    "id": "financial-agent"
+  },
+  "toolbar": {
+    "id": "default-toolbar"
+  },
+  "style": {
+    "primaryColor": "#10b981",
+    "primaryContrastColor": "#ffffff",
+    "backgroundColor": "#ffffff",
+    "backgroundSecondaryColor": "#f0fdf4",
+    "borderColor": "#bbf7d0",
+    "borderRadius": "6px",
+    "borderWidth": "1px",
+    "typographyClass": "font-mono",
+    "fontFamily": "Menlo, monospace",
+    "fontSize": "14px",
+    "fontWeight": "500",
+    "messageBackgroundColor": "#f0fdf4",
+    "userMessageColor": "#10b981",
+    "assistantMessageColor": "#dcfce7",
+    "inputBackgroundColor": "#f0fdf4",
+    "inputBorderColor": "#bbf7d0",
+    "shadowColor": "#10b981",
+    "shadowIntensity": "lg",
+    "opacity": 1.0,
+    "iconColor": "#10b981",
+    "iconSize": "16px",
+    "compactMode": true,
+    "showTimestamps": false,
+    "showAvatars": false
+  },
+  "isDefault": false,
+  "isShared": true,
+  "spaceId": "productivity"
+}

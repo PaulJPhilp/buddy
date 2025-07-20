@@ -9,7 +9,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: "node",
     setupFiles: ["./vitest.setup.shared.ts"],
-    include: ["src/**/*.test.{ts,tsx}", "__tests__/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "**/__tests__/**/*.test.{ts,tsx}"],
     exclude: [
       "tests/**/*.spec.ts",
       "tests/**/*.spec.tsx",

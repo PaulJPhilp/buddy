@@ -1,145 +1,42 @@
+import { Workspace } from "@/../packages/config/src/types/workspace";
+import { isValidAgentId } from "@/agents/utils/agent-utils";
+import { CONFIG_CONSTANTS } from "@/features/application/config/constants";
+import { createDefaultAppConfig } from "@/features/application/config/defaults";
 import {
   ConfigLoadError,
   ConfigParseError,
   ConfigSaveError,
   ConfigValidationError,
-} from "@/components/app/errors";
-import { Workspace } from "@/managers/workspace";
-import type { AppDomainModel } from "@domain/index";
+} from "@/features/application/managers/errors";
+import {
+  ConfigLoadOptions,
+  ConfigMergeOptions,
+  ConfigSaveOptions,
+  ConfigValidationOptions,
+} from "@/features/application/types/config/config-options";
+import { AppConfigValidationResult } from "@/features/application/types/validation/app-config-validation";
+import { getCurrentTimestamp } from "@/features/application/utils/config-utils";
+import { isValidChatAppId } from "@/features/chatapps/utils/chatapp-utils";
+import { isValidWorkspaceId } from "@/features/workspace/utils/workspace-utils";
 import { Effect, Layer, Ref, Schema } from "effect";
 import type { ConfigServiceApi } from "./api";
+
 import {
-  type AppConfigValidationResult,
-  CONFIG_CONSTANTS,
-  type ConfigLoadOptions,
-  type ConfigMergeOptions,
-  type ConfigSaveOptions,
-  type ConfigValidationOptions,
-  createDefaultAppConfig,
-  getCurrentTimestamp,
-  isValidAgentId,
-  isValidChatAppId,
-  isValidWorkspaceId,
-} from "./types";
+  AgentSchema,
+  AppConfigSchema,
+  ChatAppSchema,
+  SettingsSchema,
+} from "@/features/application/types/AppConfig";
+import type { AppConfig } from "@/features/application/types/AppConfig";
 
 const CONFIG_KEY = "buddy-app-config";
 
 // --- Proper Schemas ---
-
-// ChatApp Schema based on ChatAppModel domain
-const ChatAppSchema = Schema.Struct({
-  id: Schema.String,
-  name: Schema.String,
-  description: Schema.String.pipe(Schema.optional),
-  version: Schema.String,
-  agentId: Schema.String,
-  workspaceId: Schema.String.pipe(Schema.optional),
-  permissions: Schema.Struct({
-    canSendMessages: Schema.Boolean,
-    canReceiveMessages: Schema.Boolean,
-    canViewHistory: Schema.Boolean,
-    canDeleteMessages: Schema.Boolean,
-    canModifySettings: Schema.Boolean,
-    canShareConversations: Schema.Boolean,
-  }),
-  isDefault: Schema.Boolean.pipe(Schema.optional),
-  isShared: Schema.Boolean.pipe(Schema.optional),
-  isArchived: Schema.Boolean.pipe(Schema.optional),
-  plugins: Schema.mutable(Schema.Array(Schema.String)).pipe(Schema.optional),
-  createdAt: Schema.String,
-  updatedAt: Schema.String,
-  metadata: Schema.optional(
-    Schema.Record({ key: Schema.String, value: Schema.Unknown })
-  ),
-});
-
-// Agent Schema based on AgentModel domain
-const AgentSchema = Schema.Struct({
-  id: Schema.String,
-  name: Schema.String,
-  description: Schema.String.pipe(Schema.optional),
-  version: Schema.String,
-  provider: Schema.String,
-  model: Schema.String,
-  prompt: Schema.String.pipe(Schema.optional),
-  capabilities: Schema.mutable(Schema.Array(Schema.String)),
-  parameters: Schema.Struct({
-    temperature: Schema.Number.pipe(Schema.optional),
-    maxTokens: Schema.Number.pipe(Schema.optional),
-    topP: Schema.Number.pipe(Schema.optional),
-    frequencyPenalty: Schema.Number.pipe(Schema.optional),
-    presencePenalty: Schema.Number.pipe(Schema.optional),
-    stopSequences: Schema.mutable(Schema.Array(Schema.String)).pipe(
-      Schema.optional
-    ),
-    customParameters: Schema.optional(
-      Schema.Record({ key: Schema.String, value: Schema.Unknown })
-    ),
-  }),
-  permissions: Schema.Struct({
-    canAccessInternet: Schema.Boolean,
-    canExecuteCode: Schema.Boolean,
-    canAccessFiles: Schema.Boolean,
-    canModifyFiles: Schema.Boolean,
-    canAccessDatabase: Schema.Boolean,
-    canSendEmails: Schema.Boolean,
-    allowedDomains: Schema.mutable(Schema.Array(Schema.String)).pipe(
-      Schema.optional
-    ),
-    blockedDomains: Schema.mutable(Schema.Array(Schema.String)).pipe(
-      Schema.optional
-    ),
-  }),
-  isDefault: Schema.Boolean.pipe(Schema.optional),
-  isShared: Schema.Boolean.pipe(Schema.optional),
-  isArchived: Schema.Boolean.pipe(Schema.optional),
-  createdAt: Schema.String,
-  updatedAt: Schema.String,
-  metadata: Schema.optional(
-    Schema.Record({ key: Schema.String, value: Schema.Unknown })
-  ),
-});
-
-// Settings Schema with proper typing for common settings
-const SettingsSchema = Schema.Record({
-  key: Schema.String,
-  value: Schema.Union(
-    Schema.String,
-    Schema.Number,
-    Schema.Boolean,
-    Schema.Array(Schema.String),
-    Schema.Record({ key: Schema.String, value: Schema.Unknown })
-  ),
-});
-
-// Main App Config Schema with proper types
-const AppConfigSchema = Schema.Struct({
-  version: Schema.String,
-  createdAt: Schema.String,
-  updatedAt: Schema.String,
-  app: Schema.Struct({
-    name: Schema.String,
-    version: Schema.String,
-    description: Schema.String.pipe(Schema.optional),
-    author: Schema.String.pipe(Schema.optional),
-    license: Schema.String.pipe(Schema.optional),
-    homepage: Schema.String.pipe(Schema.optional),
-    repository: Schema.String.pipe(Schema.optional),
-    environment: Schema.Literal("development", "production", "test").pipe(
-      Schema.optional
-    ),
-    locale: Schema.String.pipe(Schema.optional),
-    timezone: Schema.String.pipe(Schema.optional),
-  }),
-  workspaces: Schema.mutable(Schema.Array(Workspace)),
-  chatapps: Schema.mutable(Schema.Array(ChatAppSchema)),
-  agents: Schema.mutable(Schema.Array(AgentSchema)),
-  settings: Schema.mutable(SettingsSchema),
-});
+// Schemas are now imported from @/features/application/types/AppConfig
 
 // --- State ---
 interface ConfigState {
-  readonly currentConfig: AppDomainModel | null;
+  readonly currentConfig: AppConfig | null; // Use AppConfig type
   readonly isLoaded: boolean;
   readonly lastModified: Date | null;
   readonly configPath: string;
@@ -180,7 +77,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
             yield* saveConfig(defaultConfig).pipe(
               Effect.catchAll(() => Effect.void)
             );
-            return defaultConfig;
+            return defaultConfig as AppConfig;
           }
 
           const parsedConfig = yield* Effect.try({
@@ -206,12 +103,12 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
 
           yield* Ref.update(stateRef, (state) => ({
             ...state,
-            currentConfig: validatedConfig as AppDomainModel,
+            currentConfig: validatedConfig as AppConfig,
             isLoaded: true,
             lastModified: new Date(),
           }));
 
-          return validatedConfig as AppDomainModel;
+          return validatedConfig as AppConfig;
         }).pipe(
           Effect.mapError(
             (error) =>
@@ -222,7 +119,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
           )
         );
 
-      const saveConfig = (config: AppDomainModel) =>
+      const saveConfig = (config: AppConfig) =>
         Effect.gen(function* () {
           yield* Effect.try({
             try: () => {
@@ -268,7 +165,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
 
           const validConfig =
             schemaResult._tag === "Right"
-              ? (schemaResult.right as AppDomainModel)
+              ? (schemaResult.right as AppConfig)
               : null;
 
           if (validConfig && options) {
@@ -378,7 +275,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
               )
             );
 
-            return validated as AppDomainModel;
+            return validated as AppConfig;
           }
           // Fallback to getConfig for non-browser environments
           return yield* getConfig();
@@ -387,7 +284,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
       /**
        * Creates a default config, optionally overriding fields.
        */
-      const createDefaultConfig = (overrides?: Partial<AppDomainModel>) =>
+      const createDefaultConfig = (overrides?: Partial<AppConfig>) =>
         Effect.succeed(
           overrides
             ? { ...createDefaultAppConfig(), ...overrides }
@@ -395,14 +292,14 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
         );
 
       const mergeConfigs = (
-        config1: AppDomainModel,
-        config2: AppDomainModel,
+        config1: AppConfig,
+        config2: AppConfig,
         options?: ConfigMergeOptions
       ) =>
         Effect.gen(function* () {
           const strategy = options?.strategy ?? "merge";
 
-          let merged: AppDomainModel;
+          let merged: AppConfig;
 
           switch (strategy) {
             case "replace":
@@ -456,7 +353,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
           return yield* loadConfig(state.configPath);
         });
 
-      const checkConfigHealth = (config: AppDomainModel) =>
+      const checkConfigHealth = (config: AppConfig) =>
         Effect.succeed({
           isHealthy: !!config.app.name && !!config.app.version,
           issues: [
@@ -465,7 +362,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
           ],
         });
 
-      const repairConfig = (config: AppDomainModel) =>
+      const repairConfig = (config: AppConfig) =>
         Effect.succeed({
           ...config,
           app: {
@@ -477,7 +374,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
         });
 
       const exportConfig = (
-        config: AppDomainModel,
+        config: AppConfig,
         format: "json" | "yaml" | "toml"
       ) => Effect.succeed(JSON.stringify(config, null, 2));
 
@@ -531,7 +428,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
             )
           );
 
-          return validated as AppDomainModel;
+          return validated as AppConfig;
         });
 
       const resetToDefaults = () =>
@@ -541,7 +438,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
           return defaultConfig;
         });
 
-      const getConfigMetadata = (config: AppDomainModel) =>
+      const getConfigMetadata = (config: AppConfig) =>
         Effect.succeed({
           version: config.version,
           size: JSON.stringify(config).length,
@@ -573,7 +470,7 @@ export class ConfigService extends Effect.Service<ConfigServiceApi>()(
             )
           );
 
-          return validated as AppDomainModel;
+          return validated as AppConfig;
         });
 
       return {

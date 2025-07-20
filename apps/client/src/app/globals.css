@@ -1,11 +1,6 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Geist";
-  src: url("/fonts/geist.woff2") format("woff2");
-  font-weight: 400 700;
-  font-display: swap;
-}
+/* Font face declaration removed - using system fonts instead */
 
 /* ===== ROOT THEME VARIABLES ===== */
 :root {
@@ -38,134 +33,382 @@
 
   --color-chat-header-bg: #1e40af;
   --color-chat-header-text: #ffffff;
-}
+  --chat-header-padding: 0 4px;
+  --chat-header-font-size: 9px;
+  --chat-font-family: system-ui, sans-serif;
+  --color-chat-error: #dc2626;
+  --color-chat-error-bg: #fef2f2;
 
-/* ===== THEME OVERRIDES ===== */
+  /* Chat Area Variables */
+  --chat-area-padding: 24px;
+  --chat-scrollbar-padding: 20px;
+  --chat-message-spacing: 14px;
 
-/* Default Theme (explicit) */
-[data-chat-theme="default"] {
-  --color-chat-background: #ffffff !important;
-  --color-chat-foreground: #0f172a !important;
-  --color-chat-primary: #1e40af !important;
-  --color-chat-secondary: #f1f5f9 !important;
-  --color-chat-accent: #3b82f6 !important;
-  --color-chat-border: #e2e8f0 !important;
+  /* ===== APP STYLING VARIABLES ===== */
 
-  --color-chat-bubble-user: #1e40af !important;
-  --color-chat-bubble-user-foreground: #ffffff !important;
-  --color-chat-bubble-agent: #f1f5f9 !important;
-  --color-chat-bubble-agent-foreground: #1e40af !important;
+  /* App Container */
+  /* --app-background: controlled by App Editor */
+  --app-foreground: #111827;
+  --app-font-family: system-ui, sans-serif;
+  --app-min-height: 100vh;
+  --app-border-radius: 0px;
+  --app-shadow: none;
 
-  --color-chat-user-area: #f8fafc !important;
-  --color-chat-user-area-foreground: #0f172a !important;
+  /* App Header/Toolbar */
+  --app-header-height: 24px;
+  --app-header-background: #ffffff;
+  --app-header-foreground: #111827;
+  --app-header-border: #e5e7eb;
+  --app-header-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  --app-header-padding: 4px;
+  --app-header-gap: 4px;
+  --app-header-font-size: 12px;
+  --app-header-font-weight: 600;
+  --app-header-border-radius: 0px;
 
-  --color-chat-header-bg: #1e40af !important;
-  --color-chat-header-text: #ffffff !important;
-}
+  /* App Header Buttons */
+  --app-header-button-padding: 2px;
+  --app-header-button-border-radius: 6px;
+  --app-header-button-background: transparent;
+  --app-header-button-foreground: #6b7280;
+  --app-header-button-hover-background: #f3f4f6;
+  --app-header-button-hover-foreground: #374151;
+  --app-header-button-active-background: #e5e7eb;
+  --app-header-button-border: none;
+  --app-header-button-icon-size: 12px;
 
-/* Spike Dark Theme */
-[data-chat-theme="spike-dark"] {
-  --color-chat-background: #1e293b !important;
-  --color-chat-foreground: #f1f5f9 !important;
-  --color-chat-primary: #3b82f6 !important;
-  --color-chat-secondary: #334155 !important;
-  --color-chat-accent: #60a5fa !important;
-  --color-chat-border: #475569 !important;
+  /* App Sidebar */
+  --app-sidebar-width: 160px;
+  --app-sidebar-background: #ffffff;
+  --app-sidebar-foreground: #111827;
+  --app-sidebar-border: #e5e7eb;
+  --app-sidebar-shadow: 1px 0 3px 0 rgba(0, 0, 0, 0.1);
+  --app-sidebar-padding: 0px;
+  --app-sidebar-border-radius: 0px;
+  --app-sidebar-transition-duration: 200ms;
+  --app-sidebar-z-index: 30;
 
-  --color-chat-bubble-user: #3b82f6 !important;
-  --color-chat-bubble-user-foreground: #ffffff !important;
-  --color-chat-bubble-agent: #334155 !important;
-  --color-chat-bubble-agent-foreground: #f1f5f9 !important;
+  /* App Main Content */
+  --app-main-background: #f9fafb;
+  --app-main-foreground: #111827;
+  --app-main-padding: 0px;
+  --app-main-border-radius: 0px;
+  --app-main-transition-duration: 200ms;
+  --app-main-overflow: hidden;
 
-  --color-chat-user-area: #0f172a !important;
-  --color-chat-user-area-foreground: #f1f5f9 !important;
+  /* App Loading States */
+  --app-loading-background: #ffffff;
+  --app-loading-foreground: #6b7280;
+  --app-loading-spinner-color: #3b82f6;
+  --app-loading-spinner-size: 32px;
+  --app-loading-text-size: 14px;
+  --app-loading-padding: 24px;
+  --app-loading-border-radius: 8px;
+  --app-loading-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
-  --color-chat-header-bg: #3b82f6 !important;
-  --color-chat-header-text: #ffffff !important;
-}
+  /* App Error States */
+  --app-error-background: #fef2f2;
+  --app-error-foreground: #991b1b;
+  --app-error-border: #fecaca;
+  --app-error-button-background: #dc2626;
+  --app-error-button-foreground: #ffffff;
+  --app-error-button-hover-background: #b91c1c;
+  --app-error-padding: 24px;
+  --app-error-border-radius: 8px;
+  --app-error-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --app-error-title-size: 18px;
+  --app-error-text-size: 14px;
+  --app-error-button-padding: 8px 16px;
+  --app-error-button-border-radius: 6px;
 
-/* Minimal Test Theme */
-[data-chat-theme="minimal-test"] {
-  --color-chat-background: #22c55e !important;
-  --color-chat-foreground: #ffffff !important;
-  --color-chat-primary: #1e40af !important;
-  --color-chat-secondary: #dcfce7 !important;
-  --color-chat-accent: #16a34a !important;
-  --color-chat-border: #dc2626 !important;
+  /* App Auth States */
+  --app-auth-button-background: #3b82f6;
+  --app-auth-button-foreground: #ffffff;
+  --app-auth-button-hover-background: #2563eb;
+  --app-auth-button-padding: 4px 8px;
+  --app-auth-button-border-radius: 4px;
+  --app-auth-button-font-size: 12px;
+  --app-auth-button-font-weight: 500;
 
-  --color-chat-bubble-user: #1e40af !important;
-  --color-chat-bubble-user-foreground: #ffffff !important;
-  --color-chat-bubble-agent: #dcfce7 !important;
-  --color-chat-bubble-agent-foreground: #166534 !important;
+  /* App Responsive */
+  --app-mobile-breakpoint: 768px;
+  --app-tablet-breakpoint: 1024px;
+  --app-desktop-breakpoint: 1280px;
+  --app-mobile-sidebar-width: 280px;
+  --app-mobile-header-height: 56px;
 
-  --color-chat-user-area: #15803d !important;
-  --color-chat-user-area-foreground: #ffffff !important;
+  /* ===== TOOLBAR STYLING VARIABLES ===== */
+  --toolbar-bg: transparent;
+  --toolbar-text: inherit;
+  --toolbar-border-radius: 0.5rem;
+  --toolbar-primary: #000;
+  --toolbar-hover: rgba(0, 0, 0, 0.05);
+  --toolbar-active: rgba(0, 0, 0, 0.1);
+  --toolbar-disabled: rgba(0, 0, 0, 0.5);
+  --button-padding: 0.5rem;
+  --icon-size: 1.25rem;
+  --button-border-radius: 0.5rem;
+  --gap: 0.375rem;
 
-  --color-chat-header-bg: #1e40af !important;
-  --color-chat-header-text: #ffffff !important;
-}
+  /* Scrollbar Variables */
+  --scrollbar-width: 8px;
+  --scrollbar-track-color: #f1f1f1;
+  --scrollbar-thumb-color: #888;
+  --scrollbar-thumb-hover-color: #555;
 
-/* ===== CHAT THEME CSS CLASSES ===== */
-.bg-chat-background {
-  background-color: var(--color-chat-background) !important;
-}
+  /* Empty State Variables */
+  --chat-empty-state-padding: 40px 0;
+  --chat-empty-state-spacing: 16px;
+  --chat-empty-state-icon-size: 36px;
+  --chat-empty-state-text-size: 14px;
+  --chat-empty-state-debug-size: 12px;
+  --chat-empty-state-max-width: 300px;
 
-.text-chat-foreground {
-  color: var(--color-chat-foreground) !important;
-}
+  /* Scroll Button Variables */
+  --chat-scroll-button-bottom: 16px;
+  --chat-scroll-button-right: 16px;
+  --chat-scroll-button-padding: 8px;
+  --chat-scroll-button-icon-size: 16px;
 
-.border-chat-border {
-  border-color: var(--color-chat-border) !important;
-}
+  /* User Area Variables */
+  --user-area-padding: 16px;
+  --user-area-border-width: 1px;
+  --user-area-spacing: 8px;
+  --user-area-max-width: 1024px;
+  --user-area-inner-spacing: 8px;
 
-.bg-chat-primary {
-  background-color: var(--color-chat-primary) !important;
-}
+  /* Input Variables */
+  --user-input-padding: 8px 12px;
+  --user-input-border-radius: 8px;
+  --user-input-min-height: 42px;
+  --user-input-font-size: 14px;
+  --user-input-border-width: 1px;
+  --user-input-focus-ring-width: 2px;
+  --user-input-focus-ring-offset: 2px;
 
-.bg-chat-secondary {
-  background-color: var(--color-chat-secondary) !important;
-}
+  /* Button Variables */
+  --user-button-padding: 8px;
+  --user-button-border-radius: 8px;
+  --user-button-border-width: 1px;
+  --user-button-icon-size: 16px;
+  --user-send-button-padding: 8px;
+  --user-send-button-icon-size: 16px;
 
-.bg-chat-user-area {
-  background-color: var(--color-chat-user-area) !important;
-}
+  /* Attachment Variables */
+  --user-attachment-padding: 4px 8px;
+  --user-attachment-border-radius: 6px;
+  --user-attachment-font-size: 12px;
+  --user-attachment-icon-size: 12px;
+  --user-attachment-spacing: 8px;
+  --user-attachment-max-width: 100px;
 
-.text-chat-user-area-foreground {
-  color: var(--color-chat-user-area-foreground) !important;
-}
+  /* Agent Selector Variables */
+  --user-agent-selector-padding: 4px 8px;
+  --user-agent-selector-font-size: 12px;
+  --user-agent-selector-border-radius: 4px;
+  --user-agent-selector-border-width: 1px;
+  --user-agent-icon-size: 12px;
 
-.bg-chat-bubble-user {
-  background-color: var(--color-chat-bubble-user) !important;
-}
+  /* Character Counter Variables */
+  --user-counter-font-size: 12px;
+  --user-counter-bottom: 8px;
+  --user-counter-right: 8px;
 
-.bg-chat-bubble-agent {
-  background-color: var(--color-chat-bubble-agent) !important;
-}
+  /* Loading Spinner Variables */
+  --user-spinner-size: 16px;
+  --user-spinner-border-width: 2px;
 
-.text-chat-bubble-user-foreground {
-  color: var(--color-chat-bubble-user-foreground) !important;
-}
+  /* User Area Color Variables */
+  --color-user-area-border: #e2e8f0;
+  --color-user-input-border: #d1d5db;
+  --color-user-input-border-focus: #3b82f6;
+  --color-user-input-ring: #3b82f6;
+  --color-user-input-disabled: #f3f4f6;
+  --color-user-button-bg: #f3f4f6;
+  --color-user-button-border: #d1d5db;
+  --color-user-button-hover: #e5e7eb;
+  --color-user-button-disabled: #f9fafb;
+  --color-user-send-button: #3b82f6;
+  --color-user-send-button-hover: #2563eb;
+  --color-user-send-button-disabled: #9ca3af;
+  --color-user-attachment-bg: #f1f5f9;
+  --color-user-attachment-border: #e2e8f0;
+  --color-user-attachment-text: #374151;
+  --color-user-attachment-secondary: #6b7280;
+  --color-user-attachment-hover: #e5e7eb;
+  --color-user-agent-selector-bg: #ffffff;
+  --color-user-agent-selector-border: #d1d5db;
+  --color-user-agent-selector-text: #374151;
+  --color-user-agent-selector-focus: #3b82f6;
+  --color-user-counter-text: #9ca3af;
+  --color-user-error: #ef4444;
+  --color-user-error-bg: #fef2f2;
+  --color-user-spinner: #ffffff;
+  --color-user-spinner-track: rgba(255, 255, 255, 0.3);
 
-.text-chat-bubble-agent-foreground {
-  color: var(--color-chat-bubble-agent-foreground) !important;
+  /* ===== WORKSPACE STYLING VARIABLES ===== */
+  /* Workspace Container */
+  --workspace-container-padding: 8px;
+  --workspace-container-border-radius: 12px;
+  --workspace-container-border-width: 1px;
+  --workspace-container-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  /* Workspace Header */
+  --workspace-header-padding: 16px;
+  --workspace-header-border-radius: 12px 12px 0 0;
+  --workspace-header-font-size: 18px;
+  --workspace-header-font-weight: 600;
+  --workspace-header-icon-size: 48px;
+  --workspace-header-spacing: 12px;
+
+  /* Workspace Stashed Apps Row */
+  --workspace-stashed-padding: 4px;
+  --workspace-stashed-spacing: 4px;
+  --workspace-stashed-button-padding: 12px;
+  --workspace-stashed-button-border-radius: 8px;
+  --workspace-stashed-button-font-size: 12px;
+  --workspace-stashed-button-icon-size: 16px;
+
+  /* Workspace Compact Apps Grid */
+  --workspace-compact-padding: 4px;
+  --workspace-compact-spacing: 4px;
+  --workspace-compact-grid-gap: 4px;
+
+  /* Workspace Expanded Apps Area */
+  --workspace-expanded-padding: 4px;
+  --workspace-expanded-spacing: 4px;
+  --workspace-expanded-gap: 4px;
+
+  /* Workspace Empty State */
+  --workspace-empty-padding: 32px;
+  --workspace-empty-spacing: 16px;
+  --workspace-empty-icon-size: 48px;
+  --workspace-empty-title-size: 18px;
+  --workspace-empty-text-size: 14px;
+  --workspace-empty-max-width: 400px;
+
+  /* Workspace Card (in lists) */
+  --workspace-card-padding: 24px;
+  --workspace-card-border-radius: 8px;
+  --workspace-card-border-width: 2px;
+  --workspace-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --workspace-card-hover-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --workspace-card-icon-size: 48px;
+  --workspace-card-title-size: 16px;
+  --workspace-card-description-size: 14px;
+  --workspace-card-meta-size: 12px;
+  --workspace-card-spacing: 16px;
+
+  /* Workspace Form */
+  --workspace-form-padding: 24px;
+  --workspace-form-spacing: 16px;
+  --workspace-form-input-padding: 8px 12px;
+  --workspace-form-input-border-radius: 6px;
+  --workspace-form-input-border-width: 1px;
+  --workspace-form-input-font-size: 14px;
+  --workspace-form-label-font-size: 14px;
+  --workspace-form-label-font-weight: 500;
+  --workspace-form-button-padding: 8px 16px;
+  --workspace-form-button-border-radius: 6px;
+  --workspace-form-icon-picker-size: 40px;
+  --workspace-form-color-picker-size: 32px;
+
+  /* Workspace Sidebar */
+  --workspace-sidebar-width: 160px;
+  --workspace-sidebar-padding: 4px;
+  --workspace-sidebar-item-padding: 6px;
+  --workspace-sidebar-item-border-radius: 4px;
+  --workspace-sidebar-item-font-size: 12px;
+  --workspace-sidebar-header-padding: 8px;
+  --workspace-sidebar-header-font-size: 12px;
+  --workspace-sidebar-header-font-weight: 700;
+  --workspace-sidebar-icon-size: 16px;
+
+  /* Workspace Color Variables */
+  --color-workspace-background: #ffffff;
+  --color-workspace-foreground: #0f172a;
+  --color-workspace-primary: #3b82f6;
+  --color-workspace-primary-foreground: #ffffff;
+  --color-workspace-secondary: #f1f5f9;
+  --color-workspace-secondary-foreground: #475569;
+  --color-workspace-accent: #0ea5e9;
+  --color-workspace-accent-foreground: #ffffff;
+  --color-workspace-border: #e2e8f0;
+  --color-workspace-border-hover: #cbd5e1;
+  --color-workspace-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Workspace Header Colors */
+  --color-workspace-header-bg: #ffffff;
+  --color-workspace-header-text: #0f172a;
+  --color-workspace-header-border: #e2e8f0;
+  --color-workspace-header-icon-bg: #3b82f6;
+  --color-workspace-header-icon-text: #ffffff;
+
+  /* Workspace Stashed Apps Colors */
+  --color-workspace-stashed-bg: #f8fafc;
+  --color-workspace-stashed-border: #e2e8f0;
+  --color-workspace-stashed-button-bg: #22c55e;
+  --color-workspace-stashed-button-text: #ffffff;
+  --color-workspace-stashed-button-hover: #16a34a;
+  --color-workspace-stashed-app-bg: #3b82f6;
+  --color-workspace-stashed-app-text: #ffffff;
+  --color-workspace-stashed-app-hover: #2563eb;
+
+  /* Workspace Compact Apps Colors */
+  --color-workspace-compact-bg: #f8fafc;
+  --color-workspace-compact-border: #e2e8f0;
+
+  /* Workspace Expanded Apps Colors */
+  --color-workspace-expanded-bg: #f8fafc;
+
+  /* Workspace Empty State Colors */
+  --color-workspace-empty-text: #6b7280;
+  --color-workspace-empty-title: #374151;
+  --color-workspace-empty-icon: #9ca3af;
+
+  /* Workspace Card Colors */
+  --color-workspace-card-bg: #ffffff;
+  --color-workspace-card-border: #e2e8f0;
+  --color-workspace-card-border-hover: #cbd5e1;
+  --color-workspace-card-title: #111827;
+  --color-workspace-card-description: #6b7280;
+  --color-workspace-card-meta: #9ca3af;
+  --color-workspace-card-shadow: rgba(0, 0, 0, 0.1);
+  --color-workspace-card-hover-shadow: rgba(0, 0, 0, 0.15);
+
+  /* Workspace Form Colors */
+  --color-workspace-form-bg: #ffffff;
+  --color-workspace-form-border: #e2e8f0;
+  --color-workspace-form-input-bg: #ffffff;
+  --color-workspace-form-input-border: #d1d5db;
+  --color-workspace-form-input-border-focus: #3b82f6;
+  --color-workspace-form-input-text: #111827;
+  --color-workspace-form-label-text: #374151;
+  --color-workspace-form-button-primary-bg: #3b82f6;
+  --color-workspace-form-button-primary-text: #ffffff;
+  --color-workspace-form-button-primary-hover: #2563eb;
+  --color-workspace-form-button-secondary-bg: #f3f4f6;
+  --color-workspace-form-button-secondary-text: #374151;
+  --color-workspace-form-button-secondary-hover: #e5e7eb;
+  --color-workspace-form-picker-border: #d1d5db;
+  --color-workspace-form-picker-border-active: #3b82f6;
+  --color-workspace-form-picker-bg-active: #dbeafe;
+  --color-workspace-form-meta-text: #9ca3af;
+
+  /* Workspace Sidebar Colors */
+  --color-workspace-sidebar-bg: #ffffff;
+  --color-workspace-sidebar-border: #e2e8f0;
+  --color-workspace-sidebar-text: #374151;
+  --color-workspace-sidebar-header-text: #111827;
+  --color-workspace-sidebar-item-hover: #f3f4f6;
+  --color-workspace-sidebar-item-active: #dbeafe;
+  --color-workspace-sidebar-item-active-text: #1d4ed8;
+  --color-workspace-sidebar-item-active-border: #3b82f6;
 }
 
 /* ===== BASE STYLES ===== */
 @layer base {
-  /* Font faces */
-  @font-face {
-    font-family: "geist";
-    font-style: normal;
-    font-weight: 100 900;
-    src: url(/fonts/geist.woff2) format("woff2");
-  }
-
-  @font-face {
-    font-family: "geist-mono";
-    font-style: normal;
-    font-weight: 100 900;
-    src: url(/fonts/geist-mono.woff2) format("woff2");
-  }
+  /* Font faces removed - using system fonts instead */
 
   /* Base styles */
   body {
@@ -201,6 +444,15 @@
   }
 }
 
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 html,
 body {
   height: 100%;
@@ -215,6 +467,61 @@ body {
 .chat-app-shell.expanded {
   flex-grow: 5;
   max-width: 800px;
+}
+
+/* ===== SCROLLBAR STYLING ===== */
+.chat-scrollable-area {
+  scrollbar-gutter: stable;
+  /* Force scrollbar to always be visible */
+  overflow-y: scroll !important;
+  /* Override macOS scrollbar hiding */
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-scrollable-area::-webkit-scrollbar {
+  width: 14px !important;
+  background: #f8fafc !important;
+  /* Force visibility */
+  display: block !important;
+}
+
+.chat-scrollable-area::-webkit-scrollbar-track {
+  background: #e2e8f0 !important;
+  border-radius: 0px !important;
+  /* Make track more visible */
+  border: 1px solid #cbd5e1 !important;
+}
+
+.chat-scrollable-area::-webkit-scrollbar-thumb {
+  background: #64748b !important;
+  border-radius: 0px !important;
+  /* Make thumb more visible */
+  border: 1px solid #475569 !important;
+  min-height: 30px !important;
+}
+
+.chat-scrollable-area::-webkit-scrollbar-thumb:hover {
+  background: #475569 !important;
+}
+
+.chat-scrollable-area::-webkit-scrollbar-thumb:active {
+  background: #334155 !important;
+}
+
+.chat-scrollable-area::-webkit-scrollbar-corner {
+  background: #f1f5f9 !important;
+}
+
+/* Fallback for Firefox */
+.chat-scrollable-area {
+  scrollbar-width: auto !important;
+  scrollbar-color: #64748b #e2e8f0 !important;
+}
+
+/* Force scrollbar visibility on all systems */
+body {
+  /* Override system scrollbar preferences */
+  --webkit-scrollbar-display: block;
 }
 
 /* ===== TOOLTIP FIXES ===== */

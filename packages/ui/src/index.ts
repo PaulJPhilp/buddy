@@ -3,6 +3,7 @@ export * from "./components/ui";
 
 // Export specific components
 export * from "./components/Icon";
+export * from "./components/ui/dialog";
 export * from "./components/AttachmentRow";
 export * from "./components/MessageArea";
 export * from "./components/UIBar";

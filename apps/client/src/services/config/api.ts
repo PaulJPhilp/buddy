@@ -1,25 +1,26 @@
 import {
   ConfigLoadError,
+  ConfigParseError,
   ConfigSaveError,
   ConfigValidationError,
-} from "@/components/app/errors";
-import type { AppDomainModel } from "@domain/index";
-import { Effect, Ref } from "effect";
+} from "@/features/application/managers/errors";
+import type { AppConfig } from "@/features/application/types/AppConfig"; // Updated path
 import type {
-  AppConfigValidationResult,
   ConfigLoadOptions,
   ConfigMergeOptions,
   ConfigSaveOptions,
   ConfigValidationOptions,
-} from "./types";
+} from "@/features/application/types/config/config-options"; // Updated path
+import type { AppConfigValidationResult } from "@/features/application/types/validation/app-config-validation"; // Updated path
+import { Effect, Ref } from "effect";
 
 export interface ConfigServiceApi {
-  readonly getConfig: () => Effect.Effect<AppDomainModel, ConfigLoadError>;
+  readonly getConfig: () => Effect.Effect<AppConfig, ConfigLoadError>;
   readonly saveConfig: (
-    config: AppDomainModel
+    config: AppConfig
   ) => Effect.Effect<void, ConfigSaveError>;
   readonly state: Ref.Ref<{
-    readonly currentConfig: AppDomainModel | null;
+    readonly currentConfig: AppConfig | null;
     readonly isLoaded: boolean;
     readonly lastModified: Date | null;
   }>;
@@ -32,45 +33,45 @@ export interface ConfigServiceApi {
   readonly loadConfig: (
     path: string,
     options?: ConfigLoadOptions
-  ) => Effect.Effect<AppDomainModel, ConfigLoadError>;
+  ) => Effect.Effect<AppConfig, ConfigLoadError>;
 
   readonly createDefaultConfig: (
-    overrides?: Partial<AppDomainModel>
-  ) => Effect.Effect<AppDomainModel, never>;
+    overrides?: Partial<AppConfig>
+  ) => Effect.Effect<AppConfig, never>;
 
   readonly mergeConfigs: (
-    config1: AppDomainModel,
-    config2: AppDomainModel,
+    config1: AppConfig,
+    config2: AppConfig,
     options?: ConfigMergeOptions
-  ) => Effect.Effect<AppDomainModel, ConfigValidationError>;
+  ) => Effect.Effect<AppConfig, ConfigValidationError>;
 
   readonly setConfigPath: (path: string) => Effect.Effect<void, never>;
   readonly getConfigPath: () => Effect.Effect<string, never>;
 
-  readonly reloadConfig: () => Effect.Effect<AppDomainModel, ConfigLoadError>;
+  readonly reloadConfig: () => Effect.Effect<AppConfig, ConfigLoadError>;
 
   readonly checkConfigHealth: (
-    config: AppDomainModel
+    config: AppConfig
   ) => Effect.Effect<{ isHealthy: boolean; issues: string[] }, never>;
 
   readonly repairConfig: (
-    config: AppDomainModel
-  ) => Effect.Effect<AppDomainModel, ConfigValidationError>;
+    config: AppConfig
+  ) => Effect.Effect<AppConfig, ConfigValidationError>;
 
   readonly exportConfig: (
-    config: AppDomainModel,
+    config: AppConfig,
     format: "json" | "yaml" | "toml"
   ) => Effect.Effect<string, ConfigSaveError>;
 
   readonly importConfig: (
     content: string,
     format: "json" | "yaml" | "toml"
-  ) => Effect.Effect<AppDomainModel, ConfigLoadError>;
+  ) => Effect.Effect<AppConfig, ConfigLoadError>;
 
-  readonly resetToDefaults: () => Effect.Effect<AppDomainModel, never>;
+  readonly resetToDefaults: () => Effect.Effect<AppConfig, never>;
 
   readonly getConfigMetadata: (
-    config: AppDomainModel
+    config: AppConfig
   ) => Effect.Effect<
     { version: string; size: number; lastModified: Date },
     never
@@ -83,5 +84,5 @@ export interface ConfigServiceApi {
   readonly migrateConfig: (
     config: unknown,
     targetVersion: string
-  ) => Effect.Effect<AppDomainModel, ConfigValidationError>;
+  ) => Effect.Effect<AppConfig, ConfigValidationError>;
 }

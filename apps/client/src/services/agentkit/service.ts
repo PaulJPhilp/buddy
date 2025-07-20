@@ -1,3 +1,4 @@
+import { AgentConfig } from "@/agents/schemas/AgentConfigSchema"; // Corrected import path
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
@@ -15,7 +16,6 @@ import {
   InvalidAgentConfig,
   VercelAIError,
 } from "./errors";
-import type { AgentConfig } from "./types";
 
 function mapVercelError(error: unknown): AgentServiceError {
   console.log("[AgentService] Mapping error:", error);
@@ -125,6 +125,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                   hasText: !!result.text,
                   textLength: result.text?.length || 0,
                   usage: result.usage,
+                  finishReason: result.finishReason,
                 }
               );
 
@@ -161,7 +162,7 @@ export class AgentService extends Effect.Service<AgentServiceApi>()(
                 }
 
                 // If still empty, return a meaningful error
-                throw new VercelAIError(
+                throw new InvalidAgentConfig(
                   `${config.provider} returned empty response. This is a known issue with Gemini API.`
                 );
               }

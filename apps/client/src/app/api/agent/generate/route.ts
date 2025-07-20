@@ -2,9 +2,13 @@ import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
+  console.log("API route called: /api/agent/generate");
   try {
     const body = await request.json();
+    console.log("Request body:", body);
     const { messages } = body;
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {

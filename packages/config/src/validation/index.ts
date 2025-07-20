@@ -1,12 +1,14 @@
 import { Effect, Schema } from "effect";
-import { WorkspaceError } from "../errors";
+import { ConfigError, WorkspaceError } from "../errors";
 import {
+  AppConfig,
   StorageData,
   Workspace,
   WorkspaceCreateInput,
   WorkspaceUpdateInput,
 } from "../types";
 import {
+  AppConfigSchema,
   StorageDataSchema,
   WorkspaceCreateInputSchema,
   WorkspaceSchema,
@@ -71,15 +73,32 @@ export const validateWorkspace = (
 };
 
 /**
+ * Validates app config
+ */
+export const validateAppConfig = (
+  input: unknown
+): Effect.Effect<AppConfig, ConfigError> => {
+  return Schema.decodeUnknown(AppConfigSchema)(input).pipe(
+    Effect.mapError(
+      (error) =>
+        new ConfigError({
+          message: "Invalid app config",
+          cause: error,
+        })
+    )
+  );
+};
+
+/**
  * Validates storage data
  */
 export const validateStorage = (
   input: unknown
-): Effect.Effect<StorageData, WorkspaceError> => {
+): Effect.Effect<StorageData, ConfigError> => {
   return Schema.decodeUnknown(StorageDataSchema)(input).pipe(
     Effect.mapError(
       (error) =>
-        new WorkspaceError({
+        new ConfigError({
           message: "Invalid storage data",
           cause: error,
         })

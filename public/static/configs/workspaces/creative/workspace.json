@@ -1,0 +1,41 @@
+{
+  "id": "creative",
+  "name": "Creative",
+  "description": "Writing, design, and creative projects workspace",
+  "icon": "🎨",
+  "primaryColor": "#8b5cf6",
+  "chatappIds": ["creative-writing-chat", "design-chat", "brainstorm-chat"],
+  "agentIds": ["creative-agent", "writing-agent", "design-agent"],
+  "permissions": {
+    "canAddApps": true,
+    "canRemoveApps": true,
+    "canModifyLayout": true,
+    "canChangeSettings": true,
+    "canInviteUsers": false,
+    "canManagePermissions": false
+  },
+  "isDefault": false,
+  "isArchived": false,
+  "maxExpandedApps": 2,
+  "createdAt": "2025-01-08T21:30:00.000Z",
+  "updatedAt": "2025-01-08T21:30:00.000Z",
+  "metadata": {
+    "icon": "🎨",
+    "primaryColor": "#8b5cf6",
+    "activeAppId": null,
+    "style": {
+      "primaryColor": "#8b5cf6",
+      "primaryContrastColor": "#ffffff",
+      "backgroundColor": "#ffffff",
+      "backgroundSecondaryColor": "#faf5ff",
+      "borderColor": "#c4b5fd",
+      "borderRadius": "16px",
+      "fontFamily": "Georgia, serif",
+      "fontSize": "16px",
+      "shadowColor": "#8b5cf6",
+      "shadowIntensity": "xl",
+      "iconColor": "#8b5cf6",
+      "iconSize": "28px"
+    }
+  }
+}

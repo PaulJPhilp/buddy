@@ -4,11 +4,12 @@ import { join } from "node:path";
 import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { StorageError } from "../../errors";
 import { StorageData, StorageOptions, Workspace } from "../../types";
 import {
   StorageOptionsService,
   StorageService,
-  StorageServiceLive,
+  StorageServiceApi,
 } from "../storage";
 
 describe("StorageService", () => {
@@ -18,18 +19,17 @@ describe("StorageService", () => {
     createBackup: false,
   };
 
-  const runTest = <E, A>(effect: Effect.Effect<A, E, StorageService>) =>
+  const runTest = <A>(effect: Effect.Effect<A, StorageError, StorageServiceApi>) =>
     Effect.gen(function* (_) {
       const storageOptionsLayer = Layer.succeed(
         StorageOptionsService,
         StorageOptionsService.of(testOptions)
       );
       const serviceLayer = Layer.provide(
-        StorageServiceLive,
+        StorageService.Default,
         storageOptionsLayer
       );
-      const result = yield* _(Effect.provide(effect, serviceLayer));
-      return result;
+      return yield* _(Effect.provide(effect, serviceLayer));
     }).pipe(Effect.runPromise);
 
   beforeEach(async () => {

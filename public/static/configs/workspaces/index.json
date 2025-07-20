@@ -19,6 +19,10 @@
     {
       "id": "science",
       "configPath": "/static/configs/workspaces/science/workspace.json"
+    },
+    {
+      "id": "creative",
+      "configPath": "/static/configs/workspaces/creative/workspace.json"
     }
   ],
   "generatedAt": "2025-01-08T21:25:00.000Z"

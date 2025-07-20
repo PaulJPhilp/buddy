@@ -1,255 +1,241 @@
-# Chat Integration Test Suite
+# ChatApp Communication Test Suite
 
-This directory contains comprehensive integration tests for the ChatApp message flow, covering the complete pipeline from user input to response display.
+This directory contains a comprehensive test suite for the chatapp communication functionality in the Buddy application. The test suite covers all aspects of inter-chatapp communication, including message passing, subscription management, error handling, and performance testing.
 
-## 📋 Test Coverage
+## Test Files Overview
 
-### 1. **ChatApp E2E Tests** (`chat-app-flow.test.ts`)
-**Purpose**: End-to-end testing of the complete ChatApp React component
+### 1. `chatapp-communication.test.ts`
+**Main integration test suite covering core communication functionality**
 
-**What it tests**:
-- ✅ Full React component rendering with all services
-- ✅ User input → message sending → response display flow
-- ✅ Real-time typing indicators and streaming responses
-- ✅ Multiple message exchanges in sequence
-- ✅ Clear chat functionality
-- ✅ Expand/collapse and close functionality
-- ✅ Error handling for WebSocket connection failures
-- ✅ Markdown content processing and display
+- **Basic Message Passing**: Tests fundamental message exchange between chatapps
+- **Message Bus Direct Testing**: Tests the underlying PubSub message bus
+- **Subscription Configuration**: Tests various subscription scenarios
+- **Complex Multi-App Scenarios**: Tests circular subscriptions and message chains
+- **Error Handling**: Tests edge cases and error conditions
+- **Performance**: Tests concurrency and rapid message handling
 
-**Technology**: React Testing Library + MockWebSocket
+### 2. `chatapp-message-bus.test.ts`
+**Focused tests for the message bus infrastructure**
 
-### 2. **Chat Services Tests** (`chat-services-flow.test.ts`)
-**Purpose**: Integration testing of the Effect services layer without React
+- **Message Publishing**: Tests message publication to the bus
+- **Message Subscription**: Tests subscribing to and receiving messages
+- **Message Ordering**: Tests message delivery order and concurrency
+- **Message Filtering**: Tests message validation and filtering
+- **Error Handling**: Tests bus error recovery and resilience
+- **Performance**: Tests high-throughput message processing
 
-**What it tests**:
-- ✅ ChatService initialization and state management
-- ✅ Message flow through Effect services pipeline
-- ✅ WebSocket service integration and message handling
-- ✅ Message stream processing and queue management
-- ✅ Concurrent message handling and order preservation
-- ✅ Typing state management during processing
-- ✅ Clear history functionality at service level
-- ✅ MDX compilation integration
-- ✅ Input validation and error handling
+### 3. `chatapp-subscription-config.test.ts`
+**Detailed tests for subscription configuration and management**
 
-**Technology**: Pure Effect.ts runtime with mock services
+- **Basic Configuration**: Tests simple subscription setup
+- **Subscription Filtering**: Tests message filtering based on subscriptions
+- **MaxTurns Configuration**: Tests turn limits and enforcement
+- **Turn Counting**: Tests turn tracking and reset behavior
+- **Dynamic Updates**: Tests runtime subscription changes
 
-### 3. **Performance Tests** (`chat-performance.test.ts`)
-**Purpose**: Stress testing and performance validation under high load
+### 4. `chatapp-error-handling.test.ts`
+**Comprehensive error handling and edge case testing**
 
-**What it tests**:
-- ✅ Rapid message sending (100+ messages concurrently)
-- ✅ High-frequency stream consumption
-- ✅ Multiple concurrent chat sessions (10+ simultaneous)
-- ✅ Memory efficiency with large message histories (1000+ messages)
-- ✅ Rapid state updates (500+ operations)
-- ✅ Queue pressure handling without message loss
-- ✅ Sustained load performance (50 msg/sec for 5+ seconds)
+- **Invalid Messages**: Tests handling of malformed or invalid messages
+- **Subscription Errors**: Tests error scenarios in subscription management
+- **Concurrent Access**: Tests concurrent operation error handling
+- **Resource Cleanup**: Tests cleanup during app lifecycle events
+- **Message Bus Recovery**: Tests recovery from bus errors
+- **Edge Cases**: Tests unusual but valid scenarios
 
-**Technology**: Performance-optimized mock services with metrics
+### 5. `chatapp-performance.test.ts`
+**Performance and scalability testing**
 
-### 4. **WebSocket Protocol Tests** (`chat-flow.test.ts`)
-**Purpose**: Low-level protocol testing with live agent communication
+- **Message Throughput**: Tests high-volume message processing
+- **Concurrent Operations**: Tests concurrent app and message operations
+- **Memory Management**: Tests resource usage with large payloads
+- **Scalability**: Tests performance with increasing numbers of apps
 
-**What it tests**:
-- ✅ WebSocket connection establishment
-- ✅ Message protocol compatibility with LLM agent
-- ✅ Raw message sending and receiving
-- ✅ Protocol message type handling
-- ✅ Connection error scenarios
+### 6. `chatapp-subscriptions.test.ts`
+**Original subscription test (legacy)**
 
-**Technology**: Real WebSocket connections (requires live agent)
+- Basic subscription functionality tests
+- Turn limit enforcement tests
+- Message loop prevention tests
 
-## 🚀 Running Tests
+## Key Testing Patterns
 
-### Run All Integration Tests
-```bash
-bun run test:integration
-```
+### Effect.ts Integration
+All tests use Effect.ts patterns for:
+- Async operations with `Effect.gen`
+- Error handling with `Effect.catchAll`
+- Resource management with proper cleanup
+- Concurrent operations with `Effect.forEach`
 
-### Run Specific Test Suites
-```bash
-# E2E React component tests
-bun run test:integration:e2e
-
-# Effect services tests
-bun run test:integration:services
-
-# Performance/stress tests
-bun run test:integration:performance
-
-# WebSocket protocol tests
-bun run test:integration:websocket
-```
-
-### Manual Test Execution
-```bash
-# Individual test files
-bun test __tests__/integration/chat-app-flow.test.ts
-bun test __tests__/integration/chat-services-flow.test.ts
-bun test __tests__/integration/chat-performance.test.ts
-bun test __tests__/integration/chat-flow.test.ts
-```
-
-## 🔧 Test Configuration
-
-### Timeouts
-- **E2E Tests**: 30 seconds (React rendering + async operations)
-- **Services Tests**: 20 seconds (Effect runtime operations)
-- **Performance Tests**: 60 seconds (stress testing scenarios)
-- **WebSocket Tests**: 45 seconds (network communication)
-
-### Mock Services
-All tests use controlled mock services except WebSocket protocol tests:
-
-- **MockWebSocketService**: Simulates agent responses with configurable delays
-- **MockConfigService**: Provides test configuration values
-- **MockMdxService**: Simple markdown processing for testing
-
-### Test Helpers (`test-helpers.ts`)
-Shared utilities for consistent testing:
-- `createTestLayer()`: Creates complete service layer for testing
-- `TestUtils`: Common operations (waitFor, measureTime, etc.)
-- `TestAssertions`: Standardized assertions for message flows
-
-## 📊 Data Flow Testing
-
-### Complete Message Flow
-```
-User Input → ChatApp → ChatService → WebSocketService → Mock Agent
-                ↓                              ↑
-            React State ← MessageStream ← Response Processing
-```
-
-### What Each Test Validates
-
-1. **Input Validation**: Message length, content safety, format
-2. **Service Communication**: Effect service composition and dependencies  
-3. **WebSocket Protocol**: Message types, streaming, error handling
-4. **State Management**: React state sync with Effect services
-5. **Stream Processing**: Real-time message updates via Effect streams
-6. **Error Handling**: Connection failures, validation errors, timeout handling
-7. **Performance**: Memory usage, throughput, concurrent operations
-
-## 🎯 Test Patterns
-
-### Effect Service Testing
+### Test Layer Setup
 ```typescript
-const result = await Effect.runPromise(testRuntime)(
-  Effect.gen(function* () {
-    const chatService = yield* ChatService;
-    yield* chatService.initialize("test-chat");
-    yield* chatService.sendMessage("Hello");
-    return yield* chatService.getState();
-  })
+const testLayer = Layer.mergeAll(ChatManager.Default, ChatAppsManager.Default);
+```
+
+### State Management
+Each test properly resets state before execution:
+```typescript
+beforeEach(() =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const chatManager = yield* ChatManager;
+      const chatAppsManager = yield* ChatAppsManager;
+      yield* chatManager.resetState();
+      yield* chatAppsManager.resetState();
+    }).pipe(Effect.provide(testLayer))
+  )
 );
 ```
 
-### React Component Testing
+## Core Communication Architecture
+
+### Message Bus (`ChatAppBusMessage`)
 ```typescript
-render(<ChatApp config={testConfig} />);
-fireEvent.change(messageInput, { target: { value: "Test message" } });
-fireEvent.click(sendButton);
-await waitFor(() => {
-  expect(screen.getByText("Test message")).toBeInTheDocument();
-});
+interface ChatAppBusMessage {
+  readonly sourceAppId: string;
+  readonly message: ChatMessage;
+}
 ```
 
-### Stream Testing
+### Subscription Configuration
 ```typescript
-const streamMessages = yield* TestUtils.collectStreamMessages(
-  chatService.messageStream,
-  1000 // Collect for 1 second
-);
+interface SubscriptionConfig {
+  appId: string;
+  maxTurns?: number;
+}
 ```
 
-## 🔍 Debugging Integration Tests
+### Message Flow
+1. **Source App** sends message via `ChatManager.sendMessage()`
+2. **Message Bus** receives message via `ChatAppsManager.publishMessage()`
+3. **Subscriber Apps** receive message if:
+   - They have an active subscription to the source app
+   - They are the currently active conversation
+   - They haven't exceeded maxTurns limit
+   - The message sender is "assistant" (not "user")
 
-### Enable Debug Logging
-All tests include console.log statements for debugging:
+## Test Execution
+
+### Running All Tests
 ```bash
-bun test __tests__/integration/chat-app-flow.test.ts --reporter=verbose
+bun test apps/client/__tests__/integration/chatapp-*.test.ts
 ```
 
-### Common Issues
+### Running Specific Test Suites
+```bash
+# Core communication tests
+bun test apps/client/__tests__/integration/chatapp-communication.test.ts
 
-1. **Timeout Errors**: Increase test timeouts if operations take longer
-2. **State Sync Issues**: Check that React state updates match service state
-3. **Mock Service Delays**: Adjust `responseDelay` in mock configurations
-4. **Memory Leaks**: Ensure Effect fibers are properly interrupted
+# Message bus tests
+bun test apps/client/__tests__/integration/chatapp-message-bus.test.ts
 
-### Debugging Tools
-- `TestUtils.measureTime()`: Track operation performance
-- `TestAssertions.assertMessageFlowCompleted()`: Validate end states
-- Console logging in mock services shows message flow
+# Subscription configuration tests
+bun test apps/client/__tests__/integration/chatapp-subscription-config.test.ts
 
-## 📈 Performance Benchmarks
+# Error handling tests
+bun test apps/client/__tests__/integration/chatapp-error-handling.test.ts
+
+# Performance tests
+bun test apps/client/__tests__/integration/chatapp-performance.test.ts
+```
+
+### Test Environment Configuration
+Tests use the Vitest configuration from `apps/client/vitest.config.ts` with:
+- Node.js environment for most tests
+- Playwright environment for UI-related tests
+- Shared test setup from `vitest.setup.shared.ts`
+
+## Performance Benchmarks
 
 ### Expected Performance Metrics
-- **Message Sending**: >100 msg/sec for rapid burst
-- **Stream Processing**: <1ms per message processing time
-- **Memory Usage**: <10KB per message in memory
-- **Concurrent Sessions**: 10+ simultaneous chat sessions
-- **Error Rate**: <5% under normal load, 0% under light load
+- **Message Throughput**: >100 messages/second
+- **Concurrent Apps**: Support for 100+ concurrent apps
+- **Message Bus**: Handle 1000+ messages without degradation
+- **Subscription Updates**: <2 seconds for 10 concurrent updates
+- **App Lifecycle**: <5 seconds for 20 app register/unregister cycles
 
-### Performance Test Output
-```
-Sent 100 messages in 1234ms (81.03 msg/sec)
-Stream processed 247 messages
-Average stream processing time: 0.203ms per message
-Memory increase: 8.5MB (4.2KB per message)
-```
+### Memory Usage
+- **Large Messages**: Handle 50KB+ messages efficiently
+- **Sustained Load**: Maintain performance over extended periods
+- **Resource Cleanup**: Proper cleanup on app unregistration
 
-## 🛡️ Error Scenarios Tested
+## Error Handling Coverage
 
-1. **WebSocket Connection Failures**
-2. **Message Validation Errors** (empty, too long, unsafe content)
-3. **Service Initialization Failures**
-4. **Stream Processing Errors**
-5. **Concurrent Operation Conflicts**
-6. **Memory Pressure Conditions**
-7. **Network Timeout Scenarios**
+### Message Validation
+- Malformed message structures
+- Missing required fields
+- Invalid message content
+- Timestamp handling
 
-## 🚦 CI/CD Integration
+### Subscription Management
+- Non-existent app subscriptions
+- Circular subscription references
+- Dynamic configuration changes
+- Turn limit enforcement
 
-### GitHub Actions
-```yaml
-- name: Run Integration Tests
-  run: bun run test:integration
-  timeout-minutes: 10
-```
+### Concurrency
+- Concurrent message publishing
+- Concurrent app registration/unregistration
+- Race conditions in subscription updates
+- Resource contention
 
-### Exit Codes
-- `0`: All tests passed
-- `1`: One or more tests failed
-- `2`: Test runner error (missing files, etc.)
+### Recovery
+- Message bus error recovery
+- Subscriber error handling
+- State reset during active operations
+- Cleanup on unexpected failures
 
-## 📝 Adding New Tests
+## Best Practices for Adding Tests
 
-### Test File Structure
-```typescript
-import { describe, expect, it } from "vitest";
-import { createTestLayer, TestUtils, TestAssertions } from "./test-helpers";
+### 1. Follow Existing Patterns
+- Use Effect.ts patterns consistently
+- Include proper state cleanup
+- Use descriptive test names
+- Group related tests in describe blocks
 
-describe("New Integration Test", () => {
-  it("should test specific functionality", async () => {
-    // Use test helpers and assertions
-  });
-});
-```
+### 2. Test Real Scenarios
+- Test actual user workflows
+- Include edge cases and error conditions
+- Test performance under realistic loads
+- Verify cleanup and resource management
 
-### Best Practices
-1. Use shared test helpers for consistency
-2. Include performance measurements for critical paths
-3. Test both success and error scenarios
-4. Verify complete message flows, not just individual operations
-5. Clean up resources (interrupt Effect fibers)
-6. Use descriptive test names and comments
+### 3. Maintain Test Independence
+- Each test should be independent
+- Use proper setup/teardown
+- Avoid test order dependencies
+- Clean up resources after tests
 
-## 📚 Related Documentation
+### 4. Performance Considerations
+- Include timing assertions where appropriate
+- Test scalability with increasing loads
+- Verify memory usage patterns
+- Test sustained operation scenarios
 
-- [ChatService API](../../src/services/chat/README.md)
-- [Effect Service Pattern](../../src/services/README.md)
-- [WebSocket Protocol](../../../protocol.md)
-- [Performance Guidelines](../../docs/performance.md) 
+## Debugging Test Failures
+
+### Common Issues
+1. **Timing Issues**: Use appropriate `Effect.sleep()` delays
+2. **State Pollution**: Ensure proper state reset in beforeEach
+3. **Resource Leaks**: Verify proper cleanup in Effect.fork operations
+4. **Concurrency Issues**: Use proper synchronization patterns
+
+### Debugging Tools
+- Console logging in Effect.gen functions
+- State inspection via manager APIs
+- Message bus monitoring
+- Performance timing measurements
+
+## Contributing
+
+When adding new tests:
+1. Follow the existing file structure and naming conventions
+2. Include comprehensive error handling tests
+3. Add performance benchmarks for new features
+4. Update this README with new test descriptions
+5. Ensure all tests pass before submitting changes
+
+## Related Documentation
+
+- [Architecture.md](../../docs/Architecture.md) - Overall system architecture
+- [ChatApp Design](../../docs/archive/Buddy-ChatApp-Design-v1.md) - ChatApp design patterns
+- [Effect.ts Documentation](https://effect.website/) - Effect.ts patterns and best practices 

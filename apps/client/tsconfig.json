@@ -41,7 +41,11 @@
       "@buddy/ui": ["../../packages/ui/src"],
       "@buddy/ui/*": ["../../packages/ui/src/*"],
       "@buddy/agentkit": ["../../packages/agentkit"],
-      "@buddy/agentkit/*": ["../../packages/agentkit/*"]
+      "@buddy/agentkit/*": ["../../packages/agentkit/*"],
+      "@buddy/config": ["../../packages/config/src"],
+      "@buddy/config/*": ["../../packages/config/src/*"],
+      "ui": ["../../packages/ui/src"],
+      "ui/*": ["../../packages/ui/src/*"]
     },
     "noEmit": true
   },
@@ -49,6 +53,7 @@
     "next-env.d.ts",
     "src/**/*",
     "../../packages/ui/src/**/*",
+    "../../packages/config/src/**/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [

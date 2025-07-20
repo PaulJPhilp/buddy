@@ -58,8 +58,37 @@ export const WorkspaceUpdateInputSchema = Schema.partial(
   })
 );
 
+export const AppStyleSchema = Schema.Struct({
+  background: Schema.optional(Schema.String),
+  foreground: Schema.optional(Schema.String),
+  fontFamily: Schema.optional(Schema.String),
+  headerHeight: Schema.optional(Schema.String),
+  headerBackground: Schema.optional(Schema.String),
+  headerForeground: Schema.optional(Schema.String),
+  headerBorder: Schema.optional(Schema.String),
+  headerShadow: Schema.optional(Schema.String),
+  sidebarWidth: Schema.optional(Schema.String),
+  sidebarBackground: Schema.optional(Schema.String),
+  sidebarForeground: Schema.optional(Schema.String),
+  sidebarBorder: Schema.optional(Schema.String),
+  mainBackground: Schema.optional(Schema.String),
+  mainForeground: Schema.optional(Schema.String),
+  authButtonBackground: Schema.optional(Schema.String),
+  authButtonForeground: Schema.optional(Schema.String),
+  authButtonHoverBackground: Schema.optional(Schema.String),
+});
+
+export const AppConfigSchema = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  description: Schema.String,
+  version: Schema.String,
+  style: AppStyleSchema,
+});
+
 export const StorageDataSchema = Schema.Struct({
   currentWorkspaceId: Schema.NullOr(Schema.String),
   workspaces: Schema.Record({ key: Schema.String, value: WorkspaceSchema }),
   chatApps: Schema.Record({ key: Schema.String, value: Schema.Any }),
+  appConfig: AppConfigSchema,
 });

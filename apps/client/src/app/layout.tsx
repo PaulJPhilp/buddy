@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { EffectProvider } from "@/components/EffectProvider";
+import { ErrorContainer } from "@/features/error/container/ErrorContainer";
 import { cn } from "@buddy/ui/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -36,10 +37,15 @@ export default function RootLayout({
         <body
           className={cn(
             "min-h-screen font-sans antialiased",
-            "bg-background text-foreground",
+            "text-foreground",
           )}
+          style={{
+            backgroundColor: "var(--app-background, #f9fafb)",
+          }}
         >
-          <EffectProvider>{children}</EffectProvider>
+          <EffectProvider>
+            <ErrorContainer>{children}</ErrorContainer>
+          </EffectProvider>
         </body>
       </html>
     </ClerkProvider>

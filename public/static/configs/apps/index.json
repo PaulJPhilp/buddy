@@ -1,0 +1,40 @@
+{
+  "apps": [
+    {
+      "id": "default-app",
+      "name": "Default App Style",
+      "description": "Standard application appearance with clean, professional styling",
+      "configPath": "/static/configs/apps/default-app.json",
+      "preview": {
+        "background": "#f9fafb",
+        "headerBackground": "#ffffff",
+        "sidebarBackground": "#ffffff",
+        "primaryColor": "#3b82f6"
+      }
+    },
+    {
+      "id": "dark-app",
+      "name": "Dark App Style",
+      "description": "Modern dark theme with high contrast and professional appearance",
+      "configPath": "/static/configs/apps/dark-app.json",
+      "preview": {
+        "background": "#0f172a",
+        "headerBackground": "#1e293b",
+        "sidebarBackground": "#1e293b",
+        "primaryColor": "#06b6d4"
+      }
+    },
+    {
+      "id": "minimal-app",
+      "name": "Minimal App Style",
+      "description": "Clean, spacious design with minimal visual elements and subtle colors",
+      "configPath": "/static/configs/apps/minimal-app.json",
+      "preview": {
+        "background": "#ffffff",
+        "headerBackground": "#ffffff",
+        "sidebarBackground": "#ffffff",
+        "primaryColor": "#374151"
+      }
+    }
+  ]
+}

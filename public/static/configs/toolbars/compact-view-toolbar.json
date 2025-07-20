@@ -1,0 +1,14 @@
+{
+  "id": "compact-view-toolbar",
+  "name": "Compact View Toolbar",
+  "commands": ["view.zoom-in", "view.zoom-out", "view.reset-zoom"],
+  "style": {
+    "size": "sm",
+    "primaryColor": "#8B5CF6",
+    "backgroundColor": "transparent",
+    "textColor": "#4B5563",
+    "borderRadius": "9999px",
+    "hoverColor": "#F5F3FF",
+    "activeColor": "#EDE9FE"
+  }
+}
