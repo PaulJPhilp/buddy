@@ -1,14 +1,14 @@
 import { useEffectContext } from "@/components/EffectProvider";
-import type { WorkspaceModel } from "@/domain/workspace";
-import { ApplicationManager } from "@/features/application/managers/service";
+import type { Workspace as WorkspaceModel } from "@buddy/config/types/workspace";
+import { ApplicationManager } from "@/features/application/manager/service";
 import type {
   AgentConfig,
   ChatAppConfig,
-  WorkspaceConfig,
 } from "@/features/application/types/AppConfig"; // Updated path
+import type { Workspace as WorkspaceConfig } from "@buddy/config/types/workspace";
 import { Effect } from "effect";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WorkspaceComponent } from "./service";
+import { WorkspaceComponent } from "@/features/workspace/managers/service";
 
 // Strict typing for workspace manager state
 interface WorkspaceManagerState {
@@ -545,13 +545,20 @@ export function useWorkspaceManager() {
     workspaceConfig: state.workspaceConfig,
     availableChatApps: state.availableChatApps,
     availableAgents: state.availableAgents,
-    isLoading: state.isLoading,
+    isLoading: false, // TODO: Implement proper loading state
     error: state.error,
     isConfigLoaded: state.isConfigLoaded,
+    isInitialized: state.isConfigLoaded,
+    stats: {
+      totalWorkspaces: 0,
+      totalChatApps: state.availableChatApps.length,
+      totalAgents: state.availableAgents.length,
+    },
 
     // Actions (strictly typed)
     switchWorkspace,
     loadWorkspaceData,
+    initialize: loadWorkspaceData,
   } as const;
 
   console.log("[useWorkspaceManager] Returning result:", {

@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
-import { useWorkspaceManager } from "@/components/workspace/useWorkspaceManager";
-import type { WorkspaceModel } from "@/domain/workspace";
+import { useWorkspaceManager } from "@/features/workspace/hooks/useWorkspaceManager";
+import type { Workspace } from "@buddy/config/types/workspace";
 import { Effect } from "effect";
 import { Folder, FolderOpen, MessageSquare, Settings } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
-import { AppComponent } from "./service";
+import { ApplicationManager } from "@/features/application/manager/service";
 
 export function WorkspaceTree() {
   const { runWithServices } = useEffectContext();
   const { switchWorkspace } = useWorkspaceManager();
-  const [workspaces, setWorkspaces] = useState<WorkspaceModel[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
     null,
   );
@@ -27,16 +27,13 @@ export function WorkspaceTree() {
         setIsLoading(true);
         await runWithServices(
           Effect.gen(function* () {
-            const appComponent = yield* AppComponent;
+            const appManager = yield* ApplicationManager;
 
-            // Load config first
-            yield* appComponent.loadConfig(
-              "/static/configs/workspaces/index.json",
-            );
+            // Get app config which contains workspaces
+            const appConfig = yield* appManager.getAppConfig;
 
-            // Get workspaces and current workspace
-            const allWorkspaces = yield* appComponent.getWorkspaces();
-            const currentWorkspace = yield* appComponent.getCurrentWorkspace();
+            // Extract workspaces from config
+            const allWorkspaces = appConfig?.workspaces || [];
 
             // Validate workspaces array
             if (!Array.isArray(allWorkspaces)) {
@@ -48,6 +45,9 @@ export function WorkspaceTree() {
               setCurrentWorkspaceId(null);
               return;
             }
+            
+            // For now, use the first workspace as current (or implement proper logic)
+            const currentWorkspace = allWorkspaces[0] || null;
 
             // If no workspaces are loaded, it means the config loading failed
             if (allWorkspaces.length === 0) {
@@ -253,9 +253,7 @@ export function WorkspaceTree() {
                         width: "var(--workspace-sidebar-icon-size, 16px)",
                         height: "var(--workspace-sidebar-icon-size, 16px)",
                         marginRight: "3px",
-                        color:
-                          (workspace.metadata?.style as any)?.primaryColor ||
-                          (workspace.metadata?.primaryColor as string) ||
+                        color: workspace.color ||
                           (isActive
                             ? "var(--color-workspace-sidebar-item-active-text, #1d4ed8)"
                             : "var(--color-workspace-primary, #3b82f6)"),
@@ -267,9 +265,7 @@ export function WorkspaceTree() {
                         width: "var(--workspace-sidebar-icon-size, 16px)",
                         height: "var(--workspace-sidebar-icon-size, 16px)",
                         marginRight: "3px",
-                        color:
-                          (workspace.metadata?.style as any)?.primaryColor ||
-                          (workspace.metadata?.primaryColor as string) ||
+                        color: workspace.color ||
                           (isActive
                             ? "var(--color-workspace-sidebar-item-active-text, #1d4ed8)"
                             : "var(--color-workspace-primary, #3b82f6)"),
@@ -279,7 +275,7 @@ export function WorkspaceTree() {
                 </button>
 
                 <div className="flex items-center flex-1">
-                  {workspace.metadata?.icon && (
+                  {workspace.icon && (
                     <span
                       style={{
                         marginRight: "3px",
@@ -287,16 +283,14 @@ export function WorkspaceTree() {
                           "var(--workspace-sidebar-item-font-size, 12px)",
                       }}
                     >
-                      {String(workspace.metadata.icon)}
+                      {workspace.icon}
                     </span>
                   )}
                   <span
                     style={{
                       fontWeight: "500",
                       fontSize: "var(--workspace-sidebar-item-font-size, 12px)",
-                      color:
-                        (workspace.metadata?.style as any)?.primaryColor ||
-                        (workspace.metadata?.primaryColor as string) ||
+                      color: workspace.color ||
                         (isActive
                           ? "var(--color-workspace-sidebar-item-active-text, #1d4ed8)"
                           : "var(--color-workspace-sidebar-text, #374151)"),

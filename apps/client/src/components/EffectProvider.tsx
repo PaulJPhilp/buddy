@@ -3,26 +3,26 @@
 import { Effect, Layer, Runtime } from "effect";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { ChatAppComponent } from "@/components/chatapp/service";
-import { WorkspaceComponent } from "@/components/workspace/service";
-import { ApplicationManager } from "@/features/application/managers/application/service"; // Updated path
-import { CoreManager } from "@/features/application/managers/core/service"; // Updated path
-import { HeaderManager } from "@/features/application/managers/header/service"; // Updated path
-import { ChatManager } from "@/features/chatapps/chatapp/managers/chat/service"; // Updated path
-import { UserAreaManager } from "@/features/chatapps/chatapp/managers/userarea/service"; // Updated path
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps/service"; // Updated path
-import { ContextEngineeringManager } from "@/features/context-engineering/managers/context-engineering/service"; // Updated path
-import { WorkspaceManagerLive } from "@/features/workspace/managers/workspace-manager"; // Updated path
-import { WorkspaceManager } from "@/features/workspace/managers/workspace-manager"; // Updated path
+import { ApplicationManager } from "@/features/application/manager/service";
+import { CoreManager } from "@/features/application/manager/core/core/service";
+import { HeaderManager } from "@/features/application/features/header/header/service";
+import { ChatAppsManager } from "@/features/chatapps/manager/service";
+import { ChatManager } from "@/features/chatapps/features/chatapp/managers/service";
+import { ContextEngineeringManager } from "@/features/chatapps/features/chatapp/features/context-engineering/managers/service";
+import { UserAreaManager } from "@/features/chatapps/features/chatapp/features/userarea/managers/service";
+import { WorkspaceComponent } from "@/features/workspace/managers";
+import { WorkspaceManager } from "@/features/workspace/managers/workspace-manager/service";
 import { ChatService } from "@/services/chat";
 import { ChatBridge } from "@/services/chatbridge";
 import { ConfigService } from "@/services/config/service";
+
+type MemoizedLayer = Layer.Layer<any, unknown, unknown>;
 
 interface EffectContextValue {
   readonly runWithServices: <A, E, R>(
     effect: Effect.Effect<A, E, R>,
   ) => Promise<A>;
-  readonly services: Layer.Layer<never, never, any>;
+  readonly services: MemoizedLayer;
 }
 
 const EffectContext = createContext<EffectContextValue | null>(null);
@@ -48,9 +48,7 @@ export function EffectProvider({ children }: { children: React.ReactNode }) {
       HeaderManager.Default,
       UserAreaManager.Default,
       WorkspaceManager.Default,
-      WorkspaceManagerLive,
       ApplicationManager.Default,
-      ChatAppComponent.Default,
       WorkspaceComponent.Default,
     );
 

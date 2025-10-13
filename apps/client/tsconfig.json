@@ -38,6 +38,7 @@
       "@types/*": ["./src/types/*"],
       "@ui-state/*": ["./src/ui-state/*"],
       "@utils/*": ["./src/utils/*"],
+      "@/managers/*": ["./_archived/legacy-managers/*"],
       "@buddy/ui": ["../../packages/ui/src"],
       "@buddy/ui/*": ["../../packages/ui/src/*"],
       "@buddy/agentkit": ["../../packages/agentkit"],

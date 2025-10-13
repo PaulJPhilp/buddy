@@ -1,6 +1,6 @@
 import React from "react";
 import { ApplicationUI } from "../components/ApplicationUI"; // Import the new ApplicationUI
-import { useApplication } from "../hooks/useApplicationHook";
+import { useApplication } from "../features/header/hook/useApplicationHook";
 
 type ApplicationContainerProps = {};
 

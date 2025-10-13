@@ -1,7 +1,7 @@
 import { useEffectContext } from "@/components/EffectProvider";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
-import { AppComponent } from "../managers/service"; // Still AppComponent, but will be renamed internally
+import { ApplicationManager } from "@/features/application/manager/service";
 
 import type { AppConfig } from "@/features/application/types/AppConfig";
 
@@ -47,7 +47,7 @@ export function useApplication() {
       updateState({ isLoading: true, error: null });
       Effect.runPromiseExit(
         runWithServices(
-          AppComponent.pipe(
+          ApplicationManager.pipe(
             Effect.flatMap((manager) => manager.loadConfig(path)),
             Effect.tap((appConfig) =>
               updateState({ appConfig, isLoading: false, isConfigLoaded: true })
@@ -68,8 +68,8 @@ export function useApplication() {
     updateState({ isLoading: true, error: null });
     Effect.runPromiseExit(
       runWithServices(
-        AppComponent.pipe(
-          Effect.flatMap((manager) => manager.getAppConfig()),
+        ApplicationManager.pipe(
+          Effect.flatMap((manager) => manager.getAppConfig),
           Effect.tap((appConfig) =>
             updateState({
               appConfig,

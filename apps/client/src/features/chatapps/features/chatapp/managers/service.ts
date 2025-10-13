@@ -1,5 +1,5 @@
 import { Effect, Queue, Ref, Stream } from "effect";
-import { ChatAppsManager } from "../chatapps";
+import { ChatAppsManager } from "@/features/chatapps/manager/service";
 import type { ChatManagerApi } from "./api";
 import type { ChatCommand } from "./commands";
 import {

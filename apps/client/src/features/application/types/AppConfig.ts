@@ -1,4 +1,3 @@
-import { Workspace } from "@/../packages/config/src/types/workspace";
 import { Schema } from "effect";
 
 // ChatApp Schema based on ChatAppModel domain
@@ -34,7 +33,7 @@ export const AgentSchema = Schema.Struct({
   name: Schema.String,
   description: Schema.String.pipe(Schema.optional),
   version: Schema.String,
-  provider: Schema.String,
+  provider: Schema.Literal("openai", "google", "anthropic"),
   model: Schema.String,
   prompt: Schema.String.pipe(Schema.optional),
   capabilities: Schema.mutable(Schema.Array(Schema.String)),
@@ -75,6 +74,9 @@ export const AgentSchema = Schema.Struct({
   ),
 });
 
+export type AgentConfig = Schema.Schema.Type<typeof AgentSchema>;
+export type ChatAppConfig = Schema.Schema.Type<typeof ChatAppSchema>;
+
 // Settings Schema with proper typing for common settings
 export const SettingsSchema = Schema.Record({
   key: Schema.String,
@@ -106,7 +108,7 @@ export const AppConfigSchema = Schema.Struct({
     locale: Schema.String.pipe(Schema.optional),
     timezone: Schema.String.pipe(Schema.optional),
   }),
-  workspaces: Schema.mutable(Schema.Array(Workspace)),
+  workspaces: Schema.mutable(Schema.Array(Schema.Any)),
   chatapps: Schema.mutable(Schema.Array(ChatAppSchema)),
   agents: Schema.mutable(Schema.Array(AgentSchema)),
   settings: Schema.mutable(SettingsSchema),

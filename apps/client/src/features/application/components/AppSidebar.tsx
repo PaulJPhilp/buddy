@@ -1,11 +1,11 @@
 "use client";
 
-import { useWorkspaceManager } from "@/components/workspace/useWorkspaceManager";
-import type { WorkspaceModel } from "@/domain/workspace";
-import { WorkspaceForm } from "@/features/workspaces-editor/workspace-editor/components/WorkspaceForm";
+import { useWorkspaceManager } from "@/features/workspace/hooks/useWorkspaceManager";
+
+// TODO: WorkspaceForm component needs to be implemented
+// import { WorkspaceForm } from "@/features/workspaces-editor/workspace-editor/components/WorkspaceForm";
 import React from "react";
 import { useState } from "react";
-import type { WorkspaceCreateInput } from "../../managers/workspace-manager/types";
 import { WorkspaceTree } from "./WorkspaceTree";
 
 interface AppSidebarProps {
@@ -14,7 +14,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ className = "", isOpen }: AppSidebarProps) {
-  const { createWorkspace } = useWorkspaceManager();
+
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -108,6 +108,16 @@ export function AppSidebar({ className = "", isOpen }: AppSidebarProps) {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg p-3 w-40 shadow-lg">
+            <div className="text-center p-4">
+              <p>Workspace creation form coming soon</p>
+              <button
+                onClick={() => setShowModal(false)}
+                className="mt-2 px-4 py-2 bg-gray-200 rounded"
+              >
+                Close
+              </button>
+            </div>
+            {/* TODO: Implement WorkspaceForm component
             <WorkspaceForm
               hideIconPicker
               hideColorPicker
@@ -124,6 +134,7 @@ export function AppSidebar({ className = "", isOpen }: AppSidebarProps) {
               onCancel={() => setShowModal(false)}
               isSubmitting={isSubmitting}
             />
+            */}
           </div>
         </div>
       )}

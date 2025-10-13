@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import React, { useEffect, useRef, useState } from "react";
-import { useEffectContext } from "../EffectProvider";
-import { AppComponent } from "./service";
+import { useEffectContext } from "@/components/EffectProvider";
+import { ApplicationManager } from "@/features/application/manager/service";
 
 export function LoadDebugInfo() {
   const { runWithServices } = useEffectContext();
@@ -13,28 +13,19 @@ export function LoadDebugInfo() {
   const startTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
-    let didSet = false;
-
     runWithServices(
       Effect.gen(function* () {
-        const appComponent = yield* AppComponent;
-        // Subscribe to state changes
-        unsub = yield* appComponent.subscribe((state) => {
-          if (state.isConfigLoaded && !didSet) {
-            didSet = true;
-            setWorkspaceCount(state.appConfig?.workspaces?.length || 0);
-            setChatAppCount(state.appConfig?.chatapps?.length || 0);
-            setLoadTime(Date.now() - startTimeRef.current);
-            setIsLoaded(true);
-          }
-        });
+        const appManager = yield* ApplicationManager;
+        const appConfig = yield* appManager.getAppConfig;
+        
+        if (appConfig) {
+          setWorkspaceCount(appConfig.workspaces?.length || 0);
+          setChatAppCount(appConfig.chatapps?.length || 0);
+          setLoadTime(Date.now() - startTimeRef.current);
+          setIsLoaded(true);
+        }
       }),
     );
-
-    return () => {
-      if (unsub) unsub();
-    };
   }, [runWithServices]);
 
   if (!isLoaded || loadTime === null || !isVisible) return null;

@@ -1,19 +1,23 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps";
-import type { ChatAppInstance } from "@/features/chatapps/managers/chatapps/types";
+import { ChatAppsManager } from "@/features/chatapps/manager/service";
+import type { ChatAppInstance } from "@/features/chatapps/manager/types";
 import { Effect } from "effect";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { WorkspaceConfig } from "@/features/application/types/AppConfig";
-import { ChatAppContainer } from "@/features/chatapps/container/ChatAppContainer";
-import {
-  ChatAppForm,
-  type ChatAppFormValues,
-} from "@/features/workspaces-editor/chatapps-editor/chatappeditor/components/ChatAppForm";
-import { ChatApp } from "../chatapp/ChatApp";
-import { WorkspaceComponent } from "./service";
+import type { Workspace as WorkspaceConfig } from "@buddy/config/types/workspace";
+// TODO: ChatAppContainer needs to be implemented
+// import { ChatAppContainer } from "@/features/chatapps/container/ChatAppContainer";
+// TODO: ChatAppForm needs to be implemented
+// import {
+//   ChatAppForm,
+//   type ChatAppFormValues,
+// } from "@/features/workspaces-editor/chatapps-editor/chatappeditor/components/ChatAppForm";
+type ChatAppFormValues = any;
+// TODO: ChatApp component needs to be implemented
+// import { ChatApp } from "../chatapp/ChatApp";
+import { WorkspaceComponent } from "@/features/workspace/managers/service";
 
 // Utility function to apply Workspace-specific styling
 function applyWorkspaceStyle(style: any) {

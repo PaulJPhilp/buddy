@@ -1,4 +1,4 @@
-import { useWorkspaceManager } from "@/components/workspace/useWorkspaceManager"; // Import useWorkspaceManager
+import { useWorkspaceManager } from "@/features/workspace/hooks/useWorkspaceManager"; // Import useWorkspaceManager
 import { useEffect } from "react"; // Import useEffect for initialization
 import { ChatAppList } from "../chatapps-editor/components/ChatAppList";
 import { ChatAppsPanel } from "../chatapps-editor/components/ChatAppsPanel";

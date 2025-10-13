@@ -1,20 +1,14 @@
 import type { AppConfig } from "@/features/application/types/AppConfig";
 import { ConfigService } from "@/services/config/service";
 import { Effect, Layer, Ref, Schedule } from "effect";
-import { Schema as S } from "effect";
-import { Tag } from "effect/Context";
-import { FileSystem } from "effect/FileSystem";
-import { flow, pipe } from "effect/Function";
+
 import {
   ConfigLoadError,
   ConfigParseError,
   ConfigSaveError,
   ConfigValidationError,
 } from "./errors";
-import {
-  AppConfigSchema,
-  AppPersistedConfigSchema,
-} from "./types";
+import { AppConfigSchema } from "@/features/application/types/AppConfig";
 
 interface AppState {
   readonly appConfig: AppConfig | null;
@@ -23,7 +17,14 @@ interface AppState {
   readonly isConfigLoaded: boolean;
 }
 
-export class ApplicationManager extends Effect.Service<AppConfig>()(
+export interface ApplicationManagerApi {
+  readonly loadConfig: (path?: string) => Effect.Effect<AppConfig, ConfigLoadError | ConfigParseError | ConfigValidationError | Error, never>;
+  readonly getAppConfig: Effect.Effect<AppConfig | null, never, never>;
+  readonly getState: Effect.Effect<AppState, never, never>;
+  readonly saveAppConfig: (config: AppConfig) => Effect.Effect<AppConfig, ConfigSaveError | Error, never>;
+}
+
+export class ApplicationManager extends Effect.Service<ApplicationManagerApi>()(
   "ApplicationManager",
   {
     effect: Effect.gen(function* () {
@@ -47,17 +48,14 @@ export class ApplicationManager extends Effect.Service<AppConfig>()(
             // Load from a specific path
             try {
               const configPath = `${path}`;
-              const config = yield* configService.loadConfig<AppConfig>(
-                configPath,
-                AppConfigSchema
-              );
+              const config = yield* configService.loadConfig(configPath);
               loadedConfig = config;
               yield* setAppState({ appConfig: loadedConfig, isConfigLoaded: true });
               return config; // Return the loaded config
             } catch (e) {
               yield* setAppState({ error: `Failed to load config from ${path}`, isLoading: false });
               if (e instanceof ConfigLoadError) {
-                return yield* Effect.fail(new ConfigLoadError({ path, cause: e.cause }));
+                return yield* Effect.fail(new ConfigLoadError({ message: `Failed to load config from ${path}`, configPath: path, cause: e.cause }));
               } else if (e instanceof ConfigParseError) {
                 return yield* Effect.fail(new ConfigParseError({ message: e.message, cause: e.cause }));
               } else if (e instanceof ConfigValidationError) {
@@ -68,10 +66,7 @@ export class ApplicationManager extends Effect.Service<AppConfig>()(
           } else {
             // Attempt to load default persisted config
             try {
-              const persistedConfig = yield* configService.loadConfig<AppConfig>(
-                "appConfig",
-                AppConfigSchema
-              );
+              const persistedConfig = yield* configService.loadConfig("appConfig");
               loadedConfig = persistedConfig;
               yield* setAppState({ appConfig: loadedConfig, isConfigLoaded: true });
               return persistedConfig;
@@ -80,16 +75,13 @@ export class ApplicationManager extends Effect.Service<AppConfig>()(
               console.warn("No persisted app config found, trying default bootstrap.");
               const defaultBootstrapPath = "/public/static/configs/default-buddy-bootstrap.json";
               try {
-                const defaultConfig = yield* configService.loadConfig<AppConfig>(
-                  defaultBootstrapPath,
-                  AppConfigSchema
-                );
+                const defaultConfig = yield* configService.loadConfig(defaultBootstrapPath);
                 loadedConfig = defaultConfig;
                 yield* setAppState({ appConfig: loadedConfig, isConfigLoaded: true });
                 return defaultConfig;
               } catch (bootstrapError) {
                 yield* setAppState({ error: `Failed to load default bootstrap config: ${bootstrapError}`, isLoading: false });
-                return yield* Effect.fail(new ConfigLoadError({ path: defaultBootstrapPath, cause: bootstrapError instanceof Error ? bootstrapError : new Error(String(bootstrapError)) }));
+                return yield* Effect.fail(new ConfigLoadError({ message: `Failed to load default bootstrap config`, configPath: defaultBootstrapPath, cause: bootstrapError instanceof Error ? bootstrapError : new Error(String(bootstrapError)) }));
               }
             }
           }
@@ -103,7 +95,7 @@ export class ApplicationManager extends Effect.Service<AppConfig>()(
         Effect.gen(function* () {
           yield* setAppState({ isLoading: true, error: null });
           try {
-            yield* configService.saveConfig("appConfig", config, AppConfigSchema);
+            yield* configService.saveConfig(config);
             yield* setAppState({ appConfig: config, isLoading: false, error: null });
             return config;
           } catch (e) {
@@ -122,9 +114,9 @@ export class ApplicationManager extends Effect.Service<AppConfig>()(
         saveAppConfig,
       };
     }),
-    dependencies: [ConfigService],
+    dependencies: [ConfigService.Default],
   }
-);
+) { }
 
 export const ApplicationManagerLive = Layer.effect(
   ApplicationManager,

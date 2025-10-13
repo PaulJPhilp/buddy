@@ -1,26 +1,22 @@
 import { filterAgentsForWorkspace } from "@/agents/utils/agent-utils";
-import { CoreComponent } from "@/components/core";
+import { CoreManager } from "@/features/application/manager/core/core/service";
 import {
-  CoreComponentCleanupError,
-  CoreComponentInitializationError,
-  CoreComponentStateError,
-  CoreComponentSubscriptionError,
-} from "@/components/core/errors";
-import type { CoreComponentConfig } from "@/components/core/types";
-import { AppComponent } from "@/features/application/managers/service";
-import type {
-  AgentConfig,
-  ChatAppConfig,
-  WorkspaceConfig,
-} from "@/features/application/types/AppConfig";
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps";
+  CoreManagerInitializationError,
+  CoreManagerStateError,
+  CoreManagerSubscriptionError,
+  CoreManagerOperationError,
+} from "@/features/application/manager/core/core/errors";
+import type { CoreManagerConfig } from "@/features/application/manager/core/core/types";
+import { ApplicationManager } from "@/features/application/manager/service";
+import type { AgentConfig, ChatAppConfig } from "@/features/application/types/AppConfig";
+import type { Workspace as WorkspaceConfig } from "@buddy/config/types/workspace";
+import { ChatAppsManager } from "@/features/chatapps/manager/service";
 import {
   chatAppConfigToRecord,
   extractChatAppProperties,
 } from "@/features/chatapps/utils/chatapp-converters";
 import { filterChatAppsForWorkspace } from "@/features/workspace/utils/workspace-utils";
 import { Effect, Ref } from "effect";
-import { fetchChatAppConfigs } from "../app/service"; // Import the helper
 import type { WorkspaceComponentApi } from "./api";
 import {
   WorkspaceAgentError,
@@ -46,14 +42,14 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
   "WorkspaceComponent",
   {
     scoped: Effect.gen(function* () {
-      // Get core component functionality
-      const coreComponent = yield* CoreComponent;
+      // Get core manager functionality
+      const coreManager = yield* CoreManager;
 
       // Get chat apps manager
       const chatAppsManager = yield* ChatAppsManager;
 
-      // Get app component for accessing app config
-      const appComponent = yield* AppComponent;
+      // Get application manager for accessing app config
+      const applicationManager = yield* ApplicationManager;
 
       // Workspace-specific state
       const workspaceStateRef = yield* Ref.make<WorkspaceComponentState>(
@@ -119,11 +115,14 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             isWorkspaceLoaded: true,
           });
 
-          if (workspaceConfig.isDefault) {
-            yield* Effect.log(
-              `Loaded default workspace: ${workspaceConfig.name}`
-            );
-          }
+          // TODO: Implement default workspace detection if needed
+          // if (workspaceConfig.isDefault) {
+          //   yield* Effect.log(
+          //     `Loaded default workspace: ${workspaceConfig.name}`
+          //   );
+          // }
+          
+          yield* Effect.log(`Loaded workspace: ${workspaceConfig.name}`);
         }).pipe(
           Effect.mapError((cause: unknown) =>
             cause instanceof WorkspaceValidationError
@@ -157,7 +156,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               workspaceConfig
             );
             yield* Effect.fail(
-              new CoreComponentStateError({
+              new CoreManagerStateError({
                 message: "Invalid workspace config provided",
                 operation: "switchWorkspace",
               })
@@ -171,7 +170,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               workspaceConfig
             );
             yield* Effect.fail(
-              new CoreComponentStateError({
+              new CoreManagerStateError({
                 message: "Workspace config must have a valid ID",
                 operation: "switchWorkspace",
               })
@@ -187,7 +186,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               workspaceConfig
             );
             yield* Effect.fail(
-              new CoreComponentStateError({
+              new CoreManagerStateError({
                 message: "Workspace config must have a valid name",
                 operation: "switchWorkspace",
               })
@@ -201,7 +200,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               workspaceConfig
             );
             yield* Effect.fail(
-              new CoreComponentStateError({
+              new CoreManagerStateError({
                 message: "Workspace config chatappIds must be an array",
                 operation: "switchWorkspace",
               })
@@ -214,7 +213,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               workspaceConfig
             );
             yield* Effect.fail(
-              new CoreComponentStateError({
+              new CoreManagerStateError({
                 message: "Workspace config agentIds must be an array",
                 operation: "switchWorkspace",
               })
@@ -253,7 +252,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           // Load chat apps for this workspace with strict typing
           yield* Effect.gen(function* () {
             // Get app config to access chat apps
-            const appConfig = yield* appComponent.getAppConfig();
+            const appConfig = yield* applicationManager.getAppConfig;
             console.log(
               "[WorkspaceComponent] switchWorkspace: got appConfig",
               appConfig
@@ -264,7 +263,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                 "[WorkspaceComponent] switchWorkspace: No app config available"
               );
               yield* Effect.fail(
-                new CoreComponentStateError({
+                new CoreManagerStateError({
                   message: "No app config available",
                   operation: "loadChatApps",
                 })
@@ -295,23 +294,19 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
               missingChatAppIds
             );
 
-            let mergedChatApps = appConfig.chatapps || [];
+            // Use available chat apps from app config
+            const mergedChatApps = appConfig.chatapps || [];
+            
+            // TODO: Implement fetching for missing chat app configs if needed
             if (missingChatAppIds.length > 0) {
-              console.log(
-                `[WorkspaceComponent] switchWorkspace: fetching missing chat app configs for:`,
+              console.warn(
+                `[WorkspaceComponent] switchWorkspace: ${missingChatAppIds.length} chat app configs not found in appConfig:`,
                 missingChatAppIds
               );
-              // Fetch and cache missing chat app configs
-              const fetched = yield* fetchChatAppConfigs(missingChatAppIds);
-              console.log(
-                `[WorkspaceComponent] switchWorkspace: fetched ${fetched.length} chat app configs:`,
-                fetched.map((c) => c.id)
-              );
-              // Use a merged array for this run (do not mutate appConfig)
-              mergedChatApps = [...mergedChatApps, ...fetched];
             }
+            
             console.log(
-              `[WorkspaceComponent] switchWorkspace: total merged chat apps: ${mergedChatApps.length}`
+              `[WorkspaceComponent] switchWorkspace: using ${mergedChatApps.length} chat apps from config`
             );
             // --- END ADDED ---
 
@@ -346,14 +341,18 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                   id: extractedProps.id,
                   name: extractedProps.name,
                   agentId: extractedProps.agentId || "",
-                  toolbarId: extractedProps.toolbarId || "default-toolbar",
-                  themeId: extractedProps.themeId || "default-theme",
                   description: extractedProps.description,
-                  version: extractedProps.version,
-                  updatedAt: extractedProps.updatedAt,
-                  ownerId: extractedProps.ownerId,
-                  spaceId: extractedProps.spaceId,
-                  theme: extractedProps.theme,
+                  version: extractedProps.version || "1.0.0",
+                  createdAt: new Date().toISOString(),
+                  updatedAt: extractedProps.updatedAt || new Date().toISOString(),
+                  permissions: {
+                    canSendMessages: true,
+                    canReceiveMessages: true,
+                    canViewHistory: true,
+                    canDeleteMessages: false,
+                    canModifySettings: false,
+                    canShareConversations: false,
+                  },
                   isDefault: extractedProps.isDefault,
                   isShared: extractedProps.isShared,
                 };
@@ -881,7 +880,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
             partialState.isInitialized !== undefined ||
             partialState.isLoading !== undefined
           ) {
-            yield* coreComponent.setState({
+            yield* coreManager.setState({
               isInitialized: newState.isInitialized,
               isLoading: newState.isLoading,
             });
@@ -918,10 +917,10 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
       // Initialize workspace component
       const initialize = (config: WorkspaceComponentConfig) =>
         Effect.gen(function* () {
-          // Cast to CoreComponentConfig for core component initialization
-          const coreConfig = config as CoreComponentConfig;
+          // Cast to CoreManagerConfig for core manager initialization
+          const coreConfig = config as CoreManagerConfig;
 
-          yield* coreComponent.initialize(coreConfig);
+          yield* coreManager.initialize(coreConfig);
 
           yield* setState({ isInitialized: true });
 
@@ -945,7 +944,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
       // Cleanup
       const cleanup = () =>
         Effect.gen(function* () {
-          yield* coreComponent.cleanup();
+          yield* coreManager.cleanup();
           yield* Ref.set(workspaceStateRef, createDefaultWorkspaceState());
           yield* Ref.set(lastOperationRef, null);
         });
@@ -994,9 +993,9 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
       } satisfies WorkspaceComponentApi;
     }),
     dependencies: [
-      CoreComponent.Default,
+      CoreManager.Default,
       ChatAppsManager.Default,
-      AppComponent.Default,
+      ApplicationManager.Default,
     ],
   }
 ) {}

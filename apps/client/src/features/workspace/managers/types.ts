@@ -1,15 +1,12 @@
 import type {
-  CoreComponentConfig,
-  CoreComponentState,
-} from "@/components/core";
-import type {
-  AgentConfig,
-  ChatAppConfig,
-  WorkspaceConfig,
-} from "@/features/application/types/AppConfig";
+  CoreManagerConfig,
+  CoreManagerState,
+} from "@/features/application/manager/core/core/types";
+import type { AgentConfig, ChatAppConfig } from "@/features/application/types/AppConfig";
+import type { Workspace as WorkspaceConfig } from "@buddy/config/types/workspace";
 
-// Workspace component state (extends CoreComponentState)
-export interface WorkspaceComponentState extends CoreComponentState {
+// Workspace component state (extends CoreManagerState)
+export interface WorkspaceComponentState extends CoreManagerState {
   readonly workspaceConfig: WorkspaceConfig | null;
   readonly availableChatApps: ChatAppConfig[];
   readonly availableAgents: AgentConfig[];
@@ -19,8 +16,8 @@ export interface WorkspaceComponentState extends CoreComponentState {
   readonly isUIRendered: boolean;
 }
 
-// Workspace component configuration (extends CoreComponentConfig)
-export interface WorkspaceComponentConfig extends CoreComponentConfig {
+// Workspace component configuration (extends CoreManagerConfig)
+export interface WorkspaceComponentConfig extends CoreManagerConfig {
   readonly workspaceId: string;
   readonly autoLoadChatApps?: boolean;
   readonly autoLoadAgents?: boolean;
@@ -63,8 +60,10 @@ export type WorkspaceOperationType =
 export function createDefaultWorkspaceState(): WorkspaceComponentState {
   return {
     isInitialized: false,
+    isRunning: false,
     isLoading: false,
     lastUpdated: Date.now(),
+    operationCount: 0,
     workspaceConfig: null,
     availableChatApps: [],
     availableAgents: [],
@@ -112,10 +111,8 @@ export function validateWorkspaceConfig(
     warnings.push("No chat apps assigned to workspace");
   }
 
-  // Permissions validation
-  if (!config.permissions) {
-    warnings.push("No permissions specified");
-  }
+  // Note: Workspace interface doesn't have permissions property
+  // Permissions are managed at the chat app level
 
   return {
     isValid: errors.length === 0,

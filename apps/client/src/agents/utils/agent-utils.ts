@@ -7,7 +7,7 @@ export function isValidAgentId(id: string): boolean {
 // Helper to filter agents for workspace (using agent IDs)
 export function filterAgentsForWorkspace(
   agents: AgentConfig[],
-  agentIds: string[]
+  agentIds: readonly string[]
 ): AgentConfig[] {
   return agents.filter((agent) => agentIds.includes(agent.id));
 }
