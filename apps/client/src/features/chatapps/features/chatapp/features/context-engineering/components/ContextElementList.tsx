@@ -4,7 +4,7 @@ import type {
   ContextElement,
   NamedFile,
   NamedPrompt,
-} from "@/managers/context-engineering/types";
+} from "../managers/types";
 import { useCallback, useState } from "react";
 
 interface ContextElementListProps {
@@ -21,7 +21,7 @@ export function ContextElementList({
   onEdit,
   onRemove,
   onReorder,
-}: ContextElementListProps) {
+}: ContextElementListProps): React.ReactElement {
   const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 

@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { ChatManager } from "../../src/managers/chat/service";
-import { ChatAppsManager } from "../../src/managers/chatapps/service";
-import { CoreManager } from "../../src/managers/core/service";
+import { ChatManager } from "../../src/features/chatapps/features/chatapp/managers/service";
+import { ChatAppsManager } from "../../src/features/chatapps/manager/service";
+import { CoreManager } from "../../src/features/application/manager/core/core/service";
 import { ConfigService } from "../../src/services/config/service";
 
 // Chat commands
@@ -10,14 +10,14 @@ import {
   SendMessage,
   SetChatState,
   StartConversation,
-} from "../../src/managers/chat/commands";
+} from "../../src/features/chatapps/features/chatapp/managers/commands";
 
 // ChatApps commands
 import {
   ExpandChatApp,
   RegisterChatApp,
   SetChatAppStatus,
-} from "../../src/managers/chatapps/commands";
+} from "../../src/features/chatapps/manager/commands";
 
 // Core commands
 import {

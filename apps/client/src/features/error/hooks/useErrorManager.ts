@@ -1,8 +1,10 @@
+"use client";
+
 import { useEffectContext } from "@/components/EffectProvider";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
 import { AppError, FatalError, HandledError } from "../errors";
-import { ErrorManagerLive } from "../managers";
+import { ErrorManager } from "../managers";
 
 export function useErrorManager() {
   const { runWithServices } = useEffectContext();
@@ -13,9 +15,10 @@ export function useErrorManager() {
   const reportError = useCallback(
     (error: AppError | FatalError | HandledError) => {
       runWithServices(
-        ErrorManagerLive.pipe(
-          Effect.flatMap((manager) => manager.reportError(error))
-        )
+        Effect.gen(function* () {
+          const manager = yield* ErrorManager;
+          yield* manager.reportError(error);
+        })
       );
     },
     [runWithServices]
@@ -24,9 +27,10 @@ export function useErrorManager() {
   const clearError = useCallback(
     (errorId: string) => {
       runWithServices(
-        ErrorManagerLive.pipe(
-          Effect.flatMap((manager) => manager.clearError(errorId))
-        )
+        Effect.gen(function* () {
+          const manager = yield* ErrorManager;
+          yield* manager.clearError(errorId);
+        })
       );
     },
     [runWithServices]
@@ -39,11 +43,11 @@ export function useErrorManager() {
     const setupSubscription = async () => {
       unsubscribe = await runWithServices(
         Effect.gen(function* () {
-          const manager = yield* ErrorManagerLive;
+          const manager = yield* ErrorManager;
           // Polling for simplicity; a real-time subscription (e.g., via WebSocket) would be better
           const interval = setInterval(async () => {
-            const currentErrors = await Effect.runPromise(manager.getErrors());
-            setErrors(currentErrors);
+            const currentErrors = await runWithServices(manager.getErrors());
+            setErrors(currentErrors as (AppError | FatalError | HandledError)[]);
           }, 1000); // Poll every 1 second
           return () => clearInterval(interval);
         })

@@ -7,6 +7,8 @@ export const ChatAppSchema = Schema.Struct({
   description: Schema.String.pipe(Schema.optional),
   version: Schema.String,
   agentId: Schema.String,
+  toolbarId: Schema.String,
+  themeId: Schema.String,
   workspaceId: Schema.String.pipe(Schema.optional),
   permissions: Schema.Struct({
     canSendMessages: Schema.Boolean,
@@ -25,6 +27,7 @@ export const ChatAppSchema = Schema.Struct({
   metadata: Schema.optional(
     Schema.Record({ key: Schema.String, value: Schema.Unknown })
   ),
+  theme: Schema.optional(Schema.Unknown), // Add theme property for compatibility
 });
 
 // Agent Schema based on AgentModel domain

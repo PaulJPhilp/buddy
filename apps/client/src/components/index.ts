@@ -2,4 +2,5 @@
 export { EffectProvider } from "./EffectProvider";
 
 // Core Components
-export * from "./core";
+// TODO: Add core components when needed
+// export * from "./core";

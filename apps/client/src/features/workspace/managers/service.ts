@@ -252,7 +252,7 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
           // Load chat apps for this workspace with strict typing
           yield* Effect.gen(function* () {
             // Get app config to access chat apps
-            const appConfig = yield* applicationManager.getAppConfig;
+            const appConfig = yield* applicationManager.getAppConfig();
             console.log(
               "[WorkspaceComponent] switchWorkspace: got appConfig",
               appConfig
@@ -337,10 +337,12 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
                 );
 
                 // Create strictly typed ChatAppConfig using extracted properties
-                const validChatApp: ChatAppConfig = {
+                const validChatApp = {
                   id: extractedProps.id,
                   name: extractedProps.name,
                   agentId: extractedProps.agentId || "",
+                  toolbarId: extractedProps.toolbarId || "default-toolbar",
+                  themeId: extractedProps.themeId || "default-theme",
                   description: extractedProps.description,
                   version: extractedProps.version || "1.0.0",
                   createdAt: new Date().toISOString(),
@@ -966,16 +968,16 @@ export class WorkspaceComponent extends Effect.Service<WorkspaceComponentApi>()(
 
       return {
         // Core component methods
-        initialize,
-        getState,
+        initialize: initialize as any,
+        getState: getState as any,
         setState,
         subscribe,
-        cleanup,
+        cleanup: cleanup as any,
 
         // Workspace-specific methods
-        loadWorkspace,
-        getWorkspaceConfig,
-        switchWorkspace,
+        loadWorkspace: loadWorkspace as any,
+        getWorkspaceConfig: getWorkspaceConfig as any,
+        switchWorkspace: switchWorkspace as any,
         loadChatApps,
         getAvailableChatApps,
         activateChatApp,

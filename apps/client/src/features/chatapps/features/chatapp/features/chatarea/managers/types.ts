@@ -1,4 +1,4 @@
-import type { Message } from "@/features/chatapps/chatapp/types/chat";
+import type { Message } from "@/features/chatapps/features/chatapp/types/chat";
 
 export interface ChatAreaManagerState {
   readonly messages: ReadonlyArray<Message>;

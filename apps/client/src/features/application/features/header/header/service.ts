@@ -1,5 +1,5 @@
 import { Effect, Ref } from "effect";
-import type { HeaderManagerApi } from "./api";
+import type { HeaderManagerApi } from "../api/api";
 import {
   HeaderManagerConfigError,
   HeaderManagerError,

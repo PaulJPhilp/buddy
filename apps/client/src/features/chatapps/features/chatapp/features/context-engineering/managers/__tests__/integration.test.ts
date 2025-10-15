@@ -1,10 +1,11 @@
 import { Effect, Layer } from "effect";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { ContextEngineeringManagerApi } from "../api";
 import { ContextEngineeringManager } from "../service";
 import { NamedFile, NamedPrompt } from "../types";
 
 describe("ContextEngineeringManager Integration", () => {
-  let manager: ContextEngineeringManager;
+  let manager: ContextEngineeringManagerApi;
 
   beforeEach(async () => {
     const testLayer = Layer.mergeAll(ContextEngineeringManager.Default);
@@ -39,7 +40,9 @@ describe("ContextEngineeringManager Integration", () => {
       _tag: "NamedFile",
       id: "test-file-1",
       name: "Test File",
-      fileId: "file-123",
+      fileType: "JSON",
+      content: '{"key": "value"}',
+      fileName: "test-data.json",
     });
 
     // Add elements to pre-prompt

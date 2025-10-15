@@ -1,10 +1,8 @@
-import {
-  ToolbarConfig,
-  ToolbarStyle,
-} from "@/features/shared/toolbar/schemas/ToolbarConfigSchema";
+import type { ToolbarConfig } from "@/features/shared/toolbar/schema/ToolbarConfigSchema";
+import { ToolbarStyle } from "@/features/shared/toolbar/schema/ToolbarConfigSchema";
 import { Schema as S } from "effect";
 import { Effect } from "effect";
-import type { CommandExecutionError } from "./errors";
+import type { CommandExecutionError } from "../errors/errors";
 
 /**
  * Represents a single, executable command in a toolbar.

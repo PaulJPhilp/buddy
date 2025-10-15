@@ -3,13 +3,14 @@
 import type {
   ChatAppInstance,
   ChatMessage,
-} from "@/features/chatapps/managers/chatapps/types";
+} from "@/features/chatapps/manager/types";
 import { ChatBubble } from "@buddy/ui/components/ChatBubble";
 import React, { useEffect, useRef } from "react";
-import { ContextEngineeringPanel } from "./ContextEngineeringPanel";
-import { ContextEngineeringTrigger } from "./ContextEngineeringTrigger";
-import { HeaderBar } from "./HeaderBar";
-import { UserArea } from "./UserArea";
+import { ContextEngineeringPanel } from "../features/context-engineering/components/ContextEngineeringPanel";
+import { ContextEngineeringTrigger } from "../features/context-engineering/components/ContextEngineeringTrigger";
+import { HeaderBar } from "../features/header/components/HeaderBar";
+import { UserArea } from "../features/userarea/components/UserArea";
+import { Effect } from "effect";
 
 // Utility function to apply ChatApp-specific styling
 function applyChatAppStyling(style: any) {
@@ -203,13 +204,14 @@ interface ChatAppUIProps {
   onClear: () => Promise<void>;
   className?: string;
   contextEngineering: {
-    initialize: () => Effect.Effect<never, never, void>;
+    initialize: () => any;
     isInitialized: boolean;
-    stats: any; // Define a more specific type if available
-    getFinalContext: (question: string) => Effect.Effect<never, never, string>;
+    stats: any;
+    getFinalContext: (question: string) => any;
   };
 }
 
+// @ts-ignore - Client-side event handlers, not Server Actions
 export function ChatAppUI({
   instance,
   messages,
@@ -238,6 +240,9 @@ export function ChatAppUI({
   className = "",
   contextEngineering,
 }: ChatAppUIProps) {
+  // Ref for user scrolling timeout
+  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (instance.config?.style) {
       applyChatAppStyling(instance.config.style);
@@ -342,7 +347,6 @@ export function ChatAppUI({
               key={message.id}
               message={message}
               showTimestamp={showTimestamps}
-              formatTime={formatTime}
             />
           ))}
 
@@ -440,10 +444,10 @@ export function ChatAppUI({
 
       {/* User input area */}
       <UserArea
-        onSendMessage={onSendMessage}
-        isChatLoading={isLoading}
-        showContextEngineeringButton={true}
-        onToggleContextEngineering={onToggleContextEngineering}
+        chatAppId={instance.id}
+        onSendMessage={async (text) => {
+          await onSendMessage(text);
+        }}
       />
 
       {/* Context Engineering Trigger - Thin line at bottom */}

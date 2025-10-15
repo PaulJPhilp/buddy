@@ -1,9 +1,9 @@
-import { ToolbarConfig } from "@/features/shared/toolbar/schemas/ToolbarConfigSchema";
+import { ToolbarConfig } from "@/features/shared/toolbar/schema/ToolbarConfigSchema";
 import { Effect, HashMap, Layer, Ref } from "effect";
-import type { ToolbarComponentApi } from "./api";
-import { CommandExecutionError, ToolbarError } from "./errors";
-import { ToolbarService } from "./service";
-import type { ToolbarCommand, ToolbarInstance } from "./types";
+import type { ToolbarComponentApi } from "../api/api";
+import { CommandExecutionError, ToolbarError } from "../errors/errors";
+import { ToolbarService } from "../manager/service";
+import type { ToolbarCommand, ToolbarInstance } from "../types/types";
 
 /**
  * Manages the state and logic for a single instance of a toolbar.

@@ -1,4 +1,4 @@
-import type { Message } from "@/features/chatapps/chatapp/types/chat";
+import type { Message } from "@/features/chatapps/features/chatapp/types/chat";
 import { Effect, Ref } from "effect";
 import type { ChatAreaManagerApi } from "./api";
 import { ChatAreaManagerError, ChatAreaManagerStateError } from "./errors";

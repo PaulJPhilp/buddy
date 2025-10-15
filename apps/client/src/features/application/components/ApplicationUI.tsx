@@ -8,7 +8,7 @@ import { AppEditorContainer } from "@/features/app-editor/container/AppEditorCon
 import { AppSidebar } from "@/features/application/components/AppSidebar";
 import { AppStyle } from "@/features/application/types/AppStyle";
 import { WorkspaceContainer } from "@/features/workspace/container/WorkspaceContainer";
-import { WorkspacesEditorContainer } from "@/features/workspaces-editor/container/WorkspacesEditorContainer";
+// WorkspacesEditorContainer removed - experimental feature deleted
 
 // Default app style
 const defaultAppStyle: AppStyle = {
@@ -572,8 +572,7 @@ export function ApplicationUI({ isLoading, error }: ApplicationUIProps) {
               color: "var(--app-error-button-foreground, #ffffff)",
               padding: "var(--app-error-button-padding, 8px 16px)",
               borderRadius: "var(--app-error-button-border-radius, 6px)",
-              "--app-error-button-hover-background": "#b91c1c",
-            }}
+            } as React.CSSProperties}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor =
                 "var(--app-error-button-hover-background, #b91c1c)";
@@ -782,7 +781,8 @@ export function ApplicationUI({ isLoading, error }: ApplicationUIProps) {
           }}
         >
           <div style={{ flex: 1, overflow: "auto" }}>
-            <WorkspacesEditorContainer />
+          {/* WorkspacesEditorContainer removed - experimental feature deleted */}
+          {activeMainFeature === "workspaces-editor" && <div className="p-4">Workspaces Editor - Coming Soon</div>}
           </div>
           <div style={{ flex: 1, overflow: "auto" }}>
             <WorkspaceContainer />

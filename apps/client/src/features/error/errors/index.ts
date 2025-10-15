@@ -1,4 +1,4 @@
-import { Data, TaggedError } from "effect";
+import { Data } from "effect";
 
 export class AppError extends Data.TaggedError("AppError")<{
   readonly message: string;

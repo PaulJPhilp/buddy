@@ -5,6 +5,21 @@ import type {
 import type { AgentConfig, ChatAppConfig } from "@/features/application/types/AppConfig";
 import type { Workspace as WorkspaceConfig } from "@buddy/config/types/workspace";
 
+// Re-export WorkspaceConfig for external use
+export type { WorkspaceConfig };
+
+// Workspace styling configuration
+export interface WorkspaceStyle {
+  readonly primaryColor?: string;
+  readonly secondaryColor?: string;
+  readonly backgroundColor?: string;
+  readonly textColor?: string;
+  readonly borderColor?: string;
+  readonly borderRadius?: string;
+  readonly fontSize?: string;
+  readonly fontFamily?: string;
+}
+
 // Workspace component state (extends CoreManagerState)
 export interface WorkspaceComponentState extends CoreManagerState {
   readonly workspaceConfig: WorkspaceConfig | null;

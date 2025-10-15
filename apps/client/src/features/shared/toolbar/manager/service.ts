@@ -1,15 +1,15 @@
-import { ToolbarConfigSchema } from "@/features/shared/toolbar/schemas/ToolbarConfigSchema";
+import { ToolbarConfig } from "@/features/shared/toolbar/schema/ToolbarConfigSchema";
 import { ConfigService } from "@/services/config";
 import { Effect, HashMap, Layer, Ref } from "effect";
 import { Schema as S } from "effect";
-import type { ToolbarServiceApi } from "./api";
+import type { ToolbarServiceApi } from "../api/api";
 import {
   CommandNotFoundError,
   ConfigLoadError,
   ConfigValidationError,
   ToolbarError,
-} from "./errors";
-import { ToolbarCommand, ToolbarConfig } from "./types";
+} from "../errors/errors";
+import type { ToolbarCommand } from "../types/types";
 
 /**
  * The ToolbarService is responsible for two main tasks:
@@ -59,7 +59,7 @@ export class ToolbarService extends Effect.Service<ToolbarServiceApi>()(
               new ConfigLoadError({ path, message: "Failed to parse JSON" }),
           });
 
-          const config = yield* S.decode(ToolbarConfigSchema)(content).pipe(
+          const config = yield* S.decode(ToolbarConfig)(content).pipe(
             Effect.mapError(
               (cause) =>
                 new ConfigValidationError({

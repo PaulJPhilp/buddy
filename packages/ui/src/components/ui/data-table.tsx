@@ -34,7 +34,7 @@ export function DataTable<TData, TValue>({
   onSortingChange,
   onColumnFiltersChange,
   onColumnVisibilityChange,
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData, TValue>): React.ReactElement {
   const table = useReactTable({
     data,
     columns,

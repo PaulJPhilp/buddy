@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CoreManager } from "../../core";
+import { CoreManager } from "@/features/application/manager/core/core/service";
 import { ChatAppsManager } from "../service";
 import type { ChatAppInstance } from "../types";
 

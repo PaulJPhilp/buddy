@@ -12,7 +12,7 @@ export function ContextEngineeringTrigger({
   onToggle,
   isOpen,
   elementCount = 0,
-}: ContextEngineeringTriggerProps) {
+}: ContextEngineeringTriggerProps): React.ReactElement {
   const [isHovered, setIsHovered] = useState(false);
 
   const handleClick = useCallback(() => {

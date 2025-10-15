@@ -1,17 +1,17 @@
 "use client";
 
-import type { WorkspaceModel } from "@domain/workspace";
+import type { Workspace as WorkspaceModel } from "@buddy/config/types/workspace";
 import React, { useCallback, useEffect, useState } from "react";
-import { useAppContainer } from "./AppContainer";
+import { useAppContainer } from "../container/AppContainer";
 
 interface AppManagementUIProps {
   className?: string;
-  onClose?: () => void;
+  onCloseAction?: () => void;
 }
 
 export function AppManagementUI({
   className = "",
-  onClose,
+  onCloseAction,
 }: AppManagementUIProps) {
   const {
     state,
@@ -110,10 +110,10 @@ export function AppManagementUI({
           <h2 className="text-lg font-semibold text-red-800">
             App Management Error
           </h2>
-          {onClose && (
+          {onCloseAction && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={onCloseAction}
               className="text-gray-400 hover:text-gray-600"
             >
               ×
@@ -150,10 +150,10 @@ export function AppManagementUI({
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b">
         <h2 className="text-xl font-semibold text-gray-900">App Management</h2>
-        {onClose && (
+        {onCloseAction && (
           // biome-ignore lint/a11y/useButtonType: <explanation>
           <button
-            onClick={onClose}
+            onClick={onCloseAction}
             className="text-gray-400 hover:text-gray-600 text-xl"
           >
             ×
@@ -218,14 +218,7 @@ export function AppManagementUI({
                 {state?.isAppShellRendered ? "Yes" : "No"}
               </span>
             </div>
-            <div>
-              <span className="text-gray-600">Last Updated:</span>
-              <span className="ml-2 text-gray-800">
-                {state?.lastUpdated
-                  ? new Date(state.lastUpdated).toLocaleTimeString()
-                  : "N/A"}
-              </span>
-            </div>
+            {/* Last Updated removed - not in AppComponentState */}
           </div>
         </div>
 

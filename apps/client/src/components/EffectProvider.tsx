@@ -4,7 +4,7 @@ import { Effect, Layer, Runtime } from "effect";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { ApplicationManager } from "@/features/application/manager/service";
-import { CoreManager } from "@/features/application/manager/core/core/service";
+import { CoreManager } from "@/features/application/manager/core/core/service"
 import { HeaderManager } from "@/features/application/features/header/header/service";
 import { ChatAppsManager } from "@/features/chatapps/manager/service";
 import { ChatManager } from "@/features/chatapps/features/chatapp/managers/service";
@@ -12,8 +12,6 @@ import { ContextEngineeringManager } from "@/features/chatapps/features/chatapp/
 import { UserAreaManager } from "@/features/chatapps/features/chatapp/features/userarea/managers/service";
 import { WorkspaceComponent } from "@/features/workspace/managers";
 import { WorkspaceManager } from "@/features/workspace/managers/workspace-manager/service";
-import { ChatService } from "@/services/chat";
-import { ChatBridge } from "@/services/chatbridge";
 import { ConfigService } from "@/services/config/service";
 
 type MemoizedLayer = Layer.Layer<any, unknown, unknown>;
@@ -42,7 +40,7 @@ export function EffectProvider({ children }: { children: React.ReactNode }) {
     const serviceLayer = Layer.mergeAll(
       ConfigService.Default,
       CoreManager.Default,
-      ChatManager.Default,
+      // ChatManager.Default, // Uses 'scoped' - needs manual layer creation
       ChatAppsManager.Default,
       ContextEngineeringManager.Default,
       HeaderManager.Default,

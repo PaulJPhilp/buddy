@@ -102,6 +102,10 @@ export function generateWorkspaceId(name: string): string {
   return `${nameSlug}-${timestamp}-${randomStr}`;
 }
 
+// Export WorkspaceConfig and WorkspaceId as aliases for compatibility
+export type WorkspaceConfig = Workspace;
+export type WorkspaceId = string;
+
 export function createWorkspaceFromInput(
   input: WorkspaceCreateInput
 ): Workspace {

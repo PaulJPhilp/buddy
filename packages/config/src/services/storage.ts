@@ -13,7 +13,7 @@ export class StorageOptionsService extends Effect.Service<StorageOptions>()(
 ) {}
 
 export interface StorageServiceApi {
-  readonly getPath: () => Effect.Effect<string, StorageError>;
+  readonly getPath: () => Effect.Effect<string>;
   readonly read: () => Effect.Effect<StorageData, StorageError>;
   readonly write: (data: StorageData) => Effect.Effect<void, StorageError>;
   readonly remove: () => Effect.Effect<void, StorageError>;

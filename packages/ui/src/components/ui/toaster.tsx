@@ -2,7 +2,7 @@
 
 import { Toaster as SonnerToaster } from "sonner";
 
-export function Toaster() {
+export function Toaster(): React.ReactElement {
   return (
     <SonnerToaster
       theme="system"

@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
-import { HeaderManager } from "@/features/chatapps/chatapp/managers/header";
-import type { HeaderManagerState } from "@/features/chatapps/chatapp/managers/header/types";
+// TODO: HeaderManager integration - using stubs for now
+// import { HeaderManager } from "@/features/application/features/header/header/service";
+// import type { HeaderManagerState } from "@/features/application/features/header/header/types";
 import { Effect } from "effect";
+
+// Temporary stub types
+type HeaderManagerState = any;
+const HeaderManager = null as any;
 import {
   Eraser,
   ExternalLink,

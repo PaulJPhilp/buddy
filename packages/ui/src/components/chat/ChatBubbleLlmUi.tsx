@@ -121,7 +121,7 @@ export function ChatBubbleLlmUi({
   message,
   isCurrentUser,
   isStreaming,
-}: ChatBubbleLlmUiProps) {
+}: ChatBubbleLlmUiProps): React.ReactElement {
   // Determine which props to use
   const actualRole = message?.role || role;
   const actualIsCurrentUser = isCurrentUser ?? actualRole === "user";

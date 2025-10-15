@@ -5,7 +5,7 @@ import type {
   HeaderManagerOperationError,
   HeaderManagerStateError,
   HeaderManagerValidationError,
-} from "./errors";
+} from "../header/errors";
 
 type HeaderManagerErrors =
   | HeaderManagerError
@@ -20,7 +20,7 @@ import type {
   HeaderManagerState,
   HeaderManagerStats,
   StatusInfo,
-} from "./types";
+} from "../header/types";
 
 export interface HeaderManagerApi {
   // Core state management

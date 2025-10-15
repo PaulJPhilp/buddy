@@ -2,14 +2,14 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 
 // Import services and components
-import { WorkspaceComponent } from "../../src/components/workspace/service";
-import { ChatAppsManager } from "../../src/managers/chatapps/service";
-import { CoreManager } from "../../src/managers/core/service";
+import { WorkspaceComponent } from "../../src/features/workspace/managers/service";
+import { ChatAppsManager } from "../../src/features/chatapps/manager/service";
+import { CoreManager } from "../../src/features/application/manager/core/core/service";
 import { ConfigService } from "../../src/services/config/service";
 
 // Import test types
-import type { WorkspaceConfig } from "../../src/components/workspace/types";
-import type { ChatAppConfig } from "../../src/types/global";
+import type { WorkspaceConfig } from "../../src/features/workspace/managers/workspace-manager/types";
+import type { ChatAppConfig } from "../../src/features/application/types/AppConfig";
 
 describe("Component Command Integration", () => {
   const testLayer = Layer.mergeAll(

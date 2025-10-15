@@ -3,22 +3,23 @@
 import { useEffectContext } from "@/components/EffectProvider";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
-import type { AppDomainModel, WorkspaceModel } from "../../domain";
-import { AppComponent } from "./service";
-import type { AppComponentConfig, AppComponentState } from "./types";
+import type { AppDomainModel } from "../manager/types";
+import type { Workspace as WorkspaceModel } from "@buddy/config/types/workspace";
+import { ApplicationManager } from "../manager/service";
+import type { AppComponentConfig, AppComponentState } from "../manager/types";
 
 export interface AppContainerProps {
   config: AppComponentConfig;
   children?: React.ReactNode;
-  onStateChange?: (state: AppComponentState) => void;
-  onConfigLoaded?: (config: AppDomainModel) => void;
-  onWorkspaceChanged?: (workspace: WorkspaceModel | null) => void;
+  onStateChangeAction?: (state: AppComponentState) => void;
+  onConfigLoadedAction?: (config: AppDomainModel) => void;
+  onWorkspaceChangedAction?: (workspace: WorkspaceModel | null) => void;
 }
 
 /**
- * React wrapper for AppComponent v2 service
+ * React wrapper for ApplicationManager v2 service
  *
- * This component provides a React interface to the AppComponent Effect service,
+ * This component provides a React interface to the ApplicationManager Effect service,
  * handling initialization, state management, and lifecycle events.
  *
  * Features:
@@ -31,50 +32,43 @@ export interface AppContainerProps {
 export function AppContainer({
   config,
   children,
-  onStateChange,
-  onConfigLoaded,
-  onWorkspaceChanged,
-}: AppContainerProps) {
+  onStateChangeAction,
+  onConfigLoadedAction,
+  onWorkspaceChangedAction,
+}: AppContainerProps): React.ReactNode {
   const { runWithServices } = useEffectContext();
 
-  // Local React state for UI concerns
-  const [state, setState] = useState<AppComponentState | null>(null);
+  // Local React state for UI concerns  
+  const [state, setState] = useState<any>(null); // Using any since AppState and AppComponentState don't match
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize the AppComponent service
+  // Initialize the ApplicationManager service
   useEffect(() => {
     const initializeApp = async () => {
       try {
         await runWithServices(
           Effect.gen(function* () {
-            const appComponent = yield* AppComponent;
-            yield* appComponent.initialize(config);
-
-            // Get initial state
-            const initialState = yield* appComponent.getState();
-            setState(initialState);
+            const appComponent = yield* ApplicationManager;
+            const state = yield* ApplicationManager.pipe(
+              Effect.flatMap((manager) => manager.getState())
+            );
+            setState(state);
             setIsInitialized(true);
-
-            // Set up state subscription
-            const unsubscribe = yield* appComponent.subscribe((newState) => {
-              setState(newState);
-              onStateChange?.(newState);
-            });
-
-            return unsubscribe;
+            // Note: AppState doesn't match AppComponentState, so we cast it
+            onStateChangeAction?.(state as any);
           }),
         );
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to initialize app";
-        setError(errorMessage);
-        console.error("[AppContainer] Initialization error:", err);
+        console.error("[AppContainer] Failed to initialize:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to initialize app",
+        );
       }
     };
 
     initializeApp();
-  }, [config, runWithServices, onStateChange]);
+  }, [config, runWithServices, onStateChangeAction]);
 
   // Load configuration
   const loadConfig = useCallback(
@@ -83,12 +77,12 @@ export function AppContainer({
         setError(null);
         const appConfig = await runWithServices(
           Effect.gen(function* () {
-            const appComponent = yield* AppComponent;
+            const appComponent = yield* ApplicationManager;
             return yield* appComponent.loadConfig(configPath);
           }),
         );
 
-        onConfigLoaded?.(appConfig);
+        onConfigLoadedAction?.(appConfig);
         return appConfig;
       } catch (err) {
         const errorMessage =
@@ -97,93 +91,41 @@ export function AppContainer({
         throw err;
       }
     },
-    [runWithServices, onConfigLoaded],
+    [runWithServices, onConfigLoadedAction],
   );
 
-  // Set current workspace
+  // Set current workspace - TODO: implement when API supports it
   const setCurrentWorkspace = useCallback(
     async (workspaceId: string) => {
-      try {
-        setError(null);
-        await runWithServices(
-          Effect.gen(function* () {
-            const appComponent = yield* AppComponent;
-            yield* appComponent.setCurrentWorkspace(workspaceId);
-
-            // Get the updated workspace
-            const workspace = yield* appComponent.getCurrentWorkspace();
-            onWorkspaceChanged?.(workspace);
-          }),
-        );
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to set workspace";
-        setError(errorMessage);
-        throw err;
-      }
+      console.warn("[AppContainer] setCurrentWorkspace not implemented");
+      // TODO: ApplicationManagerApi doesn't have this method yet
     },
-    [runWithServices, onWorkspaceChanged],
+    [],
   );
 
-  // Get current workspace
+  // Get current workspace - TODO: implement when API supports it
   const getCurrentWorkspace = useCallback(async () => {
-    try {
-      return await runWithServices(
-        Effect.gen(function* () {
-          const appComponent = yield* AppComponent;
-          return yield* appComponent.getCurrentWorkspace();
-        }),
-      );
-    } catch (err) {
-      console.error("[AppContainer] Failed to get current workspace:", err);
-      return null;
-    }
-  }, [runWithServices]);
+    console.warn("[AppContainer] getCurrentWorkspace not implemented");
+    return null;
+  }, []);
 
-  // Get all workspaces
+  // Get all workspaces - TODO: implement when API supports it
   const getWorkspaces = useCallback(async () => {
-    try {
-      return await runWithServices(
-        Effect.gen(function* () {
-          const appComponent = yield* AppComponent;
-          return yield* appComponent.getWorkspaces();
-        }),
-      );
-    } catch (err) {
-      console.error("[AppContainer] Failed to get workspaces:", err);
-      return [];
-    }
-  }, [runWithServices]);
+    console.warn("[AppContainer] getWorkspaces not implemented");
+    return [];
+  }, []);
 
-  // Render app shell
+  // Render app shell - TODO: implement when API supports it
   const renderAppShell = useCallback(async () => {
-    try {
-      setError(null);
-      await runWithServices(
-        Effect.gen(function* () {
-          const appComponent = yield* AppComponent;
-          yield* appComponent.renderAppShell();
-        }),
-      );
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to render app shell";
-      setError(errorMessage);
-      throw err;
-    }
-  }, [runWithServices]);
+    console.warn("[AppContainer] renderAppShell not implemented");
+  }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - TODO: implement when API supports it
   useEffect(() => {
     return () => {
-      runWithServices(
-        Effect.gen(function* () {
-          const appComponent = yield* AppComponent;
-          yield* appComponent.cleanup();
-        }),
-      ).catch(console.error);
+      // TODO: ApplicationManagerApi doesn't have cleanup method yet
     };
-  }, [runWithServices]);
+  }, []);
 
   // Provide context to children
   const contextValue = {

@@ -19,18 +19,20 @@ describe("StorageService", () => {
     createBackup: false,
   };
 
-  const runTest = <A>(effect: Effect.Effect<A, StorageError, StorageServiceApi>) =>
-    Effect.gen(function* (_) {
-      const storageOptionsLayer = Layer.succeed(
-        StorageOptionsService,
-        StorageOptionsService.of(testOptions)
-      );
-      const serviceLayer = Layer.provide(
-        StorageService.Default,
-        storageOptionsLayer
-      );
-      return yield* _(Effect.provide(effect, serviceLayer));
-    }).pipe(Effect.runPromise);
+  const runTest = <A, E = never>(effect: Effect.Effect<A, E, StorageServiceApi>) => {
+    // Create custom options layer
+    const storageOptionsLayer = Layer.succeed(
+      StorageOptionsService,
+      testOptions
+    );
+    
+    // Create StorageService with custom options
+    const serviceLayer = StorageService.Default.pipe(
+      Layer.provide(storageOptionsLayer)
+    );
+    
+    return Effect.provide(effect, serviceLayer).pipe(Effect.runPromise);
+  };
 
   beforeEach(async () => {
     await fs.mkdir(testDir, { recursive: true });
@@ -76,7 +78,13 @@ describe("StorageService", () => {
         const data: StorageData = {
           currentWorkspaceId: "123",
           workspaces: { "123": workspace },
-          chatApps: {},
+          appConfig: {
+            id: "buddy-app",
+            name: "Buddy",
+            description: "AI Assistant",
+            version: "1.0.0",
+            style: {},
+          },
         };
 
         yield* _(storage.write(data));

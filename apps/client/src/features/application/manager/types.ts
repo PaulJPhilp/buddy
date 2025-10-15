@@ -1,9 +1,18 @@
-import type {
-  CoreComponentConfig,
-  CoreComponentState,
-} from "@/components/core";
-import type { AppDomainModel, WorkspaceModel } from "@domain/index";
-export type { AppDomainModel } from "@domain/index";
+import type { AppConfig } from "@/features/application/types/AppConfig";
+import type { Workspace as WorkspaceModel } from "@buddy/config/types/workspace";
+
+// Legacy type alias for backward compatibility
+export type AppDomainModel = AppConfig;
+
+// Base component types (simplified since @/components/core doesn't exist)
+interface CoreComponentState {
+  readonly isLoading?: boolean;
+  readonly error?: string | null;
+}
+
+interface CoreComponentConfig {
+  readonly id?: string;
+}
 
 // App component state (extends CoreComponentState)
 export interface AppComponentState extends CoreComponentState {
@@ -39,9 +48,7 @@ export type AppLifecycleState =
 // Default app component state
 export function createDefaultAppState(): AppComponentState {
   return {
-    isInitialized: false,
     isLoading: false,
-    lastUpdated: Date.now(),
     appConfig: null,
     currentWorkspaceId: null,
     isConfigLoaded: false,

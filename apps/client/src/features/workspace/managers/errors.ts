@@ -1,4 +1,3 @@
-import type { CoreComponentError } from "@/components/core";
 import { Data } from "effect";
 
 export class WorkspaceLoadError extends Data.TaggedError("WorkspaceLoadError")<{
@@ -96,5 +95,4 @@ export type WorkspaceComponentError =
   | WorkspaceValidationError
   | WorkspaceSwitchError
   | WorkspaceInitializationError
-  | WorkspaceConfigurationError
-  | CoreComponentError;
+  | WorkspaceConfigurationError;

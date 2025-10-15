@@ -1,7 +1,7 @@
-import type { ToolbarConfig } from "@/features/shared/toolbar/schemas/ToolbarConfigSchema";
+import type { ToolbarConfig } from "@/features/shared/toolbar/schema/ToolbarConfigSchema";
 import { Effect } from "effect";
-import type { CommandExecutionError, ToolbarError } from "./errors";
-import type { ToolbarCommand, ToolbarInstance } from "./types";
+import type { CommandExecutionError, ToolbarError } from "../errors/errors";
+import type { ToolbarCommand, ToolbarInstance } from "../types/types";
 
 /**
  * API for the ToolbarService layer.

@@ -1,5 +1,5 @@
-import { Effect, Queue, Ref, Stream } from "effect";
 import { ChatAppsManager } from "@/features/chatapps/manager/service";
+import { Effect, Queue, Ref, Stream } from "effect";
 import type { ChatManagerApi } from "./api";
 import type { ChatCommand } from "./commands";
 import {
@@ -7,38 +7,28 @@ import {
   DeleteMessage,
   EndConversation,
   ExecuteChatOperation,
-  ResetChatState,
   SearchConversations,
   SearchMessages,
   SendMessage,
   SetActiveConversation,
-  SetChatState,
   SetConversationAgent,
   StartConversation,
-  UpdateMessage,
+  UpdateMessage
 } from "./commands";
 import {
   ChatManagerAgentError,
   ChatManagerConversationError,
-  ChatManagerInitializationError,
   ChatManagerMessageError,
   ChatManagerOperationError,
   ChatManagerSearchError,
-  ChatManagerStateError,
-  ChatManagerValidationError,
+  ChatManagerStateError
 } from "./errors";
 import type {
-  AgentId,
-  ChatManagerConfig,
   ChatManagerState,
   ChatOperation,
-  ConversationFilter,
   ConversationId,
   ConversationState,
-  MessageFilter,
-  MessageId,
-  MessageState,
-  SearchOptions,
+  MessageState
 } from "./types";
 import { CHAT_MANAGER_CONSTANTS } from "./types";
 
@@ -106,11 +96,6 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
       } as const;
 
       const initialState: ChatManagerState = {
-        isInitialized: false,
-        isRunning: false,
-        isLoading: false,
-        lastUpdated: Date.now(),
-        operationCount: 0,
         conversations: {},
         activeConversationId: null,
         messageIndex: {},
@@ -126,6 +111,11 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
           archivedConversations: 0,
           lastActivity: null,
         },
+        isInitialized: false,
+        isRunning: false,
+        isLoading: false,
+        lastUpdated: Date.now(),
+        operationCount: 0,
       };
 
       // The state of all chat data, held in a Ref
@@ -148,27 +138,23 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
               const conversation =
                 state.conversations[state.activeConversationId];
 
-              if (!conversation || !conversation.config?.subscriptions) {
+              if (!conversation || !conversation.config) {
                 return;
               }
 
-              const subscription = conversation.config.subscriptions.find(
-                (sub) => sub.appId === busMessage.sourceAppId
-              );
+              // TODO: Implement subscription handling when config schema is updated
+              // const subscription = conversation.config.subscriptions?.find(
+              //   (sub) => sub.appId === busMessage.sourceAppId
+              // );
+              // if (!subscription) return;
 
-              if (!subscription) {
-                return;
-              }
+              const currentTurnCount = 0; // Placeholder
+              // conversation.turnCounts?.[subscription.appId] || 0;
 
-              const currentTurnCount =
-                conversation.turnCounts?.[subscription.appId] || 0;
-
-              if (
-                subscription.maxTurns &&
-                currentTurnCount >= subscription.maxTurns
-              ) {
-                return; // Max turns reached
-              }
+              // TODO: Re-enable max turns check when subscription is available
+              // if (subscription.maxTurns && currentTurnCount >= subscription.maxTurns) {
+              //   return; // Max turns reached
+              // }
 
               // Forward all messages, but treat them as user input to prevent loops
               const forwardCommand = new SendMessage({
@@ -196,7 +182,7 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
                       ...conv,
                       turnCounts: {
                         ...conv.turnCounts,
-                        [subscription.appId]: currentTurnCount + 1,
+                        // [subscription.appId]: currentTurnCount + 1,
                       },
                     },
                   },
@@ -1127,4 +1113,4 @@ export class ChatManager extends Effect.Service<ChatManagerApi>()(
     }),
     dependencies: [ChatAppsManager.Default],
   }
-) {}
+) { }

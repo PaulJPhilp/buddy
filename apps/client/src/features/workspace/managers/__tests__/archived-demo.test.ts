@@ -1,4 +1,4 @@
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps";
+import { ChatAppsManager } from "@/features/chatapps/manager/service";
 import { Effect } from "effect";
 import { describe, it } from "vitest";
 

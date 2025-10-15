@@ -10,7 +10,7 @@ function Skeleton({
   isLoading = true,
   children,
   ...props
-}: SkeletonProps) {
+}: SkeletonProps): React.ReactElement {
   if (!isLoading) {
     return <>{children}</>;
   }

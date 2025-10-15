@@ -30,7 +30,7 @@ export function Heading({
   descriptionClassName,
   size,
   ...props
-}: HeadingProps) {
+}: HeadingProps): React.ReactElement {
   return (
     <div className={className} {...props}>
       <h1 className={cn(headingVariants({ size }))}>{title}</h1>

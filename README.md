@@ -4,13 +4,14 @@ The refactored buddybuilder - A Next.js application built with Bun, React 19, Ta
 
 ## Tech Stack
 
-- **Runtime**: [Bun](https://bun.sh) v1.2.3+
-- **Framework**: Next.js 15 with React 19
-- **Styling**: Tailwind CSS v4, shadcn/ui
-- **State Management**: Effect.ts with Manager pattern
-- **Type Safety**: TypeScript with strict Effect types
+- **Runtime**: [Bun](https://bun.sh) v1.3.1+
+- **Framework**: Next.js 15.5+ with React 19.2+
+- **Styling**: Tailwind CSS v4.1+, shadcn/ui
+- **State Management**: Effect.ts v3.18+ with Manager pattern
+- **Type Safety**: TypeScript 5.9+ with strict Effect types
 - **Testing**: Vitest (unit), Playwright (E2E)
 - **Monorepo**: Turbo
+- **Auth**: Clerk (Next.js integration)
 
 ## Getting Started
 
@@ -35,6 +36,14 @@ bun start        # Run production build
 
 ## Development Commands
 
+### Development Servers
+
+```bash
+bun run start:llm       # Start LLM server
+bun run start:ws        # Start WebSocket test server
+bun run dev:full        # Start both WebSocket and Next.js dev server
+```
+
 ### Type Checking & Linting
 
 ```bash
@@ -52,9 +61,11 @@ bun run test:coverage              # Run with coverage
 bunx vitest path/to/test.test.ts   # Run specific test
 
 # Integration Tests
-bun run test:integration           # All integration tests
-bun run test:integration:e2e       # E2E tests only
-bun run test:integration:services  # Service tests only
+bun run test:integration                # All integration tests
+bun run test:integration:e2e            # E2E tests only
+bun run test:integration:services       # Service tests only
+bun run test:integration:performance    # Performance tests
+bun run test:integration:websocket      # WebSocket tests
 
 # E2E Tests
 bun e2e                           # Run Playwright tests
@@ -130,7 +141,8 @@ Manager (Effect.ts) → Hook → Container → UI Component
 buddy/
 ├── apps/
 │   ├── client/          # Next.js application
-│   └── cli/             # CLI tools
+│   ├── cli/             # CLI tools
+│   └── form-editor/     # Form editor (in development)
 ├── packages/
 │   ├── ui/              # Shared UI components
 │   ├── agentkit/        # Agent integration
@@ -142,10 +154,14 @@ buddy/
 
 ```typescript
 @/*            → ./src/*
-@client/*      → ./src/*
-@managers/*    → ./src/managers/*
-@services/*    → ./src/services/*
-@components/*  → ./src/components/*
+@/components/* → ./src/components/*
+@/lib/*        → ./src/lib/*
+@/utils/*      → ./src/utils/*
+@/types/*      → ./src/types/*
+@/domain/*     → ./src/domain/*
+@/managers/*   → ./src/managers/*
+@/services/*   → ./src/services/*
+@/ui-state/*   → ./src/ui-state/*
 @buddy/ui      → ../../packages/ui/src
 @buddy/agentkit → ../../packages/agentkit
 ```
@@ -174,10 +190,25 @@ primary: 'hsl(var(--primary) / <alpha>)'
 ### Effect.ts
 
 Core patterns:
-- Use `Effect.Service` for services (v3.14+)
+- Use `Effect.Service` for services (v3.18+)
 - Use `Clock.currentTimeMillis` instead of `Date.now()`
 - Use `Config.all()` for configuration access
 - All async operations return `Effect<A, E, R>`
+- Services are provided via `EffectProvider` in React apps
+
+**EffectProvider Setup:**
+```tsx
+// Wrap your app at the root level
+<EffectProvider>
+  <App />
+</EffectProvider>
+
+// Access services in components
+const { runWithServices } = useEffectContext();
+await runWithServices(yourEffect);
+```
+
+See [EffectProvider Guide](./docs/EffectProvider-Guide.md) for details.
 
 ## Documentation
 

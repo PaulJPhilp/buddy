@@ -27,10 +27,9 @@ export function WorkspaceTree() {
         setIsLoading(true);
         await runWithServices(
           Effect.gen(function* () {
-            const appManager = yield* ApplicationManager;
-
-            // Get app config which contains workspaces
-            const appConfig = yield* appManager.getAppConfig;
+            const appConfig = yield* ApplicationManager.pipe(
+              Effect.flatMap((manager) => manager.getAppConfig())
+            );
 
             // Extract workspaces from config
             const allWorkspaces = appConfig?.workspaces || [];

@@ -4,8 +4,19 @@
  * References domain models by ID - no business logic duplication
  */
 
-import type { ChatAppUIState } from "./chatapp-ui-state";
-import type { WorkspaceUIState } from "./workspace-ui-state";
+// Define UI state types inline since separate files don't exist
+export interface ChatAppUIState {
+  readonly id: string;
+  readonly isExpanded: boolean;
+  readonly isSelected: boolean;
+  readonly lastInteraction: number;
+}
+
+export interface WorkspaceUIState {
+  readonly id: string;
+  readonly isActive: boolean;
+  readonly lastAccessed: number;
+}
 
 // Overall app UI state
 export interface AppUIState {
@@ -103,7 +114,7 @@ export function addWorkspaceUIState(
   workspaceUIState: WorkspaceUIState
 ): AppUIState {
   const newWorkspaceStates = new Map(uiState.workspaceUIStates);
-  newWorkspaceStates.set(workspaceUIState.workspaceId, workspaceUIState);
+  newWorkspaceStates.set(workspaceUIState.id, workspaceUIState);
 
   return {
     ...uiState,
@@ -117,7 +128,7 @@ export function addChatAppUIState(
   chatAppUIState: ChatAppUIState
 ): AppUIState {
   const newChatAppStates = new Map(uiState.chatAppUIStates);
-  newChatAppStates.set(chatAppUIState.chatAppId, chatAppUIState);
+  newChatAppStates.set(chatAppUIState.id, chatAppUIState);
 
   return {
     ...uiState,

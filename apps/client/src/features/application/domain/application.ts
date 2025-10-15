@@ -4,10 +4,8 @@
  * Contains only business logic - no UI or presentation concerns
  */
 
-import type { AppConfig } from "@/features/application/types/AppConfig";
-import type { AgentModel } from "./agent";
-import type { ChatAppModel } from "./chatapp";
-import type { WorkspaceModel } from "./workspace";
+import type { AppConfig, AgentConfig as AgentModel, ChatAppConfig as ChatAppModel } from "@/features/application/types/AppConfig";
+import type { Workspace as WorkspaceModel } from "@buddy/config/types/workspace";
 
 // Core app business model - clean composition
 export interface AppDomainModel {
@@ -82,13 +80,13 @@ export function createAppDomainModel(params: {
     version: params.version ?? "1.0.0",
     createdAt: now,
     updatedAt: now,
-    metadata: params.metadata ?? {},
+    settings: {},
   };
 }
 
 export function updateAppDomainModel(
   app: AppConfig,
-  updates: Partial<Pick<AppConfig, "app" | "version" | "metadata">>
+  updates: Partial<Pick<AppConfig, "app" | "version">>
 ): AppConfig {
   return {
     ...app,

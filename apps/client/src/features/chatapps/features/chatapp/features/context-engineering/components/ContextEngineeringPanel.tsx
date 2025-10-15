@@ -1,10 +1,10 @@
 "use client";
 
-import { NamedFile, NamedPrompt } from "@/managers/context-engineering/types";
+import { NamedFile, NamedPrompt } from "../managers/types";
 import React, { useCallback, useState } from "react";
 import { ContextElementForm } from "./ContextElementForm";
 import { ContextElementList } from "./ContextElementList";
-import { useContextEngineeringManager } from "./hooks/useContextEngineeringManager";
+import { useContextEngineeringManager } from "../hooks/useContextEngineeringManager";
 
 interface ContextEngineeringPanelProps {
   chatAppId: string;

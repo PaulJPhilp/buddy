@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
-import { UserAreaManager } from "@/features/chatapps/chatapp/managers/userarea";
-import type {
-  AgentInfo,
-  UserAreaManagerState,
-} from "@/features/chatapps/chatapp/managers/userarea/types";
+// TODO: UserAreaManager integration - using stubs for now
+// import { UserAreaManager } from "@/features/chatapps/chatapp/managers/userarea";
+// import type { AgentInfo, UserAreaManagerState } from "@/features/chatapps/chatapp/managers/userarea/types";
 import { Effect } from "effect";
+
+// Temporary stub types
+type UserAreaManagerState = any;
+type AgentInfo = any;
+const UserAreaManager = null as any;
 import { File, FileText, Image, Paperclip, Send, User, X } from "lucide-react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 

@@ -1,4 +1,4 @@
-import { Workspace } from "@/../packages/config/src/types/workspace";
+import { Workspace } from "@buddy/config/types/workspace";
 import { isValidAgentId } from "@/agents/utils/agent-utils";
 import { CONFIG_CONSTANTS } from "@/features/application/config/constants";
 import { createDefaultAppConfig } from "@/features/application/config/defaults";
@@ -7,7 +7,7 @@ import {
   ConfigParseError,
   ConfigSaveError,
   ConfigValidationError,
-} from "@/features/application/managers/errors";
+} from "@/features/application/manager/errors";
 import {
   ConfigLoadOptions,
   ConfigMergeOptions,

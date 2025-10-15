@@ -8,7 +8,7 @@
 ## Tailwind CSS (v4)
 
 ### Configuration
-- Use Tailwind CSS v4.1.3 or higher
+- Use Tailwind CSS v4.1.14 or higher
 - Use `@tailwindcss/postcss` package for PostCSS integration
 - PostCSS plugin is separate from the main `tailwindcss` package
 

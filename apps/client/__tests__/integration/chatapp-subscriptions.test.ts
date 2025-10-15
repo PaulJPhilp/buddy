@@ -1,9 +1,6 @@
-import {
-  ChatAppConfigSchema,
-  SubscriptionConfig,
-} from "@/features/chatapps/schemas/ChatAppConfigSchema";
-import { ChatManager } from "@/managers/chat";
-import { ChatAppsManager } from "@/managers/chatapps";
+import type { ChatAppConfig } from "../../src/features/application/types/AppConfig";
+import { ChatManager } from "../../src/features/chatapps/features/chatapp/managers/service";
+import { ChatAppsManager } from "../../src/features/chatapps/manager/service";
 import { Effect, Layer } from "effect";
 import { beforeEach, describe, expect, it } from "vitest";
 

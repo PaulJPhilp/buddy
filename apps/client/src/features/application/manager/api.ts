@@ -1,14 +1,46 @@
-import type { AppDomainModel, WorkspaceModel } from "@domain/index";
+import type { AppDomainModel } from "./types";
+import type { Workspace as WorkspaceModel } from "@buddy/config/types/workspace";
 import { Effect } from "effect";
-import type { AppComponentError } from "./errors";
+import type {
+  AppComponentError,
+  ConfigLoadError,
+  ConfigParseError,
+  ConfigValidationError,
+  ConfigSaveError,
+} from "./errors";
 import type { AppComponentConfig, AppComponentState } from "./types";
 
-export interface AppComponentApi {
-  // Core component lifecycle (similar to CoreComponentApi but with App-specific types)
+/**
+ * ApplicationManager API - Core application lifecycle and configuration
+ * 
+ * This is the minimal interface currently implemented by ApplicationManager.
+ * Additional methods from AppComponentApi will be added as needed.
+ */
+export interface ApplicationManagerApi {
+  // Configuration loading
+  readonly loadConfig: (
+    configPath?: string
+  ) => Effect.Effect<
+    AppDomainModel,
+    ConfigLoadError | ConfigParseError | ConfigValidationError | Error
+  >;
+  readonly getAppConfig: () => Effect.Effect<AppDomainModel | null, never>;
+  readonly getState: () => Effect.Effect<AppComponentState, never>;
+  readonly saveAppConfig: (
+    config: AppDomainModel
+  ) => Effect.Effect<AppDomainModel, ConfigSaveError | Error>;
+}
+
+/**
+ * Extended API for future implementation
+ * 
+ * @deprecated Use ApplicationManagerApi for current implementation
+ */
+export interface AppComponentApi extends ApplicationManagerApi {
+  // Core component lifecycle
   readonly initialize: (
     config: AppComponentConfig
   ) => Effect.Effect<void, AppComponentError>;
-  readonly getState: () => Effect.Effect<AppComponentState, AppComponentError>;
   readonly setState: (
     state: Partial<AppComponentState>
   ) => Effect.Effect<void, AppComponentError>;
@@ -17,15 +49,8 @@ export interface AppComponentApi {
   ) => Effect.Effect<() => void, AppComponentError>;
   readonly cleanup: () => Effect.Effect<void, AppComponentError>;
 
-  // Configuration loading
-  readonly loadConfig: (
-    configPath?: string
-  ) => Effect.Effect<AppDomainModel, AppComponentError>;
+  // Additional configuration
   readonly reloadConfig: () => Effect.Effect<AppDomainModel, AppComponentError>;
-  readonly getAppConfig: () => Effect.Effect<
-    AppDomainModel | null,
-    AppComponentError
-  >;
 
   // Workspace management
   readonly setCurrentWorkspace: (

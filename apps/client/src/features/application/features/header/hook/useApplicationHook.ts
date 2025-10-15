@@ -43,54 +43,45 @@ export function useApplication() {
 
   // Function to load application config
   const loadAppConfig = useCallback(
-    (path?: string) => {
+    async (path?: string) => {
       updateState({ isLoading: true, error: null });
-      Effect.runPromiseExit(
-        runWithServices(
+      try {
+        const appConfig = await runWithServices(
           ApplicationManager.pipe(
-            Effect.flatMap((manager) => manager.loadConfig(path)),
-            Effect.tap((appConfig) =>
-              updateState({ appConfig, isLoading: false, isConfigLoaded: true })
-            ),
-            Effect.catchAll((e) => {
-              handleError(e, "loadAppConfig");
-              return Effect.fail(e); // Propagate error
-            })
+            Effect.flatMap((manager) => manager.loadConfig(path))
           )
-        )
-      );
+        );
+        updateState({ appConfig, isLoading: false, isConfigLoaded: true });
+      } catch (e) {
+        handleError(e, "loadAppConfig");
+        throw e;
+      }
     },
     [runWithServices, updateState, handleError]
   );
 
   // Function to get current application config (from manager's state)
-  const getAppConfig = useCallback(() => {
+  const loadConfig = useCallback(() => {
     updateState({ isLoading: true, error: null });
-    Effect.runPromiseExit(
-      runWithServices(
-        ApplicationManager.pipe(
-          Effect.flatMap((manager) => manager.getAppConfig),
-          Effect.tap((appConfig) =>
-            updateState({
-              appConfig,
-              isLoading: false,
-              isConfigLoaded: !!appConfig,
-            })
-          ),
-          Effect.catchAll((e) => {
-            handleError(e, "getAppConfig");
-            return Effect.fail(e); // Propagate error
-          })
+    runWithServices(
+      ApplicationManager.pipe(
+        Effect.flatMap((manager) => manager.getState()),
+        Effect.tap((config) => updateState({ appConfig: config as any, isLoading: false })),
+        Effect.catchAll((err) =>
+          Effect.succeed(handleError(err as any, "loadConfig"))
         )
       )
-    );
+    ).catch((err) => {
+      console.error("Error loading config:", err);
+      handleError(err, "loadConfig");
+    });
   }, [runWithServices, updateState, handleError]);
 
   // Initial load of config on mount
   useEffect(() => {
     // It might be loaded by AppComponent already if other services initialized it
-    getAppConfig();
-  }, [getAppConfig]);
+    loadConfig();
+  }, [loadConfig]);
 
   return {
     appConfig: state.appConfig,
@@ -98,6 +89,6 @@ export function useApplication() {
     error: state.error,
     isConfigLoaded: state.isConfigLoaded,
     loadAppConfig,
-    getAppConfig,
+    loadConfig,
   };
 }

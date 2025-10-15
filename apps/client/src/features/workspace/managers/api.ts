@@ -1,8 +1,8 @@
 import type {
   AgentConfig,
   ChatAppConfig,
-  WorkspaceConfig,
 } from "@/features/application/types/AppConfig";
+import type { WorkspaceConfig } from "./workspace-manager/types";
 import { Effect } from "effect";
 import type { WorkspaceComponentError } from "./errors";
 import type {

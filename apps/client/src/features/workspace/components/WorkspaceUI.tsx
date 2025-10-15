@@ -3,18 +3,42 @@
 import { useEffectContext } from "@/components/EffectProvider";
 import { ChatAppsManager } from "@/features/chatapps/manager/service";
 import type { ChatAppInstance } from "@/features/chatapps/manager/types";
+import { ChatAppContainer } from "@/features/chatapps/features/chatapp/container/ChatAppContainer";
 import { Effect } from "effect";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Workspace as WorkspaceConfig } from "@buddy/config/types/workspace";
-// TODO: ChatAppContainer needs to be implemented
-// import { ChatAppContainer } from "@/features/chatapps/container/ChatAppContainer";
-// TODO: ChatAppForm needs to be implemented
-// import {
-//   ChatAppForm,
-//   type ChatAppFormValues,
-// } from "@/features/workspaces-editor/chatapps-editor/chatappeditor/components/ChatAppForm";
+// TODO: ChatAppForm needs to be implemented - using stub for now
 type ChatAppFormValues = any;
+const ChatAppForm = ({ 
+  initialValues, 
+  availableAgents, 
+  onCancel, 
+  onSubmit 
+}: { 
+  initialValues?: any;
+  availableAgents?: any[];
+  onCancel?: () => void;
+  onSubmit: (values: ChatAppFormValues) => void | Promise<void>;
+}) => (
+  <div className="space-y-4">
+    <p className="text-gray-600">ChatAppForm - To be implemented</p>
+    <div className="flex gap-2">
+      <button
+        onClick={onCancel}
+        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={() => onSubmit(initialValues || {})}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Submit
+      </button>
+    </div>
+  </div>
+);
 // TODO: ChatApp component needs to be implemented
 // import { ChatApp } from "../chatapp/ChatApp";
 import { WorkspaceComponent } from "@/features/workspace/managers/service";
@@ -278,7 +302,7 @@ export function WorkspaceUI({
   isLoading,
   error,
   className = "",
-}: WorkspaceUIProps) {
+}: WorkspaceUIProps): React.ReactElement {
   const { runWithServices } = useEffectContext();
 
   // State for the new chat app form
@@ -319,25 +343,16 @@ export function WorkspaceUI({
     }
     isSubscribedRef.current = true;
 
-    // Directly subscribe to chat app updates (e.g., messages)
+    // Subscribe to chat app state changes via the message bus
     try {
       await runWithServices(
         Effect.gen(function* () {
           const chatAppsManager = yield* ChatAppsManager;
-          yield* chatAppsManager.subscribeToChatAppMessages(
-            workspaceId,
-            (chatAppId, newMessages) => {
-              // In WorkspaceUI, we don't manage individual chat app messages directly,
-              // but we might need to trigger a re-render or status update if a message
-              // changes the overall workspace state (e.g., unread count).
-              // For now, this is a placeholder for direct message subscription if needed.
-              console.log(
-                `Received messages for ${chatAppId}:`,
-                newMessages.length,
-              );
-            },
-          );
-          console.log(`Subscribed to messages for workspace ${workspaceId}`);
+          // Subscribe to the message bus for chat app updates
+          const bus = yield* chatAppsManager.subscribeToBus();
+          // TODO: Set up message bus subscription handler if needed
+          // For now, we're just getting the bus reference
+          console.log(`Subscribed to message bus for workspace ${workspaceId}`);
         }),
       );
     } catch (error) {
@@ -367,11 +382,14 @@ export function WorkspaceUI({
       await runWithServices(
         Effect.gen(function* () {
           const workspaceComponent = yield* WorkspaceComponent;
-          yield* workspaceComponent.updateWorkspaceConfig({
+          // Use switchWorkspace with updated config to apply changes
+          const updatedConfig = {
             ...workspaceConfig,
             name: values.name,
             description: values.description,
-          });
+            primaryColor: workspaceConfig.color, // Map color to primaryColor for compatibility
+          };
+          yield* workspaceComponent.switchWorkspace(updatedConfig as any);
           setWorkspaceName(values.name);
           setWorkspaceDescription(values.description);
           setIsEditingWorkspace(false);
@@ -547,13 +565,19 @@ export function WorkspaceUI({
                 await runWithServices(
                   Effect.gen(function* () {
                     const chatAppsManager = yield* ChatAppsManager;
-                    yield* chatAppsManager.createChatApp({
-                      name: values.name,
-                      description: values.description,
-                      type: values.type,
-                      agentId: values.agentId,
-                      workspaceId: workspaceId, // Associate with current workspace
-                      config: {
+                    // Generate a unique ID for the new chat app
+                    const newAppId = `chatapp-${Date.now()}`;
+                    // Use registerChatApp instead of createChatApp
+                    yield* chatAppsManager.registerChatApp(
+                      workspaceId, // workspaceId
+                      newAppId, // appId
+                      { // config
+                        id: newAppId,
+                        name: values.name,
+                        description: values.description,
+                        type: values.type,
+                        agentId: values.agentId,
+                        workspaceId: workspaceId,
                         style: {
                           primaryColor: "#3b82f6",
                           primaryContrastColor: "#ffffff",
@@ -570,8 +594,8 @@ export function WorkspaceUI({
                           iconColor: "#6b7280",
                           iconSize: "16px",
                         },
-                      },
-                    });
+                      }
+                    );
                     setIsNewChatAppFormOpen(false);
                   }),
                 );

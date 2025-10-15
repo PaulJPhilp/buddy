@@ -1,6 +1,3 @@
-// Re-export global types
-export type { Message } from "@/types";
-
 // Service constants
 export const CHAT_SERVICE_CONSTANTS = {
   MAX_MESSAGE_LENGTH: 10000,

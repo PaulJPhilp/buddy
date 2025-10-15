@@ -1,4 +1,4 @@
-import { AgentConfig } from "@/agents/schemas/AgentConfigSchema"; // Corrected import path
+import type { AgentConfig } from "@/features/application/types/AppConfig";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";

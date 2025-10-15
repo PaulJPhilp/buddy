@@ -7,7 +7,13 @@
  */
 
 import { Effect } from "effect";
-import { debugLog } from "./debugLogger";
+
+// Simple debug logger
+const debugLog = (scope: string, value: unknown) => {
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[${scope}]`, value);
+  }
+};
 
 // Local error type definitions
 export interface FileReadError {

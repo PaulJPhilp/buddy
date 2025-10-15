@@ -15,8 +15,9 @@ export function LoadDebugInfo() {
   useEffect(() => {
     runWithServices(
       Effect.gen(function* () {
-        const appManager = yield* ApplicationManager;
-        const appConfig = yield* appManager.getAppConfig;
+        const appConfig = yield* ApplicationManager.pipe(
+          Effect.flatMap((manager) => manager.getAppConfig())
+        );
         
         if (appConfig) {
           setWorkspaceCount(appConfig.workspaces?.length || 0);

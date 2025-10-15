@@ -1,6 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 
-export default function Page() {
+export default function Page(): React.ReactElement {
   return (
     <div
       style={{

@@ -1,0 +1,26 @@
+{
+  "currentWorkspaceId": "123",
+  "workspaces": {
+    "123": {
+      "id": "123",
+      "name": "test",
+      "description": "A test workspace",
+      "color": "#ffffff",
+      "icon": "test-icon",
+      "agentIds": [],
+      "chatappIds": [],
+      "createdAt": "2025-10-15T00:29:36.892Z",
+      "lastActiveAt": "2025-10-15T00:29:36.892Z",
+      "isArchived": false,
+      "maxExpandedApps": 1,
+      "activeAppId": null
+    }
+  },
+  "appConfig": {
+    "id": "buddy-app",
+    "name": "Buddy",
+    "description": "AI Assistant",
+    "version": "1.0.0",
+    "style": {}
+  }
+}

@@ -1,10 +1,11 @@
 "use client";
 
+// @ts-ignore - Client-side event handlers, not Server Actions
 import {
   type FileType,
   NamedFile,
   NamedPrompt,
-} from "@/managers/context-engineering/types";
+} from "../managers/types";
 import { useCallback, useState } from "react";
 
 interface ContextElementFormProps {
@@ -19,7 +20,7 @@ export function ContextElementForm({
   onSubmit,
   onCancel,
   isEditing = false,
-}: ContextElementFormProps) {
+}: ContextElementFormProps): React.ReactElement {
   const [elementType, setElementType] = useState<"NamedPrompt" | "NamedFile">(
     (element as any)?._tag || "NamedPrompt",
   );

@@ -8,7 +8,7 @@ export default function ErrorPage({
 }: {
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}): React.ReactElement {
   return (
     <ErrorBoundary
       fallback={

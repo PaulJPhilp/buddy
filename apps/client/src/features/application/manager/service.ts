@@ -9,40 +9,24 @@ import {
   ConfigValidationError,
 } from "./errors";
 import { AppConfigSchema } from "@/features/application/types/AppConfig";
-
-interface AppState {
-  readonly appConfig: AppConfig | null;
-  readonly isLoading: boolean;
-  readonly error: string | null;
-  readonly isConfigLoaded: boolean;
-}
-
-export interface ApplicationManagerApi {
-  readonly loadConfig: (path?: string) => Effect.Effect<AppConfig, ConfigLoadError | ConfigParseError | ConfigValidationError | Error, never>;
-  readonly getAppConfig: Effect.Effect<AppConfig | null, never, never>;
-  readonly getState: Effect.Effect<AppState, never, never>;
-  readonly saveAppConfig: (config: AppConfig) => Effect.Effect<AppConfig, ConfigSaveError | Error, never>;
-}
+import type { ApplicationManagerApi } from "./api";
+import type { AppComponentState, AppDomainModel } from "./types";
+import { createDefaultAppState } from "./types";
 
 export class ApplicationManager extends Effect.Service<ApplicationManagerApi>()(
   "ApplicationManager",
   {
     effect: Effect.gen(function* () {
-      const configService = yield* ConfigService; // Assuming ConfigService is available
-      const appState = yield* Ref.make<AppState>({
-        appConfig: null,
-        isLoading: false,
-        error: null,
-        isConfigLoaded: false,
-      });
+      const configService = yield* ConfigService;
+      const appState = yield* Ref.make<AppComponentState>(createDefaultAppState());
 
-      const setAppState = (updates: Partial<AppState>) =>
+      const setAppState = (updates: Partial<AppComponentState>) =>
         Ref.update(appState, (state) => ({ ...state, ...updates }));
 
-      const loadConfig = (path?: string) =>
+      const loadConfig = (path?: string): Effect.Effect<AppDomainModel, ConfigLoadError | ConfigParseError | ConfigValidationError | Error> =>
         Effect.gen(function* () {
           yield* setAppState({ isLoading: true, error: null });
-          let loadedConfig: AppConfig | null = null;
+          let loadedConfig: AppDomainModel | null = null;
 
           if (path) {
             // Load from a specific path
@@ -87,11 +71,13 @@ export class ApplicationManager extends Effect.Service<ApplicationManagerApi>()(
           }
         }).pipe(Effect.tapError((e) => Effect.logError(`Failed to load application config: ${e}`)), Effect.scoped);
 
-      const getAppState = Ref.get(appState);
+      const getState = (): Effect.Effect<AppComponentState, never> =>
+        Ref.get(appState);
 
-      const getAppConfig = Effect.map(getAppState, (state) => state.appConfig);
+      const getAppConfig = (): Effect.Effect<AppDomainModel | null, never> =>
+        Effect.map(Ref.get(appState), (state) => state.appConfig);
 
-      const saveAppConfig = (config: AppConfig) =>
+      const saveAppConfig = (config: AppDomainModel): Effect.Effect<AppDomainModel, ConfigSaveError | Error> =>
         Effect.gen(function* () {
           yield* setAppState({ isLoading: true, error: null });
           try {
@@ -110,9 +96,9 @@ export class ApplicationManager extends Effect.Service<ApplicationManagerApi>()(
       return {
         loadConfig,
         getAppConfig,
-        getState: getAppState,
+        getState,
         saveAppConfig,
-      };
+      } satisfies ApplicationManagerApi;
     }),
     dependencies: [ConfigService.Default],
   }

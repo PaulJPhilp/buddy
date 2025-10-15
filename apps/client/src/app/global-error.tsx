@@ -8,7 +8,7 @@ export default function GlobalError({
 }: {
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}): React.ReactElement {
   return (
     <html lang="en">
       <body>

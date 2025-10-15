@@ -3,11 +3,11 @@ import { useChatAppsManager } from "@/features/chatapps/hooks/useChatAppsManager
 import type {
   ChatAppInstance,
   ChatMessage,
-} from "@/features/chatapps/managers/chatapps/types";
+} from "@/features/chatapps/manager/types";
 import { Effect } from "effect";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChatAppUI } from "../components/ChatAppUI";
-import { useContextEngineeringManager } from "../hooks/useContextEngineeringManager";
+import { useContextEngineeringManager } from "../features/context-engineering/hooks/useContextEngineeringManager";
 
 export interface ChatAppContainerProps {
   instance: ChatAppInstance;
@@ -20,15 +20,15 @@ export function ChatAppContainer({
 }: ChatAppContainerProps) {
   const { runWithServices } = useEffectContext();
   const {
-    sendMessage,
-    clearChat,
+    addChatAppMessage,
+    clearChatAppMessages,
     expandChatApp,
     compactChatApp,
     stashChatApp,
     archiveChatApp,
     restoreChatApp,
     closeChatApp,
-  } = useChatAppsManager(instance.id);
+  } = useChatAppsManager();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,55 +74,49 @@ export function ChatAppContainer({
           content: text,
           role: "user",
           timestamp: new Date(),
+          sender: "user",
         },
       ]);
 
-      await runWithServices(
-        sendMessage(instance.id, text),
-        Effect.catchAll((e) => {
-          console.error("Failed to send message:", e);
-          return Effect.succeed(null);
-        }),
-      );
+      await addChatAppMessage(instance.id, {
+        id: new Date().toString(),
+        content: text,
+        role: "user",
+        timestamp: Date.now(),
+      } as any);
       setIsLoading(false);
     },
-    [instance.id, runWithServices, sendMessage],
+    [instance.id, addChatAppMessage],
   );
 
   const handleExpand = useCallback(async () => {
-    await runWithServices(expandChatApp(instance.id));
-  }, [instance.id, runWithServices, expandChatApp]);
+    await expandChatApp(instance.id);
+  }, [instance.id, expandChatApp]);
 
   const handleCompact = useCallback(async () => {
-    await runWithServices(compactChatApp(instance.id));
-  }, [instance.id, runWithServices, compactChatApp]);
+    await compactChatApp(instance.id);
+  }, [instance.id, compactChatApp]);
 
   const handleStash = useCallback(async () => {
-    await runWithServices(stashChatApp(instance.id));
-  }, [instance.id, runWithServices, stashChatApp]);
+    await stashChatApp(instance.id);
+  }, [instance.id, stashChatApp]);
 
   const handleArchive = useCallback(async () => {
-    await runWithServices(archiveChatApp(instance.id));
-  }, [instance.id, runWithServices, archiveChatApp]);
+    await archiveChatApp(instance.id);
+  }, [instance.id, archiveChatApp]);
 
   const handleRestore = useCallback(async () => {
-    await runWithServices(restoreChatApp(instance.id));
-  }, [instance.id, runWithServices, restoreChatApp]);
+    await restoreChatApp(instance.id);
+  }, [instance.id, restoreChatApp]);
 
   const handleClose = useCallback(async () => {
-    await runWithServices(closeChatApp(instance.id));
-  }, [instance.id, runWithServices, closeChatApp]);
+    await closeChatApp(instance.id);
+  }, [instance.id, closeChatApp]);
 
   const handleClear = useCallback(async () => {
-    await runWithServices(
-      clearChat(instance.id),
-      Effect.tap(() => setMessages([])),
-      Effect.catchAll((e) => {
-        console.error("Failed to clear chat:", e);
-        return Effect.succeed(null);
-      }),
-    );
-  }, [instance.id, runWithServices, clearChat]);
+    await clearChatAppMessages(instance.id);
+    setMessages([]);
+  }, [instance.id, clearChatAppMessages]);
 
   return (
     <ChatAppUI
@@ -154,10 +148,15 @@ export function ChatAppContainer({
       onClear={handleClear}
       className={className}
       contextEngineering={{
-        initialize: initializeContextEngineering,
+        initialize: () => Effect.gen(function* () {
+          yield* Effect.promise(() => initializeContextEngineering(instance.id));
+        }),
         isInitialized: isContextEngineeringInitialized,
         stats: contextStats,
-        getFinalContext,
+        getFinalContext: (question: string) => Effect.gen(function* () {
+          const result = yield* Effect.promise(() => getFinalContext(question, []));
+          return String(result);
+        }),
       }}
     />
   );

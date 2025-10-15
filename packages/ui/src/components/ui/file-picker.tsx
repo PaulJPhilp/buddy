@@ -23,7 +23,7 @@ export function FilePicker({
   onRemove,
   preview = true,
   ...props
-}: FilePickerProps) {
+}: FilePickerProps): React.ReactElement {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     ...props,
     disabled,

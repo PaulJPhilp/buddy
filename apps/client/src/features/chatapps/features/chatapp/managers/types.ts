@@ -1,6 +1,6 @@
 import type { ChatAppConfig } from "@/features/chatapps/schemas/ChatAppConfigSchema";
 // Re-export core manager types
-import type { CoreManagerConfig, CoreManagerState } from "@managers/core/types";
+import type { CoreManagerConfig, CoreManagerState } from "@/features/application/manager/core/core/types";
 export type { CoreManagerState, CoreManagerConfig, ChatAppConfig };
 
 // Identifiers

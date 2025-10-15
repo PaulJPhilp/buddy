@@ -1,56 +1,151 @@
 ---
-description: 
+description: Effect.ts Service Pattern Rules (v3.18+)
 globs: *.tsx,*.ts
 alwaysApply: false
 ---
----
-description:
-globs:
-alwaysApply: false
----
-# Service Pattern Check Rule
+# Service Pattern Check Rule - MDX Pattern (v3.18+)
 
-**IMPORTANT**: Before making ANY changes to services or starting ANY commands related to services:
+**IMPORTANT**: Before making ANY changes to services or managers:
 
-1. MUST review `src/docs/service-pattern.md` in full
-2. MUST understand the current Effect.Service pattern (v3.14+)
-3. MUST NOT use Context.Tag pattern (banned)
-4. MUST follow single service class implementation with:
-   - Extends Effect.Service
-   - Has both identifier and implementation in one place
-   - No inheritance or separate implementation classes
-   - Proper effect and dependencies defined
+1. MUST understand the current Effect.Service pattern (v3.18+)
+2. MUST NOT use Context.Tag pattern (banned since v3.14)
+3. MUST follow the MDX pattern for file organization
+4. MUST use single Effect.Service class (no split implementation)
 
-## Key Points to Check
+## MDX Pattern: Correct File Structure
 
-1. Service Definition:
+Services and managers follow the **MDX (Modern Development eXperience)** pattern:
+
+```
+manager/
+├── api.ts       # TypeScript interface ONLY (pure types)
+├── errors.ts    # Tagged error classes (Data.TaggedError)
+├── types.ts     # Domain types, schemas, constants
+├── service.ts   # Effect.Service implementation (single class)
+└── index.ts     # Barrel exports
+```
+
+### What to Split ✅
+
+**DO split domain concerns** into separate files:
+- ✅ API interface (api.ts) - TypeScript contract
+- ✅ Error types (errors.ts) - Tagged errors
+- ✅ Domain types (types.ts) - Data structures, schemas
+- ✅ Service implementation (service.ts) - Effect.Service class
+
+### What NOT to Split ❌
+
+**DON'T split Effect implementation**:
+- ❌ NO separate layer.ts files (use Effect.Service.Default)
+- ❌ NO Context.Tag pattern (banned)
+- ❌ NO separate implementation classes
+- ❌ NO inheritance between service classes
+
+## Correct Service Implementation
+
+### 1. API Interface (api.ts)
+```typescript
+// Pure TypeScript interface - no Effect code here
+export interface MyServiceApi {
+  readonly myMethod: (arg: string) => Effect.Effect<Result, MyError>;
+  readonly getState: () => Effect.Effect<State, never>;
+}
+```
+
+### 2. Service Implementation (service.ts)
+```typescript
+import type { MyServiceApi } from "./api";
+
+export class MyService extends Effect.Service<MyServiceApi>()(
+  "MyService",
+  {
+    effect: Effect.gen(function* () {
+      const stateRef = yield* Ref.make(initialState);
+      
+      const myMethod = (arg: string): Effect.Effect<Result, MyError> => {
+        // Implementation
+      };
+      
+      const getState = (): Effect.Effect<State, never> => 
+        Ref.get(stateRef);
+      
+      return {
+        myMethod,
+        getState,
+      } satisfies MyServiceApi; // Type safety!
+    }),
+    dependencies: [OtherService.Default],
+  }
+) {}
+```
+
+### Key Points:
+- Import interface from api.ts (don't duplicate)
+- Methods return functions that return Effects
+- Use `satisfies` for type safety
+- Single class in service.ts
+
+## Reference Implementation
+
+See `apps/client/src/features/application/manager/` for the canonical example:
+- ✅ Follows MDX pattern
+- ✅ No duplicate interfaces
+- ✅ Proper type safety with `satisfies`
+- ✅ Clean separation of concerns
+
+## Common Mistakes to Avoid
+
+1. **Duplicate Interfaces** ❌
    ```typescript
-   export class MyService extends Effect.Service<MyServiceApi>()(
-     "MyService",
-     {
-       effect: Effect.succeed({ /* implementation */ }),
-       dependencies: [] // List required services
-     }
-   ) {}
+   // DON'T: Define interface in both api.ts AND service.ts
    ```
 
-2. No Split Implementation:
-   - NO separate api.ts/service.ts/layer.ts split
-   - NO inheritance between service classes
-   - NO Context.Tag usage
+2. **Old Context.Tag Pattern** ❌
+   ```typescript
+   // DON'T: Use the old v2.x pattern
+   export const MyService = Context.Tag<MyServiceApi>()
+   ```
 
-3. Dependencies:
-   - List ALL required services in dependencies array
-   - Access via yield* in implementation
+3. **Separate Layer Files** ❌
+   ```typescript
+   // DON'T: Create separate layer.ts files
+   // Use Effect.Service.Default instead
+   ```
 
-4. Error Handling:
-   - Map ALL errors to domain-specific errors
-   - Use proper Effect error handling patterns
+4. **Missing Type Safety** ❌
+   ```typescript
+   // DON'T: Return object without type checking
+   return { myMethod, getState }; // No type safety!
+   
+   // DO: Use satisfies
+   return { myMethod, getState } satisfies MyServiceApi;
+   ```
+
+## Dependencies
+
+- List ALL required services in dependencies array
+- Access via `yield*` in Effect.gen implementation
+- Dependencies are automatically provided by the runtime
+
+## Error Handling
+
+- All errors extend `Data.TaggedError("ErrorName")`
+- Map ALL errors to domain-specific errors
+- Include context in error objects
+- Use proper Effect error handling patterns
 
 ## Checklist Before Changes
 
-- [ ] Read service-pattern.md completely
-- [ ] Understand current service structure
-- [ ] Verify no Context.Tag usage
-- [ ] Plan changes to match correct pattern
-- [ ] Consider impact on dependent code
+- [ ] Understand MDX pattern (split domain, not implementation)
+- [ ] API interface in api.ts (no duplicates)
+- [ ] Single Effect.Service class in service.ts
+- [ ] Use `satisfies` for type safety
+- [ ] No Context.Tag usage
+- [ ] Proper dependencies declared
+- [ ] All errors are tagged errors
+
+## Documentation
+
+- See: `docs/MDX-Pattern-Cleanup.md` for detailed explanation
+- See: `apps/client/src/features/application/manager/` for example
+- See: `CLAUDE.md` for full architectural guidance

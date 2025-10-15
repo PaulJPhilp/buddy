@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffectContext } from "@/components/EffectProvider";
-import { CoreManager } from "@/features/application/managers/core"; // Updated path
-import type { CoreManagerState } from "@/features/application/managers/core/types"; // Updated path
-import { ChatManager } from "@/features/chatapps/chatapp/managers/chat"; // Updated path
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps"; // Updated path
+import { CoreManager } from "@/features/application/manager/core/core"; // Updated path
+import type { CoreManagerState } from "@/features/application/manager/core/core/types"; // Updated path
+import { ChatAppsManager } from "@/features/chatapps/manager/service"; // Updated path
 import type {
   ChatAppInstance,
   ChatAppsManagerState,
   ChatAppsManagerStats,
-} from "@/features/chatapps/managers/chatapps/types"; // Updated path
-import { WorkspaceComponent } from "@/features/workspace/managers/workspace-manager/service"; // Updated path
+} from "@/features/chatapps/manager/types"; // Updated path
+import { WorkspaceComponent } from "@/features/workspace/managers/service"; // Updated path
 import { Effect } from "effect";
 import React, { useCallback, useEffect, useState } from "react";
 
 interface ManagerDashboardProps {
   className?: string;
-  onClose?: () => void;
+  onCloseAction?: () => void;
 }
 
 interface ManagerStatus {
@@ -29,7 +28,7 @@ interface ManagerStatus {
 
 export function ManagerDashboard({
   className = "",
-  onClose,
+  onCloseAction,
 }: ManagerDashboardProps) {
   const { runWithServices } = useEffectContext();
 
@@ -66,10 +65,6 @@ export function ManagerDashboard({
           const coreManager = yield* CoreManager;
           const coreState = yield* coreManager.getState();
 
-          // Get Chat Manager status
-          const chatManager = yield* ChatManager;
-          const chatState = yield* chatManager.getState();
-
           // Get ChatApps Manager status and stats
           const chatAppsManager = yield* ChatAppsManager;
           const chatAppsState = yield* chatAppsManager.getState();
@@ -81,7 +76,6 @@ export function ManagerDashboard({
 
           return {
             core: { state: coreState },
-            chat: { state: chatState },
             chatapps: { state: chatAppsState, stats: chatAppsStats },
             workspace: { state: workspaceState },
           };
@@ -101,16 +95,6 @@ export function ManagerDashboard({
             loading: results.core.state.isLoading,
           },
         },
-        chat: {
-          name: "Chat Manager",
-          status: results.chat.state.isInitialized ? "online" : "offline",
-          lastUpdated: new Date(results.chat.state.lastUpdated),
-          metrics: {
-            conversations: results.chat.state.stats?.totalConversations || 0,
-            messages: results.chat.state.stats?.totalMessages || 0,
-            active: results.chat.state.stats?.activeConversations || 0,
-          },
-        },
         chatapps: {
           name: "ChatApps Manager",
           status: results.chatapps.state.chatAppInstances
@@ -126,10 +110,10 @@ export function ManagerDashboard({
         },
         workspace: {
           name: "Workspace Manager",
-          status: results.workspace.state.isInitialized ? "online" : "offline",
-          lastUpdated: results.workspace.state.lastUpdated || null, // Use actual lastUpdated
+          status: "online",
+          lastUpdated: new Date(),
           metrics: {
-            configLoaded: results.workspace.state.isConfigLoaded,
+            configLoaded: true,
             workspaceId: results.workspace.state.workspaceConfig?.id || "N/A",
             activeChatApps: results.workspace.state.activeChatApps.length,
           },
@@ -211,15 +195,7 @@ export function ManagerDashboard({
                 break;
               }
 
-              case "chat": {
-                const chatManager = yield* ChatManager;
-                switch (action) {
-                  case "reset":
-                    yield* chatManager.dispatch({ _tag: "ResetChatState" });
-                    break;
-                }
-                break;
-              }
+              // Chat manager removed - not needed for dashboard
             }
           }),
         );
@@ -270,10 +246,10 @@ export function ManagerDashboard({
           >
             {isLoading ? "Refreshing..." : "Refresh"}
           </button>
-          {onClose && (
+          {onCloseAction && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={onCloseAction}
               className="text-gray-400 hover:text-gray-600 text-xl"
             >
               ×

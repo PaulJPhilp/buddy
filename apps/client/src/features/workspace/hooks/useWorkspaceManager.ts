@@ -17,6 +17,7 @@ interface WorkspaceManagerState {
   readonly availableAgents: AgentConfig[];
   readonly error: string | null;
   readonly isConfigLoaded: boolean;
+  readonly isLoading: boolean;
 }
 
 // Type guard for WorkspaceModel
@@ -68,8 +69,19 @@ function convertWorkspaceModelToConfig(
     id: workspace.id,
     name: workspace.name,
     description: workspace.description || "",
+    icon: workspace.icon || "📁",
+    color: workspace.color || "#3b82f6",
     chatappIds: Array.isArray(workspace.chatappIds) ? workspace.chatappIds : [],
     agentIds: Array.isArray(workspace.agentIds) ? workspace.agentIds : [],
+    createdAt: workspace.createdAt || new Date().toISOString(),
+    lastActiveAt: workspace.lastActiveAt || new Date().toISOString(),
+    isArchived: Boolean(workspace.isArchived),
+    maxExpandedApps:
+      typeof workspace.maxExpandedApps === "number"
+        ? workspace.maxExpandedApps
+        : 3,
+    activeAppId: workspace.activeAppId || null,
+    isDefault: workspace.isDefault,
     permissions: workspace.permissions || {
       canAddApps: true,
       canRemoveApps: true,
@@ -78,14 +90,6 @@ function convertWorkspaceModelToConfig(
       canInviteUsers: false,
       canManagePermissions: false,
     },
-    isDefault: Boolean(workspace.isDefault),
-    isArchived: Boolean(workspace.isArchived),
-    maxExpandedApps:
-      typeof workspace.maxExpandedApps === "number"
-        ? workspace.maxExpandedApps
-        : 3,
-    createdAt: workspace.createdAt || new Date().toISOString(),
-    updatedAt: workspace.updatedAt || new Date().toISOString(),
   };
 }
 
@@ -97,6 +101,7 @@ function createDefaultState(): WorkspaceManagerState {
     availableAgents: [],
     error: null,
     isConfigLoaded: false,
+    isLoading: false,
   };
 }
 
@@ -173,7 +178,8 @@ export function useWorkspaceManager() {
               "[useWorkspaceManager] switchWorkspace: Getting workspaces from ApplicationManager..."
             );
             const applicationManager = yield* ApplicationManager;
-            const workspaces = yield* applicationManager.getWorkspaces();
+            const appConfig = yield* applicationManager.getAppConfig();
+            const workspaces = appConfig?.workspaces || [];
 
             console.log(
               "[useWorkspaceManager] switchWorkspace: available workspaces:",
@@ -187,8 +193,8 @@ export function useWorkspaceManager() {
               yield* applicationManager.loadConfig(
                 "/static/configs/workspaces/index.json"
               );
-              const reloadedWorkspaces =
-                yield* applicationManager.getWorkspaces();
+              const reloadedAppConfig = yield* applicationManager.getAppConfig();
+              const reloadedWorkspaces = reloadedAppConfig?.workspaces || [];
               console.log(
                 "[useWorkspaceManager] switchWorkspace: workspaces after reload:",
                 reloadedWorkspaces
@@ -280,7 +286,7 @@ export function useWorkspaceManager() {
             console.log(
               "[useWorkspaceManager] switchWorkspace: calling WorkspaceComponent.switchWorkspace"
             );
-            yield* workspaceComponent.switchWorkspace(workspaceConfig);
+            yield* workspaceComponent.switchWorkspace(workspaceConfig as any);
             console.log(
               "[useWorkspaceManager] switchWorkspace: WorkspaceComponent.switchWorkspace complete"
             );
@@ -391,7 +397,8 @@ export function useWorkspaceManager() {
 
           // If no workspaceConfig, try to get workspaces from ApplicationManager
           const applicationManager = yield* ApplicationManager;
-          const workspaces = yield* applicationManager.getWorkspaces();
+          const appConfig = yield* applicationManager.getAppConfig();
+          const workspaces = appConfig?.workspaces || [];
 
           console.log(
             "[useWorkspaceManager] loadWorkspaceData: ApplicationManager workspaces:",
@@ -454,10 +461,11 @@ export function useWorkspaceManager() {
                   !state.isLoading &&
                   state.appConfig?.workspaces
                 ) {
-                  workspaces = yield* applicationManager.getWorkspaces();
+                  const appConfig = yield* applicationManager.getAppConfig();
+                  workspaces = appConfig?.workspaces || [];
                   console.log(
                     "[useWorkspaceManager] Available workspaces:",
-                    workspaces.map((w) => w.id)
+                    workspaces.map((w: any) => w.id)
                   );
                   break;
                 }
@@ -545,15 +553,21 @@ export function useWorkspaceManager() {
     workspaceConfig: state.workspaceConfig,
     availableChatApps: state.availableChatApps,
     availableAgents: state.availableAgents,
-    isLoading: false, // TODO: Implement proper loading state
+    isLoading: state.isLoading,
     error: state.error,
     isConfigLoaded: state.isConfigLoaded,
     isInitialized: state.isConfigLoaded,
     stats: {
-      totalWorkspaces: 0,
+      totalWorkspaces: state.workspaceConfig ? 1 : 0,
+      activeWorkspaces: state.workspaceConfig && !state.workspaceConfig.isArchived ? 1 : 0,
+      archivedWorkspaces: state.workspaceConfig?.isArchived ? 1 : 0,
       totalChatApps: state.availableChatApps.length,
       totalAgents: state.availableAgents.length,
+      operationCount: 0, // TODO: Track operations if needed
     },
+
+    // Computed properties
+    activeChatApps: state.availableChatApps, // Alias for compatibility
 
     // Actions (strictly typed)
     switchWorkspace,

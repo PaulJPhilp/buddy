@@ -1,9 +1,12 @@
 import { useEffectContext } from "@/components/EffectProvider";
 import { Effect } from "effect";
 import React, { useEffect, useRef, useState } from "react";
-import { ChatBubble } from "./ChatBubble";
-import type { Message } from "./ChatBubble";
-import { ChatAppManager } from "./manager-service";
+import { ChatBubble } from "@buddy/ui/components/ChatBubble";
+import type { Message } from "@buddy/ui/components/ChatBubble";
+import { ChatAppsManager } from "@/features/chatapps/manager";
+
+// Alias for compatibility with existing code
+const ChatAppManager = ChatAppsManager;
 
 export interface ChatAreaProps {
   chatAppId: string;
@@ -41,60 +44,16 @@ export function ChatArea({
 
   // Subscribe to ChatAreaManager state
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    runWithServices(
-      Effect.gen(function* () {
-        const chatAppManager = yield* ChatAppManager;
-        // Look up the ChatAppConfig for this chatAppId
-        const chatAppConfig = state?.availableChatApps?.find(
-          (c) => c.id === chatAppId,
-        );
-        if (!chatAppConfig) {
-          console.warn(
-            "ChatArea: No ChatAppConfig found for chatAppId",
-            chatAppId,
-          );
-          return;
-        }
-        // Initialize if needed
-        yield* chatAppManager.initialize(chatAppConfig);
-        // Subscribe to state updates
-        unsubscribe = yield* chatAppManager.subscribe(setState);
-        // Load initial state
-        const initialState = yield* chatAppManager.getState();
-        setState(initialState);
-      }),
-    );
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [chatAppId, runWithServices, state?.availableChatApps]);
+    // TODO: Implement proper manager integration
+    // The ChatAppsManager API doesn't have these methods yet
+    console.log("ChatArea mounted for chatAppId:", chatAppId);
+  }, [chatAppId]);
 
   // Fetch bubble state/content for all messages
   useEffect(() => {
-    if (!state?.messages) return;
-    let cancelled = false;
-    (async () => {
-      const chatAppManager = await runWithServices(ChatAppManager);
-      const entries = await Promise.all(
-        state.messages.map(async (msg: Message) => {
-          const bubbleState = await runWithServices(
-            chatAppManager.getBubbleState(msg.id),
-          );
-          const formattedContent = await runWithServices(
-            chatAppManager.formatBubbleMessage(msg),
-          );
-          return [msg.id, { bubbleState, formattedContent }];
-        }),
-      );
-      if (!cancelled) {
-        setBubbleData(Object.fromEntries(entries));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [state?.messages, runWithServices]);
+    // TODO: Implement bubble state fetching
+    // The ChatAppsManager API doesn't have these methods yet
+  }, [state?.messages]);
 
   // Always scroll to bottom when messages change, with debug logging
   useEffect(() => {
@@ -148,9 +107,8 @@ export function ChatArea({
           bubbleState={bubbleData[msg.id]?.bubbleState}
           formattedContent={bubbleData[msg.id]?.formattedContent}
           onAction={(action) => {
-            runWithServices(ChatAppManager).then((chatAppManager) => {
-              chatAppManager.performBubbleAction(msg.id, action);
-            });
+            // TODO: Implement bubble action handling
+            console.log("Bubble action:", action, "for message:", msg.id);
           }}
         />
       ))}

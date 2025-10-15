@@ -1,5 +1,5 @@
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps";
-import type { ChatAppBusMessage } from "@/features/chatapps/managers/chatapps/types";
+import { ChatAppsManager } from "../../src/features/chatapps/manager/service";
+import type { ChatAppBusMessage } from "../../src/features/chatapps/manager/types";
 import { Effect, Layer, Stream } from "effect";
 import { beforeEach, describe, expect, it } from "vitest";
 

@@ -1,13 +1,17 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import { markdownLookBack } from "@llm-ui/markdown";
 import { type LLMOutputComponent, useLLMOutput } from "@llm-ui/react";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { CustomTable, CustomTableCell } from "./CustomTable";
-import type { ChatBubbleAction } from "./chatbubble-manager/api";
+import { CustomTable, CustomTableCell } from "../CustomTable";
+
+// ChatBubbleAction type (inline for now)
+export type ChatBubbleAction = 
+  | { type: "copy" }
+  | { type: "regenerate" }
+  | { type: "edit" };
 
 export interface Message {
   id: string;
@@ -137,16 +141,11 @@ export function ChatBubble({
   bubbleState,
   formattedContent,
   onAction,
-}: ChatBubbleProps) {
+}: ChatBubbleProps): React.ReactElement {
   const { content, sender, timestamp, isStreaming = false } = message;
   const isUser = sender === "user";
-  const { user } = useUser();
   const [showDebug, setShowDebug] = useState(false);
-  const userName =
-    user?.firstName ||
-    user?.username ||
-    user?.emailAddresses?.[0]?.emailAddress ||
-    "You";
+  const userName = "You"; // Simplified - no Clerk dependency in UI package
 
   // Memoize llm-ui dependencies
   const llmOutput = useMemo(() => content, [content]);
@@ -204,7 +203,7 @@ export function ChatBubble({
           ) : formattedContent ? (
             <div className="whitespace-pre-wrap">{formattedContent}</div>
           ) : blockMatches.length > 0 ? (
-            blockMatches.map((blockMatch, index) => {
+            blockMatches.map((blockMatch) => {
               const Component = blockMatch.block.component;
               return (
                 <Component
@@ -253,13 +252,13 @@ export function ChatBubble({
         {/* Example action buttons */}
         {onAction && (
           <div className="flex gap-2 mt-1">
-            <button type="button" onClick={() => onAction("edit")}>
+            <button type="button" onClick={() => onAction({ type: "edit" })}>
               Edit
             </button>
-            <button type="button" onClick={() => onAction("retry")}>
+            <button type="button" onClick={() => onAction({ type: "regenerate" })}>
               Retry
             </button>
-            <button type="button" onClick={() => onAction("copy")}>
+            <button type="button" onClick={() => onAction({ type: "copy" })}>
               Copy
             </button>
           </div>

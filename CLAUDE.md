@@ -16,6 +16,13 @@ bun run dev          # Same as above (from root)
 
 **IMPORTANT**: Never run the development server automatically. Always wait for explicit user instruction.
 
+### Development Servers
+```bash
+bun run start:llm       # Start LLM server
+bun run start:ws        # Start WebSocket test server
+bun run dev:full        # Start both WebSocket and Next.js dev server
+```
+
 ### Building & Type Checking
 ```bash
 bun run build        # Build the Next.js app
@@ -31,11 +38,13 @@ bun run lint:fix     # Auto-fix linting issues with --unsafe flag
 
 ### Testing
 ```bash
-bun test                           # Run all Vitest tests
-bun run test:coverage              # Run tests with coverage
-bun run test:integration           # Run integration tests
-bun run test:integration:e2e       # Run E2E integration tests only
-bun run test:integration:services  # Run service integration tests only
+bun test                                # Run all Vitest tests
+bun run test:coverage                   # Run tests with coverage
+bun run test:integration                # Run integration tests
+bun run test:integration:e2e            # Run E2E integration tests only
+bun run test:integration:services       # Run service integration tests only
+bun run test:integration:performance    # Run performance tests
+bun run test:integration:websocket      # Run WebSocket tests
 ```
 
 Test files are organized as:
@@ -95,10 +104,11 @@ export class ManagerName extends Effect.Service<ApiInterface>()("ServiceTag", {
 ```
 
 **CRITICAL**:
-- NO Context.Tag pattern (banned - see `.cursor/rules/service-pattern.mdc`)
-- NO split api/service/layer files for simple services
-- Single class with identifier and implementation
-- Use Effect.Service pattern (v3.14+)
+- NO Context.Tag pattern (banned since v3.14 - see `.cursor/rules/service-pattern.mdc`)
+- NO split Effect implementation (no separate layer.ts files)
+- OK to split domain concerns (api.ts, errors.ts, types.ts)
+- Single Effect.Service class in service.ts
+- Use Effect.Service pattern (v3.18+)
 
 ### Command-Driven Architecture
 
@@ -133,6 +143,7 @@ const dispatch = (cmd: Command) => Queue.offer(commandQueue, cmd);
 - Services declare dependencies in `dependencies` array
 - Access via `yield* ServiceName` in Effect.gen
 - Runtime provides dependencies automatically
+- Services provided via EffectProvider in React apps
 
 **Error Handling:**
 - All errors extend `Data.TaggedError("ErrorName")`
@@ -152,26 +163,81 @@ const dispatch = (cmd: Command) => Queue.offer(commandQueue, cmd);
 - Use `Clock.currentTimeMillis` instead of `Date.now()` (enables TestClock in tests)
 - Never hard-code config values or use direct system calls
 
+**State Management (EffectTalk 2025 Patterns):**
+- Use `Ref.make()` for mutable state containers
+- **Atomic updates**: Use `Ref.modify` for multi-step operations to prevent race conditions
+- **Single source of truth**: Each manager is canonical source for its entities
+- **Reference by ID**: Cross-entity relationships use IDs, never embedded objects
+- Subscribe pattern for reactive state changes
+- No duplicate state across managers
+
+**Example - Atomic State Update:**
+```typescript
+const addAgent = (agent: Agent) =>
+  Ref.modify(stateRef, (state) => {
+    const newAgents = { ...state.agents, [agent.id]: agent };
+    return [Effect.succeed(undefined), { ...state, agents: newAgents }];
+  }).pipe(Effect.flatten);
+```
+
+**Example - Reference by ID:**
+```typescript
+// ✅ GOOD: Store IDs only
+const workspace = {
+  id: "ws-1",
+  chatAppIds: ["app-1", "app-2"]  // IDs, not full objects
+}
+
+// ❌ BAD: Duplicate objects
+const workspace = {
+  id: "ws-1",
+  chatApps: [{ id: "app-1", ... }, ...]  // Duplicated state
+}
+```
+
 ### Feature Organization
+
+Features use a **recursive nested pattern** where features can contain sub-features:
 
 ```
 features/
   feature-name/
     manager/              # Effect.ts service (MDX pattern)
     components/           # Pure React UI components
-    container/            # React integration layer
     hooks/                # React hooks wrapping manager
     domain/               # Domain models (pure data structures)
-    ui-state/             # UI-specific state models (window positions, styles, visibility)
-    utils/                # Feature-specific utilities
-    features/             # Nested sub-features (recursive)
+    ui-state/             # UI-specific state models
+    types/                # Type definitions
+    errors/               # Error definitions
+    features/             # Nested sub-features (recursive!)
+      sub-feature/
+        manager/
+        components/
+        features/         # Can nest 3-4 levels deep
+```
+
+**Real Example** (3 levels deep):
+```
+features/chatapps/                    # Level 0: Collection manager
+  manager/                            # ChatAppsManager
+  features/                           # Level 1
+    chatapp/                          # Individual chat app
+      managers/                       # ChatManager
+      features/                       # Level 2
+        chatarea/managers/            # ChatAreaManager
+        context-engineering/managers/ # ContextEngineeringManager
+        userarea/managers/            # UserAreaManager
 ```
 
 **Key Conventions:**
-- Features can nest recursively (e.g., `chatapps/features/chatapp/features/chatarea/`)
+- Features nest to mirror domain hierarchy (collection → item → sub-components)
+- Maximum recommended depth: 3-4 levels
+- Both `manager/` (singular) and `managers/` (plural) are used
 - Domain state lives in managers, UI state in `ui-state/`
-- Containers bridge React and Effect.ts via hooks
 - UI components are pure, receive data via props only
+- Child features access parent via dependency injection
+
+See `docs/Feature-Structure-Guide.md` for complete nested features documentation.
 
 ### React Integration Pattern
 
@@ -180,25 +246,59 @@ features/
 Manager (Effect.ts) → Hook → Container → UI Component
 ```
 
-**Hook Pattern:**
+**EffectProvider:**
+
+All services are initialized and provided via `EffectProvider` at the app root:
+
+```typescript
+// App root
+<EffectProvider>
+  <App />
+</EffectProvider>
+
+// Access services in components
+const { runWithServices } = useEffectContext();
+
+await runWithServices(
+  Effect.gen(function* () {
+    const manager = yield* WorkspaceManager;
+    yield* manager.createWorkspace({ name: "New" });
+  })
+);
+```
+
+See `docs/EffectProvider-Guide.md` for complete documentation.
+
+**Hook Pattern (with proper cleanup):**
 ```typescript
 export function useFeatureManager() {
   const [state, setState] = useState(initialState);
+  const { runWithServices } = useEffectContext();
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const unsub = Effect.runSync(
       manager.subscribe((newState) => setState(newState))
     );
-    return unsub;
+    unsubscribeRef.current = unsub;
+    
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
   }, []);
 
   const operation = useCallback(() => {
-    Effect.runPromise(manager.someOperation());
-  }, []);
+    runWithServices(manager.someOperation());
+  }, [runWithServices]);
 
   return { state, operation };
 }
 ```
+
+**Critical**: Always use `useRef` for cleanup functions, never closure variables.
 
 **Responsibilities:**
 - **Manager**: Business logic, domain state (Effect.ts)
@@ -212,22 +312,31 @@ Located in `apps/client/src/services/`, services follow MDX pattern for cross-cu
 
 **Services vs Managers:**
 - **Services**: Cross-cutting, reusable, external integrations (ConfigService, ChatService, AgentKitService)
-- **Managers**: Feature-specific business logic, own domain state
+  - Live in `services/*/`
+  - Reusable across features
+  - Often stateless or minimal state
+- **Managers**: Feature-specific business logic, own domain state (ChatManager, WorkspaceManager)
+  - Live in `features/*/manager/`
+  - Feature-specific
+  - Own domain state via Ref
 
-Services use `Effect.Service` with proper lifecycle management.
+Both use `Effect.Service` with proper lifecycle management.
+
+See `docs/Service-vs-Manager-Guide.md` for complete naming guidelines and decision tree.
 
 ### TypeScript Path Aliases
 
-Configured in `apps/client/tsconfig.json`:
+Configured in `tsconfig.base.json`:
 ```typescript
 @/*            → ./src/*
-@client/*      → ./src/*
-@app/*         → ./src/app/*
-@components/*  → ./src/components/*
-@domain/*      → ./src/domain/*
-@managers/*    → ./src/managers/*
-@services/*    → ./src/services/*
-@utils/*       → ./src/utils/*
+@/components/* → ./src/components/*
+@/lib/*        → ./src/lib/*
+@/utils/*      → ./src/utils/*
+@/types/*      → ./src/types/*
+@/domain/*     → ./src/domain/*
+@/managers/*   → ./src/managers/*
+@/services/*   → ./src/services/*
+@/ui-state/*   → ./src/ui-state/*
 @buddy/ui      → ../../packages/ui/src
 @buddy/agentkit → ../../packages/agentkit
 ```
@@ -294,11 +403,35 @@ export default {
 5. Create pure UI components
 
 ### Adding Tests
-- Unit tests: `*.test.ts` files, use `Effect.runPromise` in tests
+
+**Unit Tests:**
+- File pattern: `*.test.ts` or `*.test.tsx`
+- Use `Effect.runPromise` to run effects in tests
 - Use `TestClock` for time-dependent logic
 - Use `Layer.provide` to inject test dependencies
-- Integration tests: `__tests__/integration/`
-- E2E tests: `*.spec.ts` files with Playwright
+
+**Resource Management Tests (Required for hooks/services):**
+```typescript
+describe("useFeatureManager", () => {
+  it("should clean up subscription on unmount", async () => {
+    const { unmount } = renderHook(() => useFeatureManager());
+    unmount();
+    // Verify no updates after unmount
+  });
+  
+  it("should handle rapid mount/unmount cycles", async () => {
+    // Test for memory leaks and duplicate listeners
+  });
+});
+```
+
+**Integration Tests:**
+- Location: `__tests__/integration/`
+- Test categories: e2e, services, performance, websocket
+
+**E2E Tests:**
+- File pattern: `*.spec.ts` or `*.spec.tsx`
+- Use Playwright for browser automation
 
 ### Error Handling
 ```typescript
@@ -318,11 +451,34 @@ Effect.gen(function* () {
 
 ## Important Rules
 
+### Core Patterns
 1. **Never run dev server automatically** - wait for explicit user instruction
-2. **No Context.Tag pattern** - use Effect.Service (v3.14+) only
+2. **No Context.Tag pattern** - use Effect.Service (v3.18+) only
 3. **Always use Clock service** - never `Date.now()` directly
 4. **Use Tailwind v4 patterns** - `@tailwindcss/postcss`, HSL colors with alpha
-5. **Follow MDX pattern** - service.ts, api.ts, types.ts, errors.ts, index.ts
-6. **Separate domain and UI state** - managers own domain, ui-state for presentation
-7. **Use Effect for all async** - no raw Promises in business logic
-8. **Type all errors** - extend Data.TaggedError, include context
+5. **Follow MDX pattern** - Split domain concerns, single Effect.Service class
+
+### State Management (EffectTalk 2025)
+6. **Single source of truth** - each manager is canonical for its entities
+7. **Reference by ID** - cross-entity relationships use IDs, not embedded objects
+8. **Atomic state updates** - use `Ref.modify` for multi-step operations
+9. **Separate domain and UI state** - managers own domain, ui-state for presentation
+
+### Error Handling & Async
+10. **Type all errors** - extend Data.TaggedError, include context
+11. **Use Effect for all async** - no raw Promises in business logic
+12. **Map all errors** - transform to domain-specific errors
+
+### React Integration
+13. **Clean up subscriptions** - use `useRef` for cleanup, never closures
+14. **Test resource management** - verify cleanup, no leaks, no duplicate listeners
+15. **Use EffectProvider** - access services via `useEffectContext`
+
+### Anti-Patterns to Avoid
+- ❌ Never duplicate entity state across managers
+- ❌ Never update state outside atomic operations
+- ❌ Never use closure variables for resource cleanup
+- ❌ Never skip error handling or cleanup in tests
+- ❌ Never use raw promises or throw errors in Effect code
+
+See `docs/EFFECTTALK.md` for complete EffectTalk philosophy and patterns.

@@ -1,9 +1,11 @@
 import type { ChatAppConfig } from "@/features/chatapps/schemas/ChatAppConfigSchema";
 import type {
   ChatAppEntry,
-  ChatAppStatus,
   ListChatAppsOptions,
 } from "@/features/chatapps/types/llm-api";
+
+// Define ChatAppStatus locally since it's not exported
+export type ChatAppStatus = "active" | "inactive" | "stashed";
 import type {
   CreateWorkspaceOptions,
   ListWorkspacesOptions,

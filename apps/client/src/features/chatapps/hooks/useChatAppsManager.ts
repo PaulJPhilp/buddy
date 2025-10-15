@@ -1,7 +1,8 @@
-import { ChatAppsManager } from "@/features/chatapps/managers/chatapps";
-import type { ChatAppInstance } from "@/features/chatapps/managers/chatapps/types";
+import { useEffectContext } from "@/components/EffectProvider";
+import { ChatAppsManager } from "@/features/chatapps/manager";
+import type { ChatAppInstance, ChatMessage } from "@/features/chatapps/manager/types";
 import { Effect } from "effect";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { WorkspaceId } from "@/features/workspace/managers/workspace-manager/types";
 
@@ -10,8 +11,9 @@ import type { WorkspaceId } from "@/features/workspace/managers/workspace-manage
  * Provides state and actions for interacting with ChatAppsManager.
  */
 export function useChatAppsManager(workspaceId?: WorkspaceId) {
+  const { runWithServices } = useEffectContext();
   const [isReady, setIsReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [chatAppInstances, setChatAppInstances] = useState<
     Record<string, ChatAppInstance>
   >({});
@@ -24,9 +26,9 @@ export function useChatAppsManager(workspaceId?: WorkspaceId) {
   // This effect provides the ChatAppsManager to the Effect runtime
   // and subscribes to its state changes.
   useEffect(() => {
-    let unsubscribe: Effect.Effect.Success<typeof Effect.runSync | null> = null;
+    let unsubscribe: (() => void) | null = null;
 
-    const run = Effect.runPromise(
+    const run = runWithServices(
       Effect.gen(function* () {
         setIsLoading(true);
         const manager = yield* ChatAppsManager;
@@ -53,7 +55,6 @@ export function useChatAppsManager(workspaceId?: WorkspaceId) {
         setIsReady(true);
         setIsLoading(false);
       }).pipe(
-        // No longer providing ChatAppsManager.Live here, as it's provided at the root EffectProvider
         Effect.catchAll((err) =>
           Effect.succeed({
             _tag: "ChatAppsManagerInitializationError",
@@ -72,24 +73,24 @@ export function useChatAppsManager(workspaceId?: WorkspaceId) {
 
     return () => {
       if (unsubscribe) {
-        Effect.runSync(unsubscribe);
+        unsubscribe();
       }
     };
-  }, []);
+  }, [workspaceId, runWithServices]);
 
   // Commands/Actions
-  const dispatch = (command: any) => {
+  const dispatch = useCallback((command: any) => {
     // Replace 'any' with specific command types as needed
-    Effect.runPromise(
+    runWithServices(
       Effect.gen(function* () {
         const manager = yield* ChatAppsManager;
         yield* manager.dispatch(command);
       })
     ).catch((err) => {
-      console.error("Error dispatching command:", command, err);
+      console.error("Error dispatching command:", err);
       setError(err.message || String(err));
     });
-  };
+  }, [runWithServices]);
 
   const registerChatApp = (workspaceId: string, appId: string, config: any) =>
     dispatch({
@@ -158,13 +159,13 @@ export function useChatAppsManager(workspaceId?: WorkspaceId) {
   const onWorkspaceArchived = (archivedWorkspaceId: WorkspaceId) =>
     dispatch({ _tag: "OnWorkspaceArchived", workspaceId: archivedWorkspaceId });
 
-  const getChatAppMessages = (appId: string) =>
-    Effect.runSync(
+  const getChatAppMessages = useCallback((appId: string) =>
+    runWithServices(
       Effect.gen(function* () {
         const manager = yield* ChatAppsManager;
         return yield* manager.getChatAppMessages(appId);
       })
-    );
+    ), [runWithServices]);
 
   const addChatAppMessage = (appId: string, message: ChatMessage) =>
     dispatch({ _tag: "AddChatAppMessage", appId, message });
@@ -172,33 +173,33 @@ export function useChatAppsManager(workspaceId?: WorkspaceId) {
   const clearChatAppMessages = (appId: string) =>
     dispatch({ _tag: "ClearChatAppMessages", appId });
 
-  const subscribeToBus = () =>
-    Effect.runSync(
+  const subscribeToBus = useCallback(() =>
+    runWithServices(
       Effect.gen(function* () {
         const manager = yield* ChatAppsManager;
         return yield* manager.subscribeToBus();
       })
-    );
+    ), [runWithServices]);
 
   const publishMessage = (message: any) =>
     // Replace 'any' with specific message types as needed
     dispatch({ _tag: "PublishMessage", message });
 
-  const debugGetAllInstances = () =>
-    Effect.runSync(
+  const getAllChatAppInstances = useCallback(() =>
+    runWithServices(
       Effect.gen(function* () {
         const manager = yield* ChatAppsManager;
-        return yield* manager.debugGetAllInstances();
+        return yield* manager.getAllChatApps();
       })
-    );
+    ), [runWithServices]);
 
-  const debugResetState = () =>
-    Effect.runSync(
+  const debugResetState = useCallback(() =>
+    runWithServices(
       Effect.gen(function* () {
         const manager = yield* ChatAppsManager;
         return yield* manager.debugResetState();
       })
-    );
+    ), [runWithServices]);
 
   return {
     isReady,
@@ -234,7 +235,7 @@ export function useChatAppsManager(workspaceId?: WorkspaceId) {
     clearChatAppMessages,
     subscribeToBus,
     publishMessage,
-    debugGetAllInstances,
+    getAllChatAppInstances,
     debugResetState,
   };
 }

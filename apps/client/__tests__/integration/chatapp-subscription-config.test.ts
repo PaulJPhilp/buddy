@@ -1,6 +1,6 @@
-import type { ChatAppConfig } from "@/features/chatapps/schemas/ChatAppConfigSchema"; // Import ChatAppConfig here
-import { ChatManager } from "@/managers/chat";
-import { ChatAppsManager } from "@/managers/chatapps";
+import type { ChatAppConfig } from "../../src/features/application/types/AppConfig";
+import { ChatManager } from "../../src/features/chatapps/features/chatapp/managers/service";
+import { ChatAppsManager } from "../../src/features/chatapps/manager/service";
 
 // Use the ChatAppConfig to define SubscriptionConfig
 type SubscriptionConfig = ChatAppConfig["subscriptions"][number]; // Correctly derive SubscriptionConfig

@@ -1,12 +1,12 @@
 import { useEffectContext } from "@/components/EffectProvider";
-import { ContextEngineeringManager } from "@/managers/context-engineering";
-import type { ContextEngineeringManagerApi } from "@/managers/context-engineering/api";
+import { ContextEngineeringManager } from "../managers";
+import type { ContextEngineeringManagerApi } from "../managers/api";
 import type {
   ContextElement,
   ContextEngineeringManagerState,
   ContextEngineeringManagerStats,
   FinalContext,
-} from "@/managers/context-engineering/types";
+} from "../managers/types";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
 

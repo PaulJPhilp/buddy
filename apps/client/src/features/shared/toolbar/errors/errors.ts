@@ -23,7 +23,9 @@ export class ConfigValidationError extends Data.TaggedError(
   "ConfigValidationError"
 )<{
   readonly message: string;
-  readonly errors: unknown; // From Schema.ParseError
+  readonly path?: string;
+  readonly cause?: unknown; // From Schema.ParseError or other validation errors
+  readonly errors?: unknown; // Legacy field for Schema.ParseError
 }> {}
 
 /**

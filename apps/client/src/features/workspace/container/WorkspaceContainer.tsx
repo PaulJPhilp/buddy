@@ -84,9 +84,9 @@ export function WorkspaceContainer() {
   return (
     <WorkspaceUI
       workspaceConfig={workspaceConfig}
-      availableChatApps={availableChatApps}
+      availableChatApps={availableChatApps as any}
       availableAgents={availableAgents}
-      activeChatApps={activeChatApps}
+      activeChatApps={availableChatApps as any}
       isLoading={isLoading}
       error={error}
     />

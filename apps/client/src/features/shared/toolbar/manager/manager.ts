@@ -1,10 +1,10 @@
 import { Effect, HashMap, Layer, Ref } from "effect";
 import React from "react";
-import type { ToolbarManagerApi, ToolbarComponentApi } from "./api";
-import { ToolbarComponent } from "./component";
-import { ToolbarError } from "./errors";
+import type { ToolbarComponentApi, ToolbarManagerApi } from "../api/api";
+import { ToolbarComponent } from "../components/component";
+import { ToolbarError } from "../errors/errors";
 import { ToolbarService } from "./service";
-import type { ToolbarInstance } from "./types";
+import type { ToolbarInstance } from "../types/types";
 // Import ToolbarContainer once it's created
 // import { ToolbarContainer } from "@/packages/ui/components/Toolbar/Toolbar";
 

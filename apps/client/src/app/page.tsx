@@ -3,7 +3,7 @@
 import { LoadDebugInfo } from "@/features/application/components/LoadDebugInfo";
 import { ApplicationContainer } from "@/features/application/container/ApplicationContainer";
 
-export default function HomePage() {
+export default function HomePage(): React.ReactElement {
   return (
     <>
       <ApplicationContainer />

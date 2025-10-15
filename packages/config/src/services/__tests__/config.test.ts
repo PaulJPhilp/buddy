@@ -3,8 +3,8 @@ import { Effect, Layer } from "effect";
 import { tmpdir } from "os";
 import { join } from "path";
 import { promises as fs } from "fs";
-import { ConfigService, ConfigServiceLive } from "../config";
-import { StorageServiceLive, StorageService, StorageOptionsTag } from "../storage";
+import { ConfigService, type ConfigServiceApi } from "../config";
+import { StorageService, StorageOptionsService } from "../storage";
 import { StorageOptions, Workspace } from "../../types";
 
 describe("ConfigService", () => {
@@ -12,14 +12,13 @@ describe("ConfigService", () => {
   const testOptions: StorageOptions = { configDir: testDir };
   
   const runTest = <E, A>(
-    effect: Effect.Effect<A, E, ConfigService>
-  ) => Effect.gen(function* (_) {
-    const storageLayer = Layer.succeed(StorageOptionsTag, testOptions);
-    const serviceLayer = Layer.provide(StorageServiceLive, storageLayer);
-    const configLayer = Layer.provide(ConfigServiceLive, serviceLayer);
-    const result = yield* _(Effect.provide(effect, configLayer));
-    return result;
-  }).pipe(Effect.runPromise);
+    effect: Effect.Effect<A, E, any>
+  ) => {
+    const storageOptionsLayer = Layer.succeed(StorageOptionsService, StorageOptionsService.of(testOptions));
+    const storageLayer = StorageService.Default.pipe(Layer.provide(storageOptionsLayer));
+    const configLayer = ConfigService.Default.pipe(Layer.provide(storageLayer));
+    return Effect.provide(effect, configLayer).pipe(Effect.runPromise);
+  };
 
   afterEach(async () => {
     try {
@@ -43,7 +42,7 @@ describe("ConfigService", () => {
           description: "Test Description"
         });
 
-        const workspaces = yield* _(config.listWorkspaces());
+        const workspaces = yield* _(config.getAllWorkspaces());
         expect(workspaces).toHaveLength(1);
         expect(workspaces[0]).toEqual(workspace);
 
@@ -102,12 +101,12 @@ describe("ConfigService", () => {
         let currentId = yield* _(config.getCurrentWorkspaceId());
         expect(currentId).toBe(ws1.id);
 
-        yield* _(config.setCurrentWorkspaceId(ws2.id));
+        yield* _(config.setCurrentWorkspace(ws2.id));
         currentId = yield* _(config.getCurrentWorkspaceId());
         expect(currentId).toBe(ws2.id);
 
         yield* _(config.deleteWorkspace(ws1.id));
-        const workspaces = yield* _(config.listWorkspaces());
+        const workspaces = yield* _(config.getAllWorkspaces());
         expect(workspaces).toHaveLength(1);
         expect(workspaces[0]?.id).toBe(ws2.id);
       })
@@ -139,7 +138,7 @@ describe("ConfigService", () => {
     await expect(runTest(
       Effect.gen(function* (_) {
         const config = yield* _(ConfigService);
-        return yield* _(config.setCurrentWorkspaceId("non-existent"));
+        return yield* _(config.setCurrentWorkspace("non-existent"));
       })
     )).rejects.toThrow("Workspace not found");
   });

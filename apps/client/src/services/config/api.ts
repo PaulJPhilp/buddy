@@ -3,7 +3,7 @@ import {
   ConfigParseError,
   ConfigSaveError,
   ConfigValidationError,
-} from "@/features/application/managers/errors";
+} from "@/features/application/manager/errors";
 import type { AppConfig } from "@/features/application/types/AppConfig"; // Updated path
 import type {
   ConfigLoadOptions,

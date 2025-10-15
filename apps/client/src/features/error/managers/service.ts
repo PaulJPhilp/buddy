@@ -3,10 +3,10 @@ import { ErrorManagerApi } from "../api";
 import { AppError, FatalError, HandledError } from "../errors";
 import { ErrorState } from "../types";
 
-export class ErrorManagerLive extends Effect.Service.Tag(
-  "ErrorManagerLive"
-)<ErrorManagerApi>() {
-  effect = Effect.gen(function* () {
+export class ErrorManager extends Effect.Service<ErrorManagerApi>()(
+  "ErrorManager",
+  {
+    effect: Effect.gen(function* () {
     const errorRef = yield* Ref.make<ErrorState>({ errors: [] });
 
     const reportError = (error: AppError | FatalError | HandledError) =>
@@ -35,15 +35,12 @@ export class ErrorManagerLive extends Effect.Service.Tag(
     const getErrors = () =>
       Ref.get(errorRef).pipe(Effect.map((state) => state.errors));
 
-    return {
-      reportError,
-      clearError,
-      getErrors,
-    };
-  });
-}
+      return {
+        reportError,
+        clearError,
+        getErrors,
+      } satisfies ErrorManagerApi;
+    }),
+  }
+) {}
 
-export const ErrorManagerLiveLayer = Layer.effect(
-  ErrorManagerLive,
-  ErrorManagerLive.effect
-);

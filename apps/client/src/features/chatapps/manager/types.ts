@@ -1,5 +1,5 @@
 // Re-export external types if needed
-export type { ChatAppConfig } from "../../types/global";
+export type { ChatAppConfig } from "../schemas/ChatAppConfigSchema";
 
 // ChatApp Status Types
 export type ChatAppStatus =

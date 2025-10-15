@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ToolbarCommand } from "./types";
+import { ToolbarCommand } from "../types/types";
 
 const createCommand = (
   id: string,

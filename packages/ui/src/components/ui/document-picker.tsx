@@ -42,7 +42,7 @@ export function DocumentPicker({
   preview = true,
   accept = defaultAccept,
   ...props
-}: DocumentPickerProps) {
+}: DocumentPickerProps): React.ReactElement {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     ...props,
     accept,

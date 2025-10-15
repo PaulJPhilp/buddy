@@ -47,6 +47,8 @@ export function createDefaultChatAppConfig(name?: string, agentId?: string) {
     description: "Default chat app configuration",
     version: "1.0.0",
     agentId: agentId ?? "default-agent",
+    toolbarId: "default-toolbar",
+    themeId: "default-theme",
     permissions: {
       canSendMessages: true,
       canReceiveMessages: true,
